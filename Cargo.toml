@@ -1,0 +1,13 @@
+[package]
+name = "rusty-git-gui"
+version = "0.1.0"
+authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+cast = "0.2.2"
+failure = "0.1.5"
+gio = "0.6.0"
+git2 = "0.8"
+gtk = { version = "0.6.0", features = ["v3_24"] }
+v_htmlescape = "0.4.2"
