@@ -9,6 +9,7 @@ use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::GtkWindowExt as _;
 use gtk::TreeModelExt as _;
+use gtk::TreeSelectionExt as _;
 use gtk::TextViewExt as _;
 use gtk::TreeViewColumnExt as _;
 use gtk::TreeViewExt as _;
@@ -51,7 +52,6 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 
     setupUnstagedViews(&unstagedFilesStatusView, Rc::clone(&diffView), Rc::clone(&repository));
     setupStagedViews(&stagedFilesStatusView, Rc::clone(&diffView), Rc::clone(&repository));
-    unstagedFilesStatusView.emit_row_activated(&gtk::TreePath::new_first(), &gtk::TreeViewColumn::new());
 
     window.show_all();
 }
@@ -96,7 +96,6 @@ fn makeFilesStatusView(fileStatusModel: &gtk::ListStore) -> gtk::TreeView
 {
     let fileStatusView = gtk::TreeView::new_with_model(fileStatusModel);
     fileStatusView.set_vexpand(true);
-    fileStatusView.set_activate_on_single_click(true);
     appendColumn("Status", &fileStatusView);
     appendColumn("File", &fileStatusView);
     fileStatusView
@@ -132,27 +131,38 @@ fn setupStagedViews(fileStatusView: &gtk::TreeView, diffView: Rc<gtk::TextView>,
 
 fn setupFileViews(fileStatusView: &gtk::TreeView, diffView: Rc<gtk::TextView>, diffMaker: impl DiffMaker + 'static)
 {
-    fileStatusView.connect_row_activated(
-        move |fileStatusView, row, _column| displayDiff(fileStatusView, &diffView, row, &diffMaker));
+    fileStatusView.get_selection().connect_changed(
+        move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker));
+}
+
+fn handleChangedFileViewSelection(selection: &gtk::TreeSelection, diffView: &gtk::TextView, diffMaker: &impl DiffMaker)
+{
+    let (rows, model) = selection.get_selected_rows();
+    if rows.is_empty() {
+        return;
+    }
+    else if rows.len() > 1 {
+        exit(&format!("Expected file view selection to have at most 1 selected row, got {}.", rows.len()));
+    }
+
+    displayDiff(&model, diffView, &rows[0], diffMaker);
 }
 
 fn displayDiff(
-    fileStatusView: &gtk::TreeView,
+    fileStatusModel: &gtk::TreeModel,
     diffView: &gtk::TextView,
     row: &gtk::TreePath,
     diffMaker: &impl DiffMaker)
 {
-    let filePath = getFilePathFromFileStatusView(&row, &fileStatusView);
+    let filePath = getFilePathFromFileStatusView(&row, &fileStatusModel);
     let diffLinePrinter = DiffLinePrinter::new(&diffView);
     let diff = diffMaker.makeDiff(&filePath);
     diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffLinePrinter.printDiff(&line))
         .unwrap_or_else(|e| exit(&format!("Failed to print diff: {}", e)));
 }
 
-fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusView: &gtk::TreeView) -> String
+fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusModel: &gtk::TreeModel) -> String
 {
-    let fileStatusModel = fileStatusView.get_model()
-        .unwrap_or_else(|| exit(&format!("Failed to get model from file status view")));
     let iterator = &fileStatusModel.get_iter(row)
         .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
     fileStatusModel.get_value(iterator, FileStatusModelColumn::Path as i32).get().
