@@ -40,18 +40,17 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
     let unstagedLabel = gtk::Label::new("Unstaged:");
     verticalBox.add(&unstagedLabel);
     let unstagedFilesStatusView = makeFilesStatusView(&fileStatusModels.unstaged);
-    verticalBox.add(&unstagedFilesStatusView);
+    verticalBox.add(&*unstagedFilesStatusView);
 
     let stagedLabel = gtk::Label::new("Staged:");
     verticalBox.add(&stagedLabel);
     let stagedFilesStatusView = makeFilesStatusView(&fileStatusModels.staged);
-    verticalBox.add(&stagedFilesStatusView);
+    verticalBox.add(&*stagedFilesStatusView);
 
     let diffView = makeDiffView();
     verticalBox.add(&*diffView);
 
-    setupUnstagedViews(&unstagedFilesStatusView, Rc::clone(&diffView), Rc::clone(&repository));
-    setupStagedViews(&stagedFilesStatusView, Rc::clone(&diffView), Rc::clone(&repository));
+    setupFileViews(unstagedFilesStatusView, stagedFilesStatusView, diffView, repository);
 
     window.show_all();
 }
@@ -92,9 +91,9 @@ fn makeFileStatusModel(fileInfos: &[FileInfo]) -> gtk::ListStore
     fileStatusModel
 }
 
-fn makeFilesStatusView(fileStatusModel: &gtk::ListStore) -> gtk::TreeView
+fn makeFilesStatusView(fileStatusModel: &gtk::ListStore) -> Rc<gtk::TreeView>
 {
-    let fileStatusView = gtk::TreeView::new_with_model(fileStatusModel);
+    let fileStatusView = Rc::new(gtk::TreeView::new_with_model(fileStatusModel));
     fileStatusView.set_vexpand(true);
     appendColumn("Status", &fileStatusView);
     appendColumn("File", &fileStatusView);
@@ -119,23 +118,42 @@ fn makeDiffView() -> Rc<gtk::TextView>
     diffView
 }
 
-fn setupUnstagedViews(fileStatusView: &gtk::TreeView, diffView: Rc<gtk::TextView>, repository: Rc<Repository>)
+fn setupFileViews(
+    unstagedFilesView: Rc<gtk::TreeView>,
+    stagedFilesView: Rc<gtk::TreeView>,
+    diffView: Rc<gtk::TextView>,
+    repository: Rc<Repository>)
 {
-    setupFileViews(fileStatusView, diffView, UnstagedDiffMaker{repository});
+    let stagedFilesViewToUnselect = Rc::clone(&stagedFilesView);
+    connectSelectionChanged(
+        &unstagedFilesView,
+        Rc::clone(&diffView),
+        UnstagedDiffMaker{repository: Rc::clone(&repository)},
+        stagedFilesViewToUnselect);
+
+    let unstagedFilesViewToUnselect = unstagedFilesView;
+    connectSelectionChanged(
+        &stagedFilesView,
+        diffView,
+        StagedDiffMaker{repository},
+        unstagedFilesViewToUnselect);
 }
 
-fn setupStagedViews(fileStatusView: &gtk::TreeView, diffView: Rc<gtk::TextView>, repository: Rc<Repository>)
+fn connectSelectionChanged(
+    filesView: &gtk::TreeView,
+    diffView: Rc<gtk::TextView>,
+    diffMaker: impl DiffMaker + 'static,
+    filesViewToUnselect: Rc<gtk::TreeView>)
 {
-    setupFileViews(fileStatusView, diffView, StagedDiffMaker{repository});
+    filesView.get_selection().connect_changed(
+        move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker, &filesViewToUnselect));
 }
 
-fn setupFileViews(fileStatusView: &gtk::TreeView, diffView: Rc<gtk::TextView>, diffMaker: impl DiffMaker + 'static)
-{
-    fileStatusView.get_selection().connect_changed(
-        move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker));
-}
-
-fn handleChangedFileViewSelection(selection: &gtk::TreeSelection, diffView: &gtk::TextView, diffMaker: &impl DiffMaker)
+fn handleChangedFileViewSelection(
+    selection: &gtk::TreeSelection,
+    diffView: &gtk::TextView,
+    diffMaker: &impl DiffMaker,
+    fileViewToUnselect: &gtk::TreeView)
 {
     let (rows, model) = selection.get_selected_rows();
     if rows.is_empty() {
@@ -145,6 +163,7 @@ fn handleChangedFileViewSelection(selection: &gtk::TreeSelection, diffView: &gtk
         exit(&format!("Expected file view selection to have at most 1 selected row, got {}.", rows.len()));
     }
 
+    fileViewToUnselect.get_selection().unselect_all();
     displayDiff(&model, diffView, &rows[0], diffMaker);
 }
 
