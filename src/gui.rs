@@ -15,12 +15,17 @@ use gtk::TreeViewExt as _;
 use gtk::WidgetExt as _;
 use std::rc::Rc;
 
+enum FileStatusModelColumn
+{
+    Status,
+    Path
+}
+
 const EXPAND_IN_LAYOUT : bool = true;
 const SPACING : i32 = 8;
-const FILE_STATUS_COLUMN : u32 = 0;
-const FILE_PATH_COLUMN : u32 = 1;
-const COLUMN_INDICES : [u32; 2] = [FILE_STATUS_COLUMN, FILE_PATH_COLUMN];
-
+const FILE_STATUS_MODEL_COLUMN_INDICES: [u32; 2] = [
+    FileStatusModelColumn::Status as u32,
+    FileStatusModelColumn::Path as u32];
 
 pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 {
@@ -82,7 +87,7 @@ fn makeFileStatusModel(fileInfos: &[FileInfo]) -> gtk::ListStore
 
     let fileStatusModel = gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]);
     for fileInfo in fileInfosForModel {
-        fileStatusModel.set(&fileStatusModel.append(), &COLUMN_INDICES[..], &fileInfo);
+        fileStatusModel.set(&fileStatusModel.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..], &fileInfo);
     };
     fileStatusModel
 }
@@ -150,7 +155,7 @@ fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusView: &gtk::Tree
         .unwrap_or_else(|| exit(&format!("Failed to get model from file status view")));
     let iterator = &fileStatusModel.get_iter(row)
         .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
-    fileStatusModel.get_value(iterator, toI32(FILE_PATH_COLUMN)).get().
+    fileStatusModel.get_value(iterator, FileStatusModelColumn::Path as i32).get().
         unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
-            iterator, toI32(FILE_PATH_COLUMN))))
+            iterator, FileStatusModelColumn::Path as i32)))
 }
