@@ -50,7 +50,7 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
     let diffView = makeDiffView();
     verticalBox.add(&*diffView);
 
-    setupFileViews(unstagedFilesStatusView, stagedFilesStatusView, diffView, repository);
+    setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
 
     window.show_all();
 }
@@ -120,11 +120,11 @@ fn makeDiffView() -> Rc<gtk::TextView>
 
 fn setupFileViews(
     unstagedFilesView: Rc<gtk::TreeView>,
-    stagedFilesView: Rc<gtk::TreeView>,
+    stagedFilesView: &Rc<gtk::TreeView>,
     diffView: Rc<gtk::TextView>,
     repository: Rc<Repository>)
 {
-    let stagedFilesViewToUnselect = Rc::clone(&stagedFilesView);
+    let stagedFilesViewToUnselect = Rc::clone(stagedFilesView);
     connectSelectionChanged(
         &unstagedFilesView,
         Rc::clone(&diffView),
@@ -133,7 +133,7 @@ fn setupFileViews(
 
     let unstagedFilesViewToUnselect = unstagedFilesView;
     connectSelectionChanged(
-        &stagedFilesView,
+        stagedFilesView,
         diffView,
         StagedDiffMaker{repository},
         unstagedFilesViewToUnselect);

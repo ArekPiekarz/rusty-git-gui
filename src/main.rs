@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 #![allow(non_snake_case)]
 
 #[macro_use] extern crate failure;
@@ -27,6 +28,6 @@ fn main()
 
 fn makeGtkApp() -> gtk::Application
 {
-    gtk::Application::new("org.rusty-git-gui", Default::default())
+    gtk::Application::new("org.rusty-git-gui", gio::ApplicationFlags::default())
         .unwrap_or_else(|e| panic!("Failed to create GTK application: {}", e))
 }

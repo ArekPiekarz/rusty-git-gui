@@ -36,9 +36,9 @@ pub struct FileInfos
 
 impl Repository
 {
-    pub fn new() -> Repository
+    pub fn new() -> Self
     {
-        Repository { gitRepo: openRepository(&findRepositoryDir()) }
+        Self{gitRepo: openRepository(&findRepositoryDir())}
     }
 
     pub fn collectFileInfos(&self) -> FileInfos
