@@ -1,4 +1,5 @@
 use crate::error_handling::exit;
+use std::path::Path;
 
 const NO_INDEX : Option<&git2::Index> = None;
 const UNSTAGED_STATUSES : [git2::Status; 5] = [
@@ -78,6 +79,19 @@ impl Repository
         let tree : Option<&git2::Tree> = None;
         self.gitRepo.diff_tree_to_index(tree, NO_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
+    }
+
+    pub fn stageFile(&self, path: &str)
+    {
+        let mut index = self.gitRepo.index()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {}, because index could not be acquired: {}", path, e)));
+        index.add_path(Path::new(path))
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {}, because adding path to index failed: {}", path, e)));
+        index.write()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {}, because writing the index to disk failed: {}", path, e)));
     }
 }
 

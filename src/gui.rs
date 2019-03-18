@@ -39,7 +39,7 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 
     let unstagedLabel = gtk::Label::new("Unstaged:");
     verticalBox.add(&unstagedLabel);
-    let unstagedFilesStatusView = makeFilesStatusView(&fileStatusModels.unstaged);
+    let unstagedFilesStatusView = makeUnstagedFilesStatusView(&fileStatusModels.unstaged, Rc::clone(&repository));
     verticalBox.add(&*unstagedFilesStatusView);
 
     let stagedLabel = gtk::Label::new("Staged:");
@@ -89,6 +89,13 @@ fn makeFileStatusModel(fileInfos: &[FileInfo]) -> gtk::ListStore
         fileStatusModel.set(&fileStatusModel.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..], &fileInfo);
     };
     fileStatusModel
+}
+
+fn makeUnstagedFilesStatusView(fileStatusModel: &gtk::ListStore, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+{
+    let view = makeFilesStatusView(fileStatusModel);
+    view.connect_row_activated(move |view, row, _column| stageFile(view, row, &repository));
+    view
 }
 
 fn makeFilesStatusView(fileStatusModel: &gtk::ListStore) -> Rc<gtk::TreeView>
@@ -173,18 +180,31 @@ fn displayDiff(
     row: &gtk::TreePath,
     diffMaker: &impl DiffMaker)
 {
-    let filePath = getFilePathFromFileStatusView(&row, &fileStatusModel);
-    let diffLinePrinter = DiffLinePrinter::new(&diffView);
+    let filePath = getFilePathFromFileStatusModel(row, fileStatusModel);
+    let diffLinePrinter = DiffLinePrinter::new(diffView);
     let diff = diffMaker.makeDiff(&filePath);
     diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffLinePrinter.printDiff(&line))
         .unwrap_or_else(|e| exit(&format!("Failed to print diff: {}", e)));
 }
 
-fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusModel: &gtk::TreeModel) -> String
+fn getFilePathFromFileStatusModel(row: &gtk::TreePath, fileStatusModel: &gtk::TreeModel) -> String
 {
-    let iterator = &fileStatusModel.get_iter(row)
+    let iterator = fileStatusModel.get_iter(row)
         .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
-    fileStatusModel.get_value(iterator, FileStatusModelColumn::Path as i32).get().
+    fileStatusModel.get_value(&iterator, FileStatusModelColumn::Path as i32).get().
         unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
             iterator, FileStatusModelColumn::Path as i32)))
+}
+
+fn stageFile(view: &gtk::TreeView, row: &gtk::TreePath, repository: &Repository)
+{
+    let filePath = getFilePathFromFileStatusView(row, view);
+    repository.stageFile(&filePath);
+}
+
+fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusView: &gtk::TreeView) -> String
+{
+    let model = fileStatusView.get_model()
+        .unwrap_or_else(|| exit(&format!("Failed to get model from file status view")));
+    getFilePathFromFileStatusModel(row, &model)
 }
