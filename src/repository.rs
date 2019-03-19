@@ -93,6 +93,19 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!(
                 "Failed to stage file {}, because writing the index to disk failed: {}", path, e)));
     }
+
+    pub fn unstageFile(&self, path: &str)
+    {
+        let mut index = self.gitRepo.index()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to unstage file {}, because index could not be acquired: {}", path, e)));
+        index.remove_path(Path::new(path))
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to unstage file {}, because removing path from index failed: {}", path, e)));
+        index.write()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to unstage file {}, because writing the index to disk failed: {}", path, e)));
+    }
 }
 
 fn findRepositoryDir() -> std::path::PathBuf

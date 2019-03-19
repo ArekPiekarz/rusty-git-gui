@@ -44,7 +44,7 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 
     let stagedLabel = gtk::Label::new("Staged:");
     verticalBox.add(&stagedLabel);
-    let stagedFilesStatusView = makeFilesStatusView(&fileStatusModels.staged);
+    let stagedFilesStatusView = makeStagedFilesStatusView(&fileStatusModels.staged, Rc::clone(&repository));
     verticalBox.add(&*stagedFilesStatusView);
 
     let diffView = makeDiffView();
@@ -93,17 +93,24 @@ fn makeFileStatusModel(fileInfos: &[FileInfo]) -> gtk::ListStore
 
 fn makeUnstagedFilesStatusView(fileStatusModel: &gtk::ListStore, repository: Rc<Repository>) -> Rc<gtk::TreeView>
 {
-    let view = makeFilesStatusView(fileStatusModel);
-    view.connect_row_activated(move |view, row, _column| stageFile(view, row, &repository));
-    view
+    makeFilesStatusView(fileStatusModel, stageFile, repository)
 }
 
-fn makeFilesStatusView(fileStatusModel: &gtk::ListStore) -> Rc<gtk::TreeView>
+fn makeStagedFilesStatusView(fileStatusModel: &gtk::ListStore, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+{
+    makeFilesStatusView(fileStatusModel, unstageFile, repository)
+}
+
+fn makeFilesStatusView(
+    fileStatusModel: &gtk::ListStore,
+    onRowActivated: impl Fn(&gtk::TreeView, &gtk::TreePath, &Repository) + 'static,
+    repository: Rc<Repository>) -> Rc<gtk::TreeView>
 {
     let fileStatusView = Rc::new(gtk::TreeView::new_with_model(fileStatusModel));
     fileStatusView.set_vexpand(true);
     appendColumn("Status", &fileStatusView);
     appendColumn("File", &fileStatusView);
+    fileStatusView.connect_row_activated(move |view, row, _column| onRowActivated(view, row, &repository));
     fileStatusView
 }
 
@@ -200,6 +207,12 @@ fn stageFile(view: &gtk::TreeView, row: &gtk::TreePath, repository: &Repository)
 {
     let filePath = getFilePathFromFileStatusView(row, view);
     repository.stageFile(&filePath);
+}
+
+fn unstageFile(view: &gtk::TreeView, row: &gtk::TreePath, repository: &Repository)
+{
+    let filePath = getFilePathFromFileStatusView(row, view);
+    repository.unstageFile(&filePath);
 }
 
 fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusView: &gtk::TreeView) -> String
