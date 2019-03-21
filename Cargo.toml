@@ -10,4 +10,4 @@ failure = "0.1.5"
 gio = "0.6.0"
 git2 = "0.8"
 gtk = { version = "0.6.0", features = ["v3_24"] }
-v_htmlescape = "0.4.2"
+v_htmlescape = "0.4.3"
