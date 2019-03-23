@@ -27,6 +27,8 @@ const SPACING : i32 = 8;
 const FILE_STATUS_MODEL_COLUMN_INDICES: [u32; 2] = [
     FileStatusModelColumn::Status as u32,
     FileStatusModelColumn::Path as u32];
+const FILE_STATUS_COLUMN_TYPE : gtk::Type = gtk::Type::String;
+const FILE_PATH_COLUMN_TYPE : gtk::Type = gtk::Type::String;
 
 pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 {
@@ -39,12 +41,12 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 
     let unstagedLabel = gtk::Label::new("Unstaged:");
     verticalBox.add(&unstagedLabel);
-    let unstagedFilesStatusView = makeUnstagedFilesStatusView(&fileStatusModels.unstaged, Rc::clone(&repository));
+    let unstagedFilesStatusView = makeUnstagedFilesStatusView(fileStatusModels.clone(), repository.clone());
     verticalBox.add(&*unstagedFilesStatusView);
 
     let stagedLabel = gtk::Label::new("Staged:");
     verticalBox.add(&stagedLabel);
-    let stagedFilesStatusView = makeStagedFilesStatusView(&fileStatusModels.staged, Rc::clone(&repository));
+    let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels, repository.clone());
     verticalBox.add(&*stagedFilesStatusView);
 
     let diffView = makeDiffView();
@@ -63,10 +65,11 @@ fn makeWindow(gtkApp: &gtk::Application) -> gtk::ApplicationWindow
     window
 }
 
+#[derive(Clone)]
 struct FileStatusModels
 {
-    unstaged: gtk::ListStore,
-    staged: gtk::ListStore
+    unstaged: Rc<gtk::ListStore>,
+    staged: Rc<gtk::ListStore>
 }
 
 fn makeFileStatusModels(repository: &Repository) -> FileStatusModels
@@ -79,38 +82,52 @@ fn makeFileStatusModels(repository: &Repository) -> FileStatusModels
     }
 }
 
-fn makeFileStatusModel(fileInfos: &[FileInfo]) -> gtk::ListStore
+fn makeFileStatusModel(fileInfos: &[FileInfo]) -> Rc<gtk::ListStore>
 {
     let fileInfosForModel = fileInfos.iter().map(
         |fileInfo| [&fileInfo.status as &gtk::ToValue, &fileInfo.path as &gtk::ToValue]).collect::<Vec<_>>();
 
-    let fileStatusModel = gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]);
+    let fileStatusModel = Rc::new(gtk::ListStore::new(&[FILE_STATUS_COLUMN_TYPE, FILE_PATH_COLUMN_TYPE]));
     for fileInfo in fileInfosForModel {
         fileStatusModel.set(&fileStatusModel.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..], &fileInfo);
     };
     fileStatusModel
 }
 
-fn makeUnstagedFilesStatusView(fileStatusModel: &gtk::ListStore, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+struct StagingAreaChangeModels
 {
-    makeFilesStatusView(fileStatusModel, stageFile, repository)
+    source: Rc<gtk::ListStore>,
+    target: Rc<gtk::ListStore>
 }
 
-fn makeStagedFilesStatusView(fileStatusModel: &gtk::ListStore, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+fn makeUnstagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
 {
-    makeFilesStatusView(fileStatusModel, unstageFile, repository)
+    makeFilesStatusView(
+        StagingAreaChangeModels{
+            source: fileStatusModels.unstaged,
+            target: fileStatusModels.staged},
+        move |path| repository.stageFile(path))
+}
+
+fn makeStagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+{
+    makeFilesStatusView(
+        StagingAreaChangeModels{
+            source: fileStatusModels.staged,
+            target: fileStatusModels.unstaged},
+        move |path| repository.unstageFile(path))
 }
 
 fn makeFilesStatusView(
-    fileStatusModel: &gtk::ListStore,
-    onRowActivated: impl Fn(&gtk::TreeView, &gtk::TreePath, &Repository) + 'static,
-    repository: Rc<Repository>) -> Rc<gtk::TreeView>
+    models: StagingAreaChangeModels,
+    stagingStateChanger: impl Fn(&str) + 'static) -> Rc<gtk::TreeView>
 {
-    let fileStatusView = Rc::new(gtk::TreeView::new_with_model(fileStatusModel));
+    let fileStatusView = Rc::new(gtk::TreeView::new_with_model(&*models.source));
     fileStatusView.set_vexpand(true);
     appendColumn("Status", &fileStatusView);
     appendColumn("File", &fileStatusView);
-    fileStatusView.connect_row_activated(move |view, row, _column| onRowActivated(view, row, &repository));
+    fileStatusView.connect_row_activated(move |_view, row, _column|
+        changeStagingState(&models, row, &stagingStateChanger));
     fileStatusView
 }
 
@@ -138,11 +155,11 @@ fn setupFileViews(
     diffView: Rc<gtk::TextView>,
     repository: Rc<Repository>)
 {
-    let stagedFilesViewToUnselect = Rc::clone(stagedFilesView);
+    let stagedFilesViewToUnselect = stagedFilesView.clone();
     connectSelectionChanged(
         &unstagedFilesView,
-        Rc::clone(&diffView),
-        UnstagedDiffMaker{repository: Rc::clone(&repository)},
+        diffView.clone(),
+        UnstagedDiffMaker{repository: repository.clone()},
         stagedFilesViewToUnselect);
 
     let unstagedFilesViewToUnselect = unstagedFilesView;
@@ -203,21 +220,22 @@ fn getFilePathFromFileStatusModel(row: &gtk::TreePath, fileStatusModel: &gtk::Tr
             iterator, FileStatusModelColumn::Path as i32)))
 }
 
-fn stageFile(view: &gtk::TreeView, row: &gtk::TreePath, repository: &Repository)
+fn changeStagingState(
+    models: &StagingAreaChangeModels,
+    row: &gtk::TreePath,
+    stagingStateChanger: impl Fn(&str))
 {
-    let filePath = getFilePathFromFileStatusView(row, view);
-    repository.stageFile(&filePath);
-}
+    let iterator = models.source.get_iter(row)
+        .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
+    let filePath = models.source.get_value(&iterator, FileStatusModelColumn::Path as i32).get::<String>().
+        unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
+                                        iterator, FileStatusModelColumn::Path as i32)));
+    let fileStatus = models.source.get_value(&iterator, FileStatusModelColumn::Status as i32).get::<String>().
+        unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
+                                        iterator, FileStatusModelColumn::Status as i32)));
 
-fn unstageFile(view: &gtk::TreeView, row: &gtk::TreePath, repository: &Repository)
-{
-    let filePath = getFilePathFromFileStatusView(row, view);
-    repository.unstageFile(&filePath);
-}
-
-fn getFilePathFromFileStatusView(row: &gtk::TreePath, fileStatusView: &gtk::TreeView) -> String
-{
-    let model = fileStatusView.get_model()
-        .unwrap_or_else(|| exit(&format!("Failed to get model from file status view")));
-    getFilePathFromFileStatusModel(row, &model)
+    stagingStateChanger(&filePath);
+    models.source.remove(&iterator);
+    models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
+                      &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]);
 }
