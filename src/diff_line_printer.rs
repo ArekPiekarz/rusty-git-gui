@@ -13,7 +13,7 @@ impl DiffLinePrinter
 {
     pub fn new(textView: &gtk::TextView) -> Self
     {
-        let buffer = textView.get_buffer().unwrap_or_else(|| exit("Failed to get text view buffer"));
+        let buffer = textView.get_buffer().unwrap_or_else(|| exit("Failed to get diff view buffer"));
         buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
         Self { buffer }
     }

@@ -3,11 +3,13 @@ use crate::diff_line_printer::*;
 use crate::diff_maker::*;
 use crate::error_handling::*;
 use crate::repository::*;
+use gtk::ButtonExt as _;
 use gtk::CellLayoutExt as _;
 use gtk::ContainerExt as _;
 use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::GtkWindowExt as _;
+use gtk::TextBufferExt as _;
 use gtk::TreeModelExt as _;
 use gtk::TreeSelectionExt as _;
 use gtk::TextViewExt as _;
@@ -29,6 +31,8 @@ const FILE_STATUS_MODEL_COLUMN_INDICES: [u32; 2] = [
     FileStatusModelColumn::Path as u32];
 const FILE_STATUS_COLUMN_TYPE : gtk::Type = gtk::Type::String;
 const FILE_PATH_COLUMN_TYPE : gtk::Type = gtk::Type::String;
+const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
+
 
 pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 {
@@ -39,18 +43,22 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 
     let fileStatusModels = makeFileStatusModels(&repository);
 
-    let unstagedLabel = gtk::Label::new("Unstaged:");
-    verticalBox.add(&unstagedLabel);
+    verticalBox.add(&gtk::Label::new("Unstaged:"));
     let unstagedFilesStatusView = makeUnstagedFilesStatusView(fileStatusModels.clone(), repository.clone());
     verticalBox.add(&*unstagedFilesStatusView);
 
-    let stagedLabel = gtk::Label::new("Staged:");
-    verticalBox.add(&stagedLabel);
+    verticalBox.add(&gtk::Label::new("Staged:"));
     let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels, repository.clone());
     verticalBox.add(&*stagedFilesStatusView);
 
+    verticalBox.add(&gtk::Label::new("Diff:"));
     let diffView = makeDiffView();
     verticalBox.add(&*diffView);
+
+    verticalBox.add(&gtk::Label::new("Commit message:"));
+    let commitMessageView = gtk::TextView::new();
+    verticalBox.add(&commitMessageView);
+    makeCommitButton(commitMessageView, repository.clone(), &verticalBox);
 
     setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
 
@@ -149,6 +157,13 @@ fn makeDiffView() -> Rc<gtk::TextView>
     diffView
 }
 
+fn makeCommitButton(commitMessageView: gtk::TextView, repository: Rc<Repository>, verticalBox: &gtk::Box)
+{
+    let commitButton = gtk::Button::new_with_label("Commit");
+    commitButton.connect_clicked(move |_button| commitChanges(&commitMessageView, &repository));
+    verticalBox.add(&commitButton);
+}
+
 fn setupFileViews(
     unstagedFilesView: Rc<gtk::TreeView>,
     stagedFilesView: &Rc<gtk::TreeView>,
@@ -238,4 +253,14 @@ fn changeStagingState(
     models.source.remove(&iterator);
     models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
                       &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]);
+}
+
+fn commitChanges(commitMessageView: &gtk::TextView, repository: &Repository)
+{
+    let buffer = commitMessageView.get_buffer()
+        .unwrap_or_else(|| exit("Failed to get commit message view buffer"));
+
+    let message = buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
+        .unwrap_or_else(|| exit(&format!("Failed to get text from commit message view buffer")));
+    repository.commitChanges(&message);
 }

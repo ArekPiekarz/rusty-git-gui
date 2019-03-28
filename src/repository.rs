@@ -106,6 +106,23 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!(
                 "Failed to unstage file {}, because writing the index to disk failed: {}", path, e)));
     }
+
+    pub fn commitChanges(&self, message: &str)
+    {
+        let author = self.gitRepo.signature()
+            .unwrap_or_else(|e| exit(&format!("Failed to get a name and/or email of the commit author: {}", e)));
+        let commiter = &author;
+
+        let mut index = self.gitRepo.index()
+            .unwrap_or_else(|e| exit(&format!("Failed to acquire repository index: {}", e)));
+        let treeId = index.write_tree()
+            .unwrap_or_else(|e| exit(&format!("Failed to write repository index as tree to disk: {}", e)));
+        let tree = self.gitRepo.find_tree(treeId)
+            .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)));
+
+        self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &[])
+            .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
+    }
 }
 
 fn findRepositoryDir() -> std::path::PathBuf
