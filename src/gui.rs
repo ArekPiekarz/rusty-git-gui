@@ -48,7 +48,7 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
     verticalBox.add(&*unstagedFilesStatusView);
 
     verticalBox.add(&gtk::Label::new("Staged:"));
-    let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels, repository.clone());
+    let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels.clone(), repository.clone());
     verticalBox.add(&*stagedFilesStatusView);
 
     verticalBox.add(&gtk::Label::new("Diff:"));
@@ -58,7 +58,7 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
     verticalBox.add(&gtk::Label::new("Commit message:"));
     let commitMessageView = gtk::TextView::new();
     verticalBox.add(&commitMessageView);
-    makeCommitButton(commitMessageView, repository.clone(), &verticalBox);
+    makeCommitButton(commitMessageView, repository.clone(), &verticalBox, fileStatusModels.staged);
 
     setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
 
@@ -157,10 +157,14 @@ fn makeDiffView() -> Rc<gtk::TextView>
     diffView
 }
 
-fn makeCommitButton(commitMessageView: gtk::TextView, repository: Rc<Repository>, verticalBox: &gtk::Box)
+fn makeCommitButton(
+    commitMessageView: gtk::TextView,
+    repository: Rc<Repository>,
+    verticalBox: &gtk::Box,
+    stagedFilesModel: Rc<gtk::ListStore>)
 {
     let commitButton = gtk::Button::new_with_label("Commit");
-    commitButton.connect_clicked(move |_button| commitChanges(&commitMessageView, &repository));
+    commitButton.connect_clicked(move |_button| commitChanges(&commitMessageView, &repository, &stagedFilesModel));
     verticalBox.add(&commitButton);
 }
 
@@ -203,6 +207,9 @@ fn handleChangedFileViewSelection(
 {
     let (rows, model) = selection.get_selected_rows();
     if rows.is_empty() {
+        let buffer = diffView.get_buffer()
+            .unwrap_or_else(|| exit("Failed to get diff view buffer"));
+        buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
         return;
     }
     else if rows.len() > 1 {
@@ -255,7 +262,7 @@ fn changeStagingState(
                       &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]);
 }
 
-fn commitChanges(commitMessageView: &gtk::TextView, repository: &Repository)
+fn commitChanges(commitMessageView: &gtk::TextView, repository: &Repository, stagedFilesModel: &gtk::ListStore)
 {
     let buffer = commitMessageView.get_buffer()
         .unwrap_or_else(|| exit("Failed to get commit message view buffer"));
@@ -263,4 +270,7 @@ fn commitChanges(commitMessageView: &gtk::TextView, repository: &Repository)
     let message = buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
         .unwrap_or_else(|| exit(&format!("Failed to get text from commit message view buffer")));
     repository.commitChanges(&message);
+
+    stagedFilesModel.clear();
+    buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
 }
