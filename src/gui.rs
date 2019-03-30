@@ -6,6 +6,7 @@ use crate::repository::*;
 use gtk::ButtonExt as _;
 use gtk::CellLayoutExt as _;
 use gtk::ContainerExt as _;
+use gtk::GridExt as _;
 use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::GtkWindowExt as _;
@@ -25,7 +26,7 @@ enum FileStatusModelColumn
 }
 
 const EXPAND_IN_LAYOUT : bool = true;
-const SPACING : i32 = 8;
+const SPACING : u32 = 8;
 const FILE_STATUS_MODEL_COLUMN_INDICES: [u32; 2] = [
     FileStatusModelColumn::Status as u32,
     FileStatusModelColumn::Path as u32];
@@ -38,27 +39,33 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 {
     let window = makeWindow(gtkApplication);
 
-    let verticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    window.add(&verticalBox);
+    let grid = gtk::Grid::new();
+    grid.insert_column(0);
+    grid.insert_column(1);
+    grid.set_column_spacing(SPACING);
+    grid.set_row_spacing(SPACING);
+    window.add(&grid);
 
     let fileStatusModels = makeFileStatusModels(&repository);
 
-    verticalBox.add(&gtk::Label::new("Unstaged:"));
+    grid.attach(&gtk::Label::new("Unstaged:"), 0, 0, 1, 1);
     let unstagedFilesStatusView = makeUnstagedFilesStatusView(fileStatusModels.clone(), repository.clone());
-    verticalBox.add(&*unstagedFilesStatusView);
+    grid.attach(&*unstagedFilesStatusView, 0, 1, 1, 1);
 
-    verticalBox.add(&gtk::Label::new("Staged:"));
+    grid.attach(&gtk::Label::new("Staged:"), 0, 2, 1, 1);
     let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels.clone(), repository.clone());
-    verticalBox.add(&*stagedFilesStatusView);
+    grid.attach(&*stagedFilesStatusView, 0, 3, 1, 2);
 
-    verticalBox.add(&gtk::Label::new("Diff:"));
+    grid.attach(&gtk::Label::new("Diff:"), 1, 0, 1, 1);
     let diffView = makeDiffView();
-    verticalBox.add(&*diffView);
+    diffView.set_hexpand(true);
+    grid.attach(&*diffView, 1, 1, 1, 1);
 
-    verticalBox.add(&gtk::Label::new("Commit message:"));
+    grid.attach(&gtk::Label::new("Commit message:"), 1, 2, 1, 1);
     let commitMessageView = gtk::TextView::new();
-    verticalBox.add(&commitMessageView);
-    makeCommitButton(commitMessageView, repository.clone(), &verticalBox, fileStatusModels.staged);
+    commitMessageView.set_vexpand(true);
+    grid.attach(&commitMessageView, 1, 3, 1, 1);
+    makeCommitButton(commitMessageView, repository.clone(), &grid, fileStatusModels.staged);
 
     setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
 
@@ -160,12 +167,12 @@ fn makeDiffView() -> Rc<gtk::TextView>
 fn makeCommitButton(
     commitMessageView: gtk::TextView,
     repository: Rc<Repository>,
-    verticalBox: &gtk::Box,
+    verticalBox: &gtk::Grid,
     stagedFilesModel: Rc<gtk::ListStore>)
 {
     let commitButton = gtk::Button::new_with_label("Commit");
     commitButton.connect_clicked(move |_button| commitChanges(&commitMessageView, &repository, &stagedFilesModel));
-    verticalBox.add(&commitButton);
+    verticalBox.attach(&commitButton, 1, 4, 1, 1);
 }
 
 fn setupFileViews(
