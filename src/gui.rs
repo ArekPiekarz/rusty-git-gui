@@ -6,10 +6,10 @@ use crate::repository::*;
 use gtk::ButtonExt as _;
 use gtk::CellLayoutExt as _;
 use gtk::ContainerExt as _;
-use gtk::GridExt as _;
 use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::GtkWindowExt as _;
+use gtk::PanedExt as _;
 use gtk::TextBufferExt as _;
 use gtk::TreeModelExt as _;
 use gtk::TreeSelectionExt as _;
@@ -26,7 +26,7 @@ enum FileStatusModelColumn
 }
 
 const EXPAND_IN_LAYOUT : bool = true;
-const SPACING : u32 = 8;
+const SPACING : i32 = 8;
 const FILE_STATUS_MODEL_COLUMN_INDICES: [u32; 2] = [
     FileStatusModelColumn::Status as u32,
     FileStatusModelColumn::Path as u32];
@@ -39,33 +39,42 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 {
     let window = makeWindow(gtkApplication);
 
-    let grid = gtk::Grid::new();
-    grid.insert_column(0);
-    grid.insert_column(1);
-    grid.set_column_spacing(SPACING);
-    grid.set_row_spacing(SPACING);
-    window.add(&grid);
+    let generalPane = gtk::Paned::new(gtk::Orientation::Horizontal);
+    let filesPane = gtk::Paned::new(gtk::Orientation::Vertical);
+    let diffAndCommitPane = gtk::Paned::new(gtk::Orientation::Vertical);
+    generalPane.add1(&filesPane);
+    generalPane.add2(&diffAndCommitPane);
+
+    window.add(&generalPane);
 
     let fileStatusModels = makeFileStatusModels(&repository);
 
-    grid.attach(&gtk::Label::new("Unstaged:"), 0, 0, 1, 1);
+    let unstagedVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    filesPane.add1(&unstagedVerticalBox);
+    unstagedVerticalBox.add(&gtk::Label::new("Unstaged:"));
     let unstagedFilesStatusView = makeUnstagedFilesStatusView(fileStatusModels.clone(), repository.clone());
-    grid.attach(&*unstagedFilesStatusView, 0, 1, 1, 1);
+    unstagedVerticalBox.add(&*unstagedFilesStatusView);
 
-    grid.attach(&gtk::Label::new("Staged:"), 0, 2, 1, 1);
+    let stagedVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    filesPane.add2(&stagedVerticalBox);
+    stagedVerticalBox.add(&gtk::Label::new("Staged:"));
     let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels.clone(), repository.clone());
-    grid.attach(&*stagedFilesStatusView, 0, 3, 1, 2);
+    stagedVerticalBox.add(&*stagedFilesStatusView);
 
-    grid.attach(&gtk::Label::new("Diff:"), 1, 0, 1, 1);
+    let diffVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    diffAndCommitPane.add1(&diffVerticalBox);
+    diffVerticalBox.add(&gtk::Label::new("Diff:"));
     let diffView = makeDiffView();
     diffView.set_hexpand(true);
-    grid.attach(&*diffView, 1, 1, 1, 1);
+    diffVerticalBox.add(&*diffView);
 
-    grid.attach(&gtk::Label::new("Commit message:"), 1, 2, 1, 1);
+    let commitVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    diffAndCommitPane.add2(&commitVerticalBox);
+    commitVerticalBox.add(&gtk::Label::new("Commit message:"));
     let commitMessageView = gtk::TextView::new();
     commitMessageView.set_vexpand(true);
-    grid.attach(&commitMessageView, 1, 3, 1, 1);
-    makeCommitButton(commitMessageView, repository.clone(), &grid, fileStatusModels.staged);
+    commitVerticalBox.add(&commitMessageView);
+    makeCommitButton(commitMessageView, repository.clone(), &commitVerticalBox, fileStatusModels.staged);
 
     setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
 
@@ -161,18 +170,19 @@ fn makeDiffView() -> Rc<gtk::TextView>
     let diffView = Rc::new(gtk::TextView::new());
     diffView.set_editable(false);
     diffView.set_monospace(true);
+    diffView.set_vexpand(true);
     diffView
 }
 
 fn makeCommitButton(
     commitMessageView: gtk::TextView,
     repository: Rc<Repository>,
-    verticalBox: &gtk::Grid,
+    layoutBox: &gtk::Box,
     stagedFilesModel: Rc<gtk::ListStore>)
 {
     let commitButton = gtk::Button::new_with_label("Commit");
     commitButton.connect_clicked(move |_button| commitChanges(&commitMessageView, &repository, &stagedFilesModel));
-    verticalBox.attach(&commitButton, 1, 4, 1, 1);
+    layoutBox.add(&commitButton);
 }
 
 fn setupFileViews(
