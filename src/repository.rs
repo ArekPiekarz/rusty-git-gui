@@ -119,9 +119,26 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to write repository index as tree to disk: {}", e)));
         let tree = self.gitRepo.find_tree(treeId)
             .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)));
+        let parentCommits = self.findParentCommits();
+        let parentCommits = parentCommits.iter().collect::<Vec<&_>>();
 
-        self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &[])
+        self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
             .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
+    }
+
+    fn findParentCommits(&self) -> Vec<git2::Commit>
+    {
+        let isRepositoryEmpty = self.gitRepo.is_empty()
+            .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)));
+        if isRepositoryEmpty {
+            return vec![];
+        }
+
+        let head = self.gitRepo.head()
+            .unwrap_or_else(|e| exit(&format!("Failed to get reference to HEAD: {}", e)));
+        let commit = head.peel_to_commit()
+            .unwrap_or_else(|e| exit(&format!("Failed to turn a reference to HEAD into a commit: {}", e)));
+        vec![commit]
     }
 }
 
