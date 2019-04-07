@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 cast = "0.2.2"
+failchain = "0.1015.2"
 failure = "0.1.5"
 gio = "0.6.0"
 git2 = "0.8"

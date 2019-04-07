@@ -1,6 +1,15 @@
-use crate::error_handling::exit;
+use crate::gui_utils::getBuffer;
+use failure::ResultExt as _;
 use gtk::TextBufferExt as _;
-use gtk::TextViewExt as _;
+
+pub type Error = failchain::BoxedError<ErrorKind>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorKind {
+    #[fail(display = "Failed to make diff line printer.")]
+    NewDiffLinePrinter
+}
 
 const PRINTING_SUCCEEDED : bool = true;
 
@@ -11,11 +20,11 @@ pub struct DiffLinePrinter
 
 impl DiffLinePrinter
 {
-    pub fn new(textView: &gtk::TextView) -> Self
+    pub fn new(textView: &gtk::TextView) -> Result<Self>
     {
-        let buffer = textView.get_buffer().unwrap_or_else(|| exit("Failed to get diff view buffer"));
+        let buffer = getBuffer(textView).context(ErrorKind::NewDiffLinePrinter)?;
         buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
-        Self { buffer }
+        Ok(Self { buffer })
     }
 
     pub fn printDiff(&self, line: &git2::DiffLine) -> bool

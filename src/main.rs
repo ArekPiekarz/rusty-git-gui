@@ -1,5 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(non_snake_case)]
+#![deny(unused_must_use)]
 
 #[macro_use] extern crate failure;
 
@@ -8,6 +9,7 @@ mod diff_line_printer;
 mod diff_maker;
 mod error_handling;
 mod gui;
+mod gui_utils;
 mod repository;
 
 use crate::gui::*;

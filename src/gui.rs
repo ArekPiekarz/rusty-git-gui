@@ -3,6 +3,7 @@ use crate::diff_line_printer::*;
 use crate::diff_maker::*;
 use crate::error_handling::*;
 use crate::repository::*;
+use failure::ResultExt as _;
 use gtk::ButtonExt as _;
 use gtk::CellLayoutExt as _;
 use gtk::ContainerExt as _;
@@ -18,6 +19,18 @@ use gtk::TreeViewColumnExt as _;
 use gtk::TreeViewExt as _;
 use gtk::WidgetExt as _;
 use std::rc::Rc;
+
+pub type Error = failchain::BoxedError<ErrorKind>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorKind
+{
+    #[fail(display = "Failed to display diff.")]
+    DisplayDiff,
+    #[fail(display = "Failed to handle changed file view selection.")]
+    HandleChangedFileViewSelection
+}
 
 enum FileStatusModelColumn
 {
@@ -221,33 +234,37 @@ fn handleChangedFileViewSelection(
     diffView: &gtk::TextView,
     diffMaker: &impl DiffMaker,
     fileViewToUnselect: &gtk::TreeView)
-{
+{(|| -> Result<()> {
     let (rows, model) = selection.get_selected_rows();
     if rows.is_empty() {
         let buffer = diffView.get_buffer()
             .unwrap_or_else(|| exit("Failed to get diff view buffer"));
         buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
-        return;
+        return Ok(());
     }
     else if rows.len() > 1 {
         exit(&format!("Expected file view selection to have at most 1 selected row, got {}.", rows.len()));
     }
 
     fileViewToUnselect.get_selection().unselect_all();
-    displayDiff(&model, diffView, &rows[0], diffMaker);
+    displayDiff(&model, diffView, &rows[0], diffMaker)?;
+    Ok(())
+})().context(ErrorKind::HandleChangedFileViewSelection)
+    .unwrap_or_else(|e| exit(&formatFail(&e)));
 }
 
 fn displayDiff(
     fileStatusModel: &gtk::TreeModel,
     diffView: &gtk::TextView,
     row: &gtk::TreePath,
-    diffMaker: &impl DiffMaker)
+    diffMaker: &impl DiffMaker) -> Result<()>
 {
     let filePath = getFilePathFromFileStatusModel(row, fileStatusModel);
-    let diffLinePrinter = DiffLinePrinter::new(diffView);
+    let diffLinePrinter = DiffLinePrinter::new(diffView).context(ErrorKind::DisplayDiff)?;
     let diff = diffMaker.makeDiff(&filePath);
     diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffLinePrinter.printDiff(&line))
         .unwrap_or_else(|e| exit(&format!("Failed to print diff: {}", e)));
+    Ok(())
 }
 
 fn getFilePathFromFileStatusModel(row: &gtk::TreePath, fileStatusModel: &gtk::TreeModel) -> String
@@ -285,7 +302,7 @@ fn commitChanges(commitMessageView: &gtk::TextView, repository: &Repository, sta
         .unwrap_or_else(|| exit("Failed to get commit message view buffer"));
 
     let message = buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
-        .unwrap_or_else(|| exit(&format!("Failed to get text from commit message view buffer")));
+        .unwrap_or_else(|| exit("Failed to get text from commit message view buffer"));
     repository.commitChanges(&message);
 
     stagedFilesModel.clear();
