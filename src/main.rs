@@ -11,6 +11,7 @@ mod error_handling;
 mod gui;
 mod gui_utils;
 mod repository;
+mod std_utils;
 
 use crate::gui::*;
 use crate::repository::*;

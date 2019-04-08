@@ -1,8 +1,10 @@
-use crate::converters::*;
-use crate::diff_line_printer::*;
-use crate::diff_maker::*;
-use crate::error_handling::*;
-use crate::repository::*;
+use crate::converters::toI32;
+use crate::diff_line_printer::DiffLinePrinter;
+use crate::diff_maker::{DiffMaker, StagedDiffMaker, UnstagedDiffMaker};
+use crate::error_handling::{exit, formatFail};
+use crate::gui_utils::getBuffer;
+use crate::repository::{FileInfo, Repository};
+use failchain::{bail, ResultExt as _};
 use failure::ResultExt as _;
 use gtk::ButtonExt as _;
 use gtk::CellLayoutExt as _;
@@ -26,10 +28,19 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind
 {
+    #[fail(display = "Failed to clear diff view.")]
+    ClearDiffView,
     #[fail(display = "Failed to display diff.")]
     DisplayDiff,
     #[fail(display = "Failed to handle changed file view selection.")]
-    HandleChangedFileViewSelection
+    HandleChangedFileViewSelection,
+    #[fail(display = "Expected file view selection to have at most 1 selected row, got {}.", 0)]
+    TooLargeFileViewSelection(usize)
+}
+
+impl failchain::ChainErrorKind for ErrorKind
+{
+    type Error = Error;
 }
 
 enum FileStatusModelColumn
@@ -226,7 +237,8 @@ fn connectSelectionChanged(
     filesViewToUnselect: Rc<gtk::TreeView>)
 {
     filesView.get_selection().connect_changed(
-        move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker, &filesViewToUnselect));
+        move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker, &filesViewToUnselect)
+            .unwrap_or_else(|e| exit(&formatFail(&e))));
 }
 
 fn handleChangedFileViewSelection(
@@ -234,23 +246,34 @@ fn handleChangedFileViewSelection(
     diffView: &gtk::TextView,
     diffMaker: &impl DiffMaker,
     fileViewToUnselect: &gtk::TreeView)
-{(|| -> Result<()> {
+    -> Result<()>
+{(||
+{
     let (rows, model) = selection.get_selected_rows();
     if rows.is_empty() {
-        let buffer = diffView.get_buffer()
-            .unwrap_or_else(|| exit("Failed to get diff view buffer"));
-        buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
-        return Ok(());
+        return clearDiffView(&diffView);
     }
     else if rows.len() > 1 {
-        exit(&format!("Expected file view selection to have at most 1 selected row, got {}.", rows.len()));
+        bail!(ErrorKind::TooLargeFileViewSelection(rows.len()));
     }
 
     fileViewToUnselect.get_selection().unselect_all();
     displayDiff(&model, diffView, &rows[0], diffMaker)?;
     Ok(())
-})().context(ErrorKind::HandleChangedFileViewSelection)
-    .unwrap_or_else(|e| exit(&formatFail(&e)));
+}
+)().chain_err(|| ErrorKind::HandleChangedFileViewSelection)
+}
+
+fn clearDiffView(diffView: &gtk::TextView) -> Result<()>
+{
+    let buffer = getBuffer(diffView).context(ErrorKind::ClearDiffView)?;
+    clearBuffer(&buffer);
+    Ok(())
+}
+
+fn clearBuffer(buffer: &gtk::TextBuffer)
+{
+    buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
 }
 
 fn displayDiff(
