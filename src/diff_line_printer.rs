@@ -53,7 +53,7 @@ impl DiffLinePrinter
     {
         self.buffer.insert_markup(
             &mut self.buffer.get_end_iter(),
-            &format!("<span color='{}'>{}{}</span>", color, linePrefix, v_htmlescape::escape(line)));
+            &format!("<span color='{}'>{}{}</span>", color, linePrefix, glib::markup_escape_text(line)));
     }
 
     fn insertKeptLineDiff(&self, line : &str)
