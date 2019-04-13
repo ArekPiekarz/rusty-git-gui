@@ -8,17 +8,21 @@ mod converters;
 mod diff_line_printer;
 mod diff_maker;
 mod error_handling;
-mod gui;
+mod gui_actions;
+mod gui_definitions;
+mod gui_setup;
 mod gui_utils;
 mod repository;
 
-use crate::gui::*;
-use crate::repository::*;
+use crate::gui_setup::buildGui;
+use crate::repository::Repository;
 use gio::ApplicationExt as _;
 use gio::ApplicationExtManual as _;
 use std::rc::Rc;
 
+
 const NO_ARGUMENTS : [String; 0] = [];
+
 
 fn main()
 {
