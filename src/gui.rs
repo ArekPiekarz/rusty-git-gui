@@ -158,7 +158,8 @@ fn makeUnstagedFilesStatusView(fileStatusModels: FileStatusModels, repository: R
         StagingAreaChangeModels{
             source: fileStatusModels.unstaged,
             target: fileStatusModels.staged},
-        move |path| repository.stageFile(path))
+        move |path| repository.stageFile(path),
+        |fileStatus| convertFileStatusToStaged(&fileStatus))
 }
 
 fn makeStagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
@@ -167,19 +168,21 @@ fn makeStagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<
         StagingAreaChangeModels{
             source: fileStatusModels.staged,
             target: fileStatusModels.unstaged},
-        move |path| repository.unstageFile(path))
+        move |path| repository.unstageFile(path),
+        |fileStatus| convertFileStatusToUnstaged(&fileStatus))
 }
 
 fn makeFilesStatusView(
     models: StagingAreaChangeModels,
-    stagingStateChanger: impl Fn(&str) + 'static) -> Rc<gtk::TreeView>
+    switchStagingOfFileInRepository: impl Fn(&str) + 'static,
+    convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String + 'static) -> Rc<gtk::TreeView>
 {
     let fileStatusView = Rc::new(gtk::TreeView::new_with_model(&*models.source));
     fileStatusView.set_vexpand(true);
     appendColumn("Status", &fileStatusView);
     appendColumn("File", &fileStatusView);
     fileStatusView.connect_row_activated(move |_view, row, _column|
-        changeStagingState(&models, row, &stagingStateChanger));
+        changeStagingState(&models, row, &switchStagingOfFileInRepository, &convertFileStatusAfterStagingSwitch));
     fileStatusView
 }
 
@@ -308,7 +311,8 @@ fn getFilePathFromFileStatusModel(row: &gtk::TreePath, fileStatusModel: &gtk::Tr
 fn changeStagingState(
     models: &StagingAreaChangeModels,
     row: &gtk::TreePath,
-    stagingStateChanger: impl Fn(&str))
+    switchStagingOfFileInRepository: impl Fn(&str),
+    convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String)
 {
     let iterator = models.source.get_iter(row)
         .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
@@ -319,10 +323,22 @@ fn changeStagingState(
         unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
                                         iterator, FileStatusModelColumn::Status as i32)));
 
-    stagingStateChanger(&filePath);
+    switchStagingOfFileInRepository(&filePath);
+
+    let fileStatus = convertFileStatusAfterStagingSwitch(&fileStatus);
     models.source.remove(&iterator);
     models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
                       &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]);
+}
+
+fn convertFileStatusToStaged(fileStatus: &str) -> String
+{
+    fileStatus.replace("WT", "INDEX")
+}
+
+fn convertFileStatusToUnstaged(fileStatus: &str) -> String
+{
+    fileStatus.replace("INDEX", "WT")
 }
 
 fn commitStagedChanges(
