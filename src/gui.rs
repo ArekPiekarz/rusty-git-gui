@@ -30,6 +30,10 @@ pub enum ErrorKind
 {
     #[fail(display = "Failed to clear diff view.")]
     ClearDiffView,
+    #[fail(display = "Failed to commit staged changes.")]
+    CommitStagedChanges,
+    #[fail(display = "Failed to get commit message view buffer.")]
+    CommitMessageViewBuffer,
     #[fail(display = "Failed to display diff.")]
     DisplayDiff,
     #[fail(display = "Failed to handle changed file view selection.")]
@@ -205,7 +209,9 @@ fn makeCommitButton(
     stagedFilesModel: Rc<gtk::ListStore>)
 {
     let commitButton = gtk::Button::new_with_label("Commit");
-    commitButton.connect_clicked(move |_button| commitChanges(&commitMessageView, &repository, &stagedFilesModel));
+    commitButton.connect_clicked(
+        move |_button| commitStagedChanges(&commitMessageView, &repository, &stagedFilesModel)
+            .unwrap_or_else(|e| exit(&formatFail(&e))));
     layoutBox.add(&commitButton);
 }
 
@@ -319,15 +325,23 @@ fn changeStagingState(
                       &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]);
 }
 
-fn commitChanges(commitMessageView: &gtk::TextView, repository: &Repository, stagedFilesModel: &gtk::ListStore)
+fn commitStagedChanges(
+    commitMessageView: &gtk::TextView,
+    repository: &Repository,
+    stagedFilesModel: &gtk::ListStore)
+    -> Result<()>
 {
-    let buffer = commitMessageView.get_buffer()
-        .unwrap_or_else(|| exit("Failed to get commit message view buffer"));
+(|| -> Result<()>
+{
+    let buffer = getBuffer(commitMessageView).context(ErrorKind::CommitMessageViewBuffer)?;
 
     let message = buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
         .unwrap_or_else(|| exit("Failed to get text from commit message view buffer"));
     repository.commitChanges(&message);
 
     stagedFilesModel.clear();
-    buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
+    clearBuffer(&buffer);
+    Ok(())
+}
+)().chain_err(|| ErrorKind::CommitStagedChanges)
 }

@@ -1,5 +1,3 @@
-use crate::std_utils::getOption;
-use failchain::ResultExt as _;
 use gtk::TextViewExt as _;
 
 pub type Error = failchain::BoxedError<ErrorKind>;
@@ -8,8 +6,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind
 {
-    #[fail(display = "Failed to get text view buffer.")]
-    NoTextViewBuffer
+    #[fail(display = "gtk::TextView::get_buffer() returned None.")]
+    NoneTextViewBuffer
 }
 
 impl failchain::ChainErrorKind for ErrorKind
@@ -19,5 +17,5 @@ impl failchain::ChainErrorKind for ErrorKind
 
 pub fn getBuffer(textView: &gtk::TextView) -> Result<gtk::TextBuffer>
 {
-    getOption(textView.get_buffer()).chain_err(|| ErrorKind::NoTextViewBuffer)
+    textView.get_buffer().ok_or(ErrorKind::NoneTextViewBuffer.into())
 }
