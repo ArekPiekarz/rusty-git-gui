@@ -69,14 +69,12 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
     diffAndCommitPane.add1(&diffVerticalBox);
     diffVerticalBox.add(&gtk::Label::new("Diff:"));
     let diffView = makeDiffView();
-    diffView.set_hexpand(true);
     diffVerticalBox.add(&*diffView);
 
     let commitVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     diffAndCommitPane.add2(&commitVerticalBox);
     commitVerticalBox.add(&gtk::Label::new("Commit message:"));
-    let commitMessageView = gtk::TextView::new();
-    commitMessageView.set_vexpand(true);
+    let commitMessageView = makeCommitMessageView();
     commitVerticalBox.add(&commitMessageView);
     makeCommitButton(commitMessageView, repository.clone(), &commitVerticalBox, fileStatusModels.staged);
 
@@ -118,6 +116,7 @@ fn makeFileStatusModel(fileInfos: &[FileInfo]) -> Rc<gtk::ListStore>
 fn makeUnstagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
 {
     makeFilesStatusView(
+        "Unstaged files view",
         StagingAreaChangeModels{
             source: fileStatusModels.unstaged,
             target: fileStatusModels.staged},
@@ -128,6 +127,7 @@ fn makeUnstagedFilesStatusView(fileStatusModels: FileStatusModels, repository: R
 fn makeStagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
 {
     makeFilesStatusView(
+        "Staged files view",
         StagingAreaChangeModels{
             source: fileStatusModels.staged,
             target: fileStatusModels.unstaged},
@@ -136,9 +136,11 @@ fn makeStagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<
 }
 
 fn makeFilesStatusView(
+    name: &str,
     models: StagingAreaChangeModels,
     switchStagingOfFileInRepository: impl Fn(&str) + 'static,
-    convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String + 'static) -> Rc<gtk::TreeView>
+    convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String + 'static)
+    -> Rc<gtk::TreeView>
 {
     let fileStatusView = Rc::new(gtk::TreeView::new_with_model(&*models.source));
     fileStatusView.set_vexpand(true);
@@ -146,6 +148,7 @@ fn makeFilesStatusView(
     appendColumn("File", &fileStatusView);
     fileStatusView.connect_row_activated(move |_view, row, _column|
         changeStagingState(&models, row, &switchStagingOfFileInRepository, &convertFileStatusAfterStagingSwitch));
+    fileStatusView.set_name(name);
     fileStatusView
 }
 
@@ -162,10 +165,20 @@ fn appendColumn(title: &str, view: &gtk::TreeView)
 fn makeDiffView() -> Rc<gtk::TextView>
 {
     let diffView = Rc::new(gtk::TextView::new());
+    diffView.set_name("Diff view");
     diffView.set_editable(false);
     diffView.set_monospace(true);
     diffView.set_vexpand(true);
+    diffView.set_hexpand(true);
     diffView
+}
+
+fn makeCommitMessageView() -> gtk::TextView
+{
+    let commitMessageView = gtk::TextView::new();
+    commitMessageView.set_name("Commit message view");
+    commitMessageView.set_vexpand(true);
+    commitMessageView
 }
 
 fn makeCommitButton(

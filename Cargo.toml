@@ -12,3 +12,7 @@ gio = "0.6.0"
 git2 = "0.8"
 glib = "0.7.1"
 gtk = { version = "0.6.0", features = ["v3_24"] }
+
+[dev-dependencies]
+gtk-test = "0.3.0"
+tempfile = "3.0.7"

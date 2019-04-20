@@ -37,9 +37,9 @@ pub struct FileInfos
 
 impl Repository
 {
-    pub fn new() -> Self
+    pub fn new(path: &Path) -> Self
     {
-        Self{gitRepo: openRepository(&findRepositoryDir())}
+        Self{gitRepo: openRepository(path)}
     }
 
     pub fn collectFileInfos(&self) -> FileInfos
@@ -142,20 +142,7 @@ impl Repository
     }
 }
 
-fn findRepositoryDir() -> std::path::PathBuf
-{
-    {
-        let args = &std::env::args().collect::<Vec<String>>();
-        match args.len() {
-            1 => std::env::current_dir()
-                .map_err(|e| format_err!("Failed to get current directory: {}", e)),
-            2 => Ok(std::path::PathBuf::from(&args[1])),
-            size => Err(format_err!("Too many arguments to the application, expected 0 or 1, got {}.", size-1))
-        }
-    }.unwrap_or_else(|e| exit(&format!("Failed to find a repository directory. {}", e)))
-}
-
-fn openRepository(repositoryDir: &std::path::Path) -> git2::Repository
+fn openRepository(repositoryDir: &Path) -> git2::Repository
 {
     git2::Repository::open(repositoryDir)
         .unwrap_or_else(|e| exit(&format!("Failed to open repository: {}", e)))
