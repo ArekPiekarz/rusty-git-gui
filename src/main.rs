@@ -13,6 +13,7 @@ const NO_ARGUMENTS : [String; 0] = [];
 
 fn main()
 {
+    color_backtrace::install();
     let gtkApp = makeGtkApp();
     gtkApp.connect_activate(|gtkApp| buildGui(gtkApp, Rc::new(Repository::new(&findRepositoryDir()))));
     gtkApp.run(&NO_ARGUMENTS);

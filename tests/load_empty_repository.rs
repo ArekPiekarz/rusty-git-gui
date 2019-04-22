@@ -16,6 +16,7 @@ const NO_ARGUMENTS : [String; 0] = [];
 #[test]
 fn loadEmptyRepository()
 {
+    color_backtrace::install();
     let repositoryDir = makeTemporaryDirectory();
     initializeGitRepository(repositoryDir.path());
 
