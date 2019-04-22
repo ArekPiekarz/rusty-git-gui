@@ -7,21 +7,27 @@ use crate::gui_actions::{
     convertFileStatusToStaged,
     convertFileStatusToUnstaged,
     handleChangedFileViewSelection,
+    updateCommitButton,
 };
 use crate::gui_definitions::{FILE_STATUS_MODEL_COLUMN_INDICES, StagingAreaChangeModels};
+use crate::gui_utils::getBuffer;
 use crate::repository::{FileInfo, Repository};
-use gtk::ButtonExt as _;
-use gtk::CellLayoutExt as _;
-use gtk::ContainerExt as _;
-use gtk::GtkListStoreExt as _;
-use gtk::GtkListStoreExtManual as _;
-use gtk::GtkWindowExt as _;
-use gtk::PanedExt as _;
-use gtk::TreeSelectionExt as _;
-use gtk::TextViewExt as _;
-use gtk::TreeViewColumnExt as _;
-use gtk::TreeViewExt as _;
-use gtk::WidgetExt as _;
+use gtk::{
+    ButtonExt as _,
+    CellLayoutExt as _,
+    ContainerExt as _,
+    GtkListStoreExt as _,
+    GtkListStoreExtManual as _,
+    GtkWindowExt as _,
+    PanedExt as _,
+    TextBufferExt as _,
+    TreeModelExt as _,
+    TreeSelectionExt as _,
+    TextViewExt as _,
+    TreeViewColumnExt as _,
+    TreeViewExt as _,
+    WidgetExt as _,
+};
 use std::rc::Rc;
 
 
@@ -75,10 +81,12 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
     diffAndCommitPane.add2(&commitVerticalBox);
     commitVerticalBox.add(&gtk::Label::new("Commit message:"));
     let commitMessageView = makeCommitMessageView();
-    commitVerticalBox.add(&commitMessageView);
-    makeCommitButton(commitMessageView, repository.clone(), &commitVerticalBox, fileStatusModels.staged);
+    commitVerticalBox.add(&*commitMessageView);
+    let commitButton = makeCommitButton(
+        commitMessageView.clone(), repository.clone(), &commitVerticalBox, fileStatusModels.staged);
 
     setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
+    setupCommitButtonUpdater(commitButton, &*stagedFilesStatusView, &commitMessageView);
 
     window.show_all();
 }
@@ -173,25 +181,28 @@ fn makeDiffView() -> Rc<gtk::TextView>
     diffView
 }
 
-fn makeCommitMessageView() -> gtk::TextView
+fn makeCommitMessageView() -> Rc<gtk::TextView>
 {
-    let commitMessageView = gtk::TextView::new();
+    let commitMessageView = Rc::new(gtk::TextView::new());
     commitMessageView.set_name("Commit message view");
     commitMessageView.set_vexpand(true);
     commitMessageView
 }
 
 fn makeCommitButton(
-    commitMessageView: gtk::TextView,
+    commitMessageView: Rc<gtk::TextView>,
     repository: Rc<Repository>,
     layoutBox: &gtk::Box,
     stagedFilesModel: Rc<gtk::ListStore>)
+    -> Rc<gtk::Button>
 {
-    let commitButton = gtk::Button::new_with_label("Commit");
+    let commitButton = Rc::new(gtk::Button::new_with_label("Commit"));
+    commitButton.set_name("Commit button");
     commitButton.connect_clicked(
         move |_button| commitStagedChanges(&commitMessageView, &repository, &stagedFilesModel)
             .unwrap_or_else(|e| exit(&formatFail(&e))));
-    layoutBox.add(&commitButton);
+    layoutBox.add(&*commitButton);
+    commitButton
 }
 
 fn setupFileViews(
@@ -224,4 +235,32 @@ fn connectSelectionChanged(
     filesView.get_selection().connect_changed(
         move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker, &filesViewToUnselect)
             .unwrap_or_else(|e| exit(&formatFail(&e))));
+}
+
+fn setupCommitButtonUpdater(
+    commitButton: Rc<gtk::Button>,
+    stagedFilesView: &gtk::TreeView,
+    commitMessageView: &gtk::TextView)
+{
+    let stagedFilesModel = stagedFilesView.get_model()
+        .unwrap_or_else(
+            || exit("Failed to setup commit button updater, because staged files view does not have a model."));
+    let commitMessageBuffer = Rc::new(getBuffer(&commitMessageView)
+        .unwrap_or_else(
+            |_e| exit("Failed to setup commit button updater, because commit message view does not have a buffer.")));
+
+    updateCommitButton(&commitButton, &stagedFilesModel, &commitMessageBuffer);
+
+    let commitButton2 = commitButton.clone();
+    let commitButton3 = commitButton.clone();
+    let commitMessageBuffer2 = commitMessageBuffer.clone();
+    let commitMessageBuffer3 = commitMessageBuffer.clone();
+
+    stagedFilesModel.connect_row_inserted(
+        move |model, _row, _iter| updateCommitButton(&commitButton, model, &commitMessageBuffer));
+    stagedFilesModel.connect_row_deleted(
+        move |model, _row| updateCommitButton(&commitButton2, model, &commitMessageBuffer2));
+    commitMessageBuffer3.connect_changed(
+        move |buffer| updateCommitButton(&commitButton3, &stagedFilesModel, buffer));
+
 }

@@ -1,17 +1,24 @@
 use crate::diff_line_printer::DiffLinePrinter;
 use crate::diff_maker::DiffMaker;
 use crate::error_handling::exit;
-use crate::gui_definitions::{FileStatusModelColumn, FILE_STATUS_MODEL_COLUMN_INDICES, StagingAreaChangeModels};
-use crate::gui_utils::{clearBuffer,getBuffer};
+use crate::gui_definitions::{
+    FileStatusModelColumn,
+    EXCLUDE_HIDDEN_CHARACTERS,
+    FILE_STATUS_MODEL_COLUMN_INDICES,
+    StagingAreaChangeModels};
+use crate::gui_utils::{clearBuffer,getBuffer, isModelEmpty, isTextBufferEmpty};
 use crate::repository::Repository;
 use failchain::{bail, ResultExt as _};
 use failure::ResultExt as _;
-use gtk::GtkListStoreExt as _;
-use gtk::GtkListStoreExtManual as _;
-use gtk::TextBufferExt as _;
-use gtk::TreeModelExt as _;
-use gtk::TreeSelectionExt as _;
-use gtk::TreeViewExt as _;
+use gtk::{
+    GtkListStoreExt as _,
+    GtkListStoreExtManual as _,
+    TextBufferExt as _,
+    TreeModelExt as _,
+    TreeSelectionExt as _,
+    TreeViewExt as _,
+    WidgetExt as _,
+};
 
 
 pub type Error = failchain::BoxedError<ErrorKind>;
@@ -38,9 +45,6 @@ impl failchain::ChainErrorKind for ErrorKind
 {
     type Error = Error;
 }
-
-
-const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 
 
 pub fn handleChangedFileViewSelection(
@@ -126,6 +130,26 @@ pub fn convertFileStatusToStaged(fileStatus: &str) -> String
 pub fn convertFileStatusToUnstaged(fileStatus: &str) -> String
 {
     fileStatus.replace("INDEX", "WT")
+}
+
+pub fn updateCommitButton(
+    commitButton: &gtk::Button,
+    stagedFilesModel: &gtk::TreeModel,
+    commitMessageBuffer: &gtk::TextBuffer)
+{
+    if isModelEmpty(stagedFilesModel) {
+        commitButton.set_sensitive(false);
+        commitButton.set_tooltip_text("No file is staged for commit.");
+        return;
+    }
+
+    if isTextBufferEmpty(commitMessageBuffer) {
+        commitButton.set_sensitive(false);
+        commitButton.set_tooltip_text("The commit message is empty.");
+        return;
+    }
+    commitButton.set_sensitive(true);
+    commitButton.set_tooltip_text("");
 }
 
 pub fn commitStagedChanges(

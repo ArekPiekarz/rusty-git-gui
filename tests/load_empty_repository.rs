@@ -28,6 +28,7 @@ fn loadEmptyRepository()
         assertStagedFilesViewIsEmpty(&window);
         assertDiffViewIsEmpty(&window);
         assertCommitMessageViewIsEmpty(&window);
+        assertCommitButtonIsDisabled(&window);
 
         window.destroy();
     });
@@ -92,4 +93,12 @@ fn assertTextViewIsEmpty(window: &gtk::Widget, name: &str)
     let textViewContent =
         buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS).unwrap();
     assert_eq!(textViewContent, "");
+}
+
+fn assertCommitButtonIsDisabled(window: &gtk::Widget)
+{
+    let widget = gtk_test::find_widget_by_name(window, "Commit button").unwrap();
+    let button = widget.downcast::<gtk::Button>().unwrap();
+    assert_eq!(button.is_sensitive(), false);
+
 }

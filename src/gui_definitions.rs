@@ -14,6 +14,7 @@ pub struct StagingAreaChangeModels
 }
 
 
+pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 pub const FILE_STATUS_MODEL_COLUMN_INDICES: [u32; 2] = [
     FileStatusModelColumn::Status as u32,
     FileStatusModelColumn::Path as u32];

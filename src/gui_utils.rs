@@ -1,5 +1,9 @@
-use gtk::TextBufferExt as _;
-use gtk::TextViewExt as _;
+use crate::gui_definitions::EXCLUDE_HIDDEN_CHARACTERS;
+use gtk::{
+    TextBufferExt as _,
+    TextViewExt as _,
+    TreeModelExt as _,
+};
 
 
 pub type Error = failchain::BoxedError<ErrorKind>;
@@ -26,4 +30,17 @@ pub fn getBuffer(textView: &gtk::TextView) -> Result<gtk::TextBuffer>
 pub fn clearBuffer(buffer: &gtk::TextBuffer)
 {
     buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
+}
+
+pub fn isModelEmpty(model: &gtk::TreeModel) -> bool
+{
+    model.get_iter_first() == None
+}
+
+pub fn isTextBufferEmpty(buffer: &gtk::TextBuffer) -> bool
+{
+    match buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS) {
+        Some(text) => text == "",
+        None => true
+    }
 }
