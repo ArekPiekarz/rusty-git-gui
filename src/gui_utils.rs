@@ -13,7 +13,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum ErrorKind
 {
     #[fail(display = "gtk::TextView::get_buffer() returned None.")]
-    NoneTextViewBuffer
+    NoneTextViewBuffer,
+    #[fail(display = "gtk::TextBuffer::get_text() returned None.")]
+    NoneTextBufferContent
 }
 
 impl failchain::ChainErrorKind for ErrorKind
@@ -32,15 +34,20 @@ pub fn clearBuffer(buffer: &gtk::TextBuffer)
     buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
 }
 
-pub fn isModelEmpty(model: &gtk::TreeModel) -> bool
+pub fn getText(buffer: &gtk::TextBuffer) -> Result<String>
 {
-    model.get_iter_first() == None
+    match buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS) {
+        Some(text) => Ok(text.into()),
+        None => Err(ErrorKind::NoneTextBufferContent.into())
+    }
 }
 
 pub fn isTextBufferEmpty(buffer: &gtk::TextBuffer) -> bool
 {
-    match buffer.get_text(&buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS) {
-        Some(text) => text == "",
-        None => true
-    }
+    buffer.get_char_count() == 0
+}
+
+pub fn isModelEmpty(model: &gtk::TreeModel) -> bool
+{
+    model.get_iter_first() == None
 }

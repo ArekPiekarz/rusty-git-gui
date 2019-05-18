@@ -2,6 +2,8 @@ use crate::error_handling::exit;
 use gio::ApplicationExt as _;
 use std::path::PathBuf;
 
+pub const NO_APP_ARGUMENTS : [String; 0] = [];
+
 pub fn makeGtkApp() -> gtk::Application
 {
     let gtkApp = gtk::Application::new("org.rusty-git-gui", gio::ApplicationFlags::default())

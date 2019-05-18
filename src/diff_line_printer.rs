@@ -34,6 +34,7 @@ impl DiffLinePrinter
             '+' => self.insertAddedLineDiff(&lineContent),
             '-' => self.insertRemovedLineDiff(&lineContent),
             ' ' => self.insertKeptLineDiff(&lineContent),
+            'F' => (), // ignore file header
              _  => self.insertDiffLine(&lineContent)
         };
         PRINTING_SUCCEEDED

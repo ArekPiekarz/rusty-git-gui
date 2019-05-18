@@ -7,9 +7,10 @@ use common::assertions::{
     assertCommitMessageViewIsEmpty,
     assertDiffViewIsEmpty,
     assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewIsEmpty,
+    assertUnstagedFilesViewContains,
 };
-use common::setup::{getWindow, setupTest};
+use common::setup::{getWindow, makeNewFile, setupTest};
+use common::utils::{FileInfo, getFileName};
 use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
 use rusty_git_gui::gui_setup::buildGui;
 use rusty_git_gui::repository::Repository;
@@ -18,16 +19,19 @@ use std::rc::Rc;
 
 
 #[test]
-fn loadEmptyRepository()
+fn loadRepositoryWithNewUnstagedEmptyFile()
 {
     let repositoryDir = setupTest();
+    let newUnstagedFile = makeNewFile(repositoryDir.path());
 
     let gtkApp = makeGtkApp();
     gtkApp.connect_activate(move |gtkApp| {
         buildGui(gtkApp, Rc::new(Repository::new(repositoryDir.path())));
 
         let window = getWindow();
-        assertUnstagedFilesViewIsEmpty(&window);
+        assertUnstagedFilesViewContains(
+            &window,
+            &[FileInfo{status: "WT_NEW".to_string(), name: getFileName(&newUnstagedFile)}]);
         assertStagedFilesViewIsEmpty(&window);
         assertDiffViewIsEmpty(&window);
         assertCommitMessageViewIsEmpty(&window);
