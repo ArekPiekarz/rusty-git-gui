@@ -4,8 +4,10 @@ use rusty_git_gui::gui_utils::getText;
 use glib::object::Cast as _;
 use gtk::{TextViewExt as _, TreeModelExt as _, TreeViewExt as _, WidgetExt as _};
 
+
 // https://developer.gnome.org/gtk3/stable/GtkTreeModel.html#gtk-tree-model-foreach
 const CONTINUE_ITERATING: bool = false;
+const NO_TEXT_CONTENT : &str = "";
 
 
 pub fn assertUnstagedFilesViewIsEmpty(window: &gtk::Widget)
@@ -28,7 +30,7 @@ fn assertFilesViewIsEmpty(window: &gtk::Widget, name: &str)
 
 pub fn assertDiffViewIsEmpty(window: &gtk::Widget)
 {
-    assertTextViewIsEmpty(window, "Diff view");
+    assertDiffViewContains(NO_TEXT_CONTENT, window);
 }
 
 pub fn assertCommitMessageViewIsEmpty(window: &gtk::Widget)
@@ -38,11 +40,16 @@ pub fn assertCommitMessageViewIsEmpty(window: &gtk::Widget)
 
 fn assertTextViewIsEmpty(window: &gtk::Widget, name: &str)
 {
+    assertTextViewContains(NO_TEXT_CONTENT, window, name);
+}
+
+fn assertTextViewContains(content: &str, window: &gtk::Widget, name: &str)
+{
     let widget = gtk_test::find_widget_by_name(window, name).unwrap();
     let textView = widget.downcast::<gtk::TextView>().unwrap();
     let buffer = textView.get_buffer().unwrap();
     let textViewContent = getText(&buffer).unwrap();
-    assert_eq!("", textViewContent.as_str());
+    assert_eq!(content, textViewContent.as_str());
 }
 
 pub fn assertCommitButtonIsDisabled(window: &gtk::Widget)
@@ -52,7 +59,7 @@ pub fn assertCommitButtonIsDisabled(window: &gtk::Widget)
     assert_eq!(false, button.is_sensitive());
 }
 
-pub fn assertUnstagedFilesViewContains(window: &gtk::Widget, files: &[FileInfo])
+pub fn assertUnstagedFilesViewContains(files: &[FileInfo], window: &gtk::Widget)
 {
     let widget = gtk_test::find_widget_by_name(window, "Unstaged files view").unwrap();
     let treeView = widget.downcast::<gtk::TreeView>().unwrap();
@@ -62,4 +69,9 @@ pub fn assertUnstagedFilesViewContains(window: &gtk::Widget, files: &[FileInfo])
         assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status));
         assert_eq!(files[row].name, getCell(model, iter, FileStatusModelColumn::Path));
         CONTINUE_ITERATING});
+}
+
+pub fn assertDiffViewContains(content: &str, window: &gtk::Widget)
+{
+    assertTextViewContains(content, window, "Diff view");
 }

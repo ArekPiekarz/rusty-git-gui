@@ -2,7 +2,11 @@ use std::ops::Deref;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use gtk::WidgetExt as _;
+use std::io::Write as _;
 use tempfile::NamedTempFile;
+
+
+pub const NO_FILE_CONTENT : &str = "";
 
 
 pub fn setupTest() -> tempfile::TempDir
@@ -28,9 +32,11 @@ fn initializeGitRepository(repositoryDir: &Path)
     }
 }
 
-pub fn makeNewFile(repositoryPath: &Path) -> NamedTempFile
+pub fn makeNewFile(repositoryPath: &Path, content: &str) -> NamedTempFile
 {
-    NamedTempFile::new_in(repositoryPath).unwrap()
+    let mut file = NamedTempFile::new_in(repositoryPath).unwrap();
+    file.write(content.as_bytes()).unwrap();
+    file
 }
 
 pub fn getWindow() -> ScopedWindow

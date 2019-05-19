@@ -5,11 +5,11 @@ mod common;
 use common::assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
-    assertDiffViewIsEmpty,
+    assertDiffViewContains,
     assertStagedFilesViewIsEmpty,
     assertUnstagedFilesViewContains,
 };
-use common::setup::{getWindow, makeNewFile, NO_FILE_CONTENT, setupTest};
+use common::setup::{getWindow, makeNewFile, setupTest};
 use common::utils::{FileInfo, getFileName};
 use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
 use rusty_git_gui::gui_setup::buildGui;
@@ -19,10 +19,10 @@ use std::rc::Rc;
 
 
 #[test]
-fn loadRepositoryWithNewUnstagedEmptyFile()
+fn loadRepositoryWithNewUnstagedFile()
 {
     let repositoryDir = setupTest();
-    let newUnstagedFile = makeNewFile(repositoryDir.path(), NO_FILE_CONTENT);
+    let newUnstagedFile = makeNewFile(repositoryDir.path(), "unstaged file content");
 
     let gtkApp = makeGtkApp();
     gtkApp.connect_activate(move |gtkApp| {
@@ -33,7 +33,7 @@ fn loadRepositoryWithNewUnstagedEmptyFile()
             &[FileInfo{status: "WT_NEW".to_string(), name: getFileName(&newUnstagedFile)}],
             &window);
         assertStagedFilesViewIsEmpty(&window);
-        assertDiffViewIsEmpty(&window);
+        assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n\\ No newline at end of file\n", &window);
         assertCommitMessageViewIsEmpty(&window);
         assertCommitButtonIsDisabled(&window);
     });
