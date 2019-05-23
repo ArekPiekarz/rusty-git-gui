@@ -61,7 +61,17 @@ pub fn assertCommitButtonIsDisabled(window: &gtk::Widget)
 
 pub fn assertUnstagedFilesViewContains(files: &[FileInfo], window: &gtk::Widget)
 {
-    let widget = gtk_test::find_widget_by_name(window, "Unstaged files view").unwrap();
+    assertFilesViewContains(files, window, "Unstaged files view");
+}
+
+pub fn assertStagedFilesViewContains(files: &[FileInfo], window: &gtk::Widget)
+{
+    assertFilesViewContains(files, window, "Staged files view");
+}
+
+fn assertFilesViewContains(files: &[FileInfo], window: &gtk::Widget, widgetName: &str)
+{
+    let widget = gtk_test::find_widget_by_name(window, widgetName).unwrap();
     let treeView = widget.downcast::<gtk::TreeView>().unwrap();
     let model = treeView.get_model().unwrap();
     model.foreach(|model, row, iter| {

@@ -27,16 +27,32 @@ fn initializeGitRepository(repositoryDir: &Path)
     let status = Command::new("git").arg("init")
         .current_dir(&repositoryDir).stdout(Stdio::null()).status().unwrap();
 
-    if !status.success() {
-        panic!("Failed to initialize git repository with exit status code: {}", status);
-    }
+    assert_eq!(true, status.success(),
+               r#"Failed to initialize git repository in path "{}", command finished with {}"#,
+               repositoryDir.to_string_lossy(), status);
 }
 
-pub fn makeNewFile(repositoryPath: &Path, content: &str) -> NamedTempFile
+pub fn makeNewFile(directory: &Path, content: &str) -> NamedTempFile
 {
-    let mut file = NamedTempFile::new_in(repositoryPath).unwrap();
+    let mut file = NamedTempFile::new_in(directory).unwrap();
     file.write(content.as_bytes()).unwrap();
     file
+}
+
+pub fn makeNewStagedFile(directory: &Path, content: &str) -> NamedTempFile
+{
+    let file = makeNewFile(directory, content);
+    stageFile(file.path(), directory);
+    file
+}
+
+fn stageFile(filePath: &Path, repositoryDir: &Path)
+{
+    let status = Command::new("git").args(&["add", filePath.to_str().unwrap()])
+        .current_dir(&repositoryDir).status().unwrap();
+
+    assert_eq!(true, status.success(),
+               r#"Failed to stage file "{}", command finished with {}"#, filePath.to_string_lossy(), status);
 }
 
 pub fn getWindow() -> ScopedWindow
