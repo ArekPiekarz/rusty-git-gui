@@ -1,12 +1,11 @@
-use super::utils::{FileInfo, getCell};
+use crate::common::accessors::{CONTINUE_ITERATING_MODEL, getCell};
+use crate::common::utils::FileInfo;
 use rusty_git_gui::gui_definitions::FileStatusModelColumn;
 use rusty_git_gui::gui_utils::getText;
 use glib::object::Cast as _;
 use gtk::{TextViewExt as _, TreeModelExt as _, TreeViewExt as _, WidgetExt as _};
 
 
-// https://developer.gnome.org/gtk3/stable/GtkTreeModel.html#gtk-tree-model-foreach
-const CONTINUE_ITERATING: bool = false;
 const NO_TEXT_CONTENT : &str = "";
 
 
@@ -78,7 +77,7 @@ fn assertFilesViewContains(files: &[FileInfo], window: &gtk::Widget, widgetName:
         let row = row.to_string().parse::<usize>().unwrap();
         assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status));
         assert_eq!(files[row].name, getCell(model, iter, FileStatusModelColumn::Path));
-        CONTINUE_ITERATING});
+        CONTINUE_ITERATING_MODEL});
 }
 
 pub fn assertDiffViewContains(content: &str, window: &gtk::Widget)

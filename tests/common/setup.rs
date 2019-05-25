@@ -55,6 +55,11 @@ fn stageFile(filePath: &Path, repositoryDir: &Path)
                r#"Failed to stage file "{}", command finished with {}"#, filePath.to_string_lossy(), status);
 }
 
+pub fn makeRelativePath(file: &NamedTempFile, repositoryDir: &Path) -> String
+{
+    file.path().strip_prefix(repositoryDir).unwrap().to_str().unwrap().to_string()
+}
+
 pub fn getWindow() -> ScopedWindow
 {
     let mut topLevelWindows = gtk::Window::list_toplevels();
