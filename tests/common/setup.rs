@@ -46,7 +46,7 @@ pub fn makeNewStagedFile(directory: &Path, content: &str) -> NamedTempFile
     file
 }
 
-fn stageFile(filePath: &Path, repositoryDir: &Path)
+pub fn stageFile(filePath: &Path, repositoryDir: &Path)
 {
     let status = Command::new("git").args(&["add", filePath.to_str().unwrap()])
         .current_dir(&repositoryDir).status().unwrap();

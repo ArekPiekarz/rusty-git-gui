@@ -76,8 +76,8 @@ impl Repository
     pub fn makeDiffOfTreeToIndex(&self, path: &str) -> git2::Diff
     {
         let mut diffOptions = makeDiffOptions(path);
-        let tree : Option<&git2::Tree> = None;
-        self.gitRepo.diff_tree_to_index(tree, NO_INDEX, Some(&mut diffOptions))
+        let tree = self.findCurrentTree();
+        self.gitRepo.diff_tree_to_index(tree.as_ref(), NO_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
     }
 
@@ -139,6 +139,16 @@ impl Repository
         let commit = head.peel_to_commit()
             .unwrap_or_else(|e| exit(&format!("Failed to turn a reference to HEAD into a commit: {}", e)));
         vec![commit]
+    }
+
+    fn findCurrentTree(&self) -> Option<git2::Tree>
+    {
+        match self.gitRepo.head() {
+            Ok(head) => Some(head.peel_to_tree()
+                .unwrap_or_else(|e| exit(&format!("Failed to turn a reference to HEAD into a tree: {}", e)))),
+            Err(ref e) if e.class() == git2::ErrorClass::Reference && e.code() == git2::ErrorCode::UnbornBranch => None,
+            Err(e) => exit(&format!("Failed to get reference to HEAD: {}", e))
+        }
     }
 }
 
