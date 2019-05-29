@@ -19,14 +19,14 @@ use std::rc::Rc;
 
 
 #[test]
-fn loadRepositoryWithModifiedUnstagedFile()
+fn loadRepositoryWithCommitAndModifiedUnstagedFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
-    let newStagedFile = makeNewStagedFile(&repositoryDir, "some file content\nsecond line\n");
-    let newStagedFile = makeRelativePath(&newStagedFile, &repositoryDir);
+    let file = makeNewStagedFile(&repositoryDir, "some file content\nsecond line\n");
+    let file = makeRelativePath(&file, &repositoryDir);
     makeCommit("Initial commit", &repositoryDir);
-    modifyFile(&newStagedFile, "some file content\nmodified second line\n", &repositoryDir);
+    modifyFile(&file, "some file content\nmodified second line\n", &repositoryDir);
 
     let gtkApp = makeGtkApp();
     gtkApp.connect_activate(move |gtkApp| {
@@ -34,7 +34,7 @@ fn loadRepositoryWithModifiedUnstagedFile()
 
         let window = getWindow();
         assertUnstagedFilesViewContains(
-            &[FileInfo{status: "WT_MODIFIED".to_string(), name: newStagedFile.clone()}], &window);
+            &[FileInfo{status: "WT_MODIFIED".to_string(), name: file.clone()}], &window);
         assertStagedFilesViewIsEmpty(&window);
         assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &window);
         assertCommitMessageViewIsEmpty(&window);
