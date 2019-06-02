@@ -73,11 +73,16 @@ fn assertFilesViewContains(files: &[FileInfo], window: &gtk::Widget, widgetName:
     let widget = gtk_test::find_widget_by_name(window, widgetName).unwrap();
     let treeView = widget.downcast::<gtk::TreeView>().unwrap();
     let model = treeView.get_model().unwrap();
+    let mut rowCount = 0;
     model.foreach(|model, row, iter| {
         let row = row.to_string().parse::<usize>().unwrap();
-        assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status));
-        assert_eq!(files[row].name, getCell(model, iter, FileStatusModelColumn::Path));
+        assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status),
+                   "File status differs at row {} in {}.", row, widgetName.to_lowercase());
+        assert_eq!(files[row].name, getCell(model, iter, FileStatusModelColumn::Path),
+                   "File path differs at row {} in {}.", row, widgetName.to_lowercase());
+        rowCount += 1;
         CONTINUE_ITERATING_MODEL});
+    assert_eq!(files.len(), rowCount);
 }
 
 pub fn assertDiffViewContains(content: &str, window: &gtk::Widget)

@@ -32,7 +32,7 @@ fn initializeGitRepository(repositoryDir: &Path)
                repositoryDir.to_string_lossy(), status);
 }
 
-pub fn makeNewFile(directory: &Path, content: &str) -> NamedTempFile
+pub fn makeNewUnstagedFile(directory: &Path, content: &str) -> NamedTempFile
 {
     let mut file = NamedTempFile::new_in(directory).unwrap();
     file.write(content.as_bytes()).unwrap();
@@ -41,7 +41,7 @@ pub fn makeNewFile(directory: &Path, content: &str) -> NamedTempFile
 
 pub fn makeNewStagedFile(directory: &Path, content: &str) -> NamedTempFile
 {
-    let file = makeNewFile(directory, content);
+    let file = makeNewUnstagedFile(directory, content);
     stageFile(file.path(), directory);
     file
 }

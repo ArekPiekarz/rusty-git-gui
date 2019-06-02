@@ -9,7 +9,7 @@ use common::assertions::{
     assertStagedFilesViewIsEmpty,
     assertUnstagedFilesViewContains,
 };
-use common::setup::{getWindow, makeNewFile, makeRelativePath, setupTest};
+use common::setup::{getWindow, makeNewUnstagedFile, makeRelativePath, setupTest};
 use common::utils::FileInfo;
 use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
 use rusty_git_gui::gui_setup::buildGui;
@@ -23,7 +23,7 @@ fn loadRepositoryWithNewUnstagedFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
-    let newUnstagedFile = makeNewFile(&repositoryDir, "unstaged file content");
+    let newUnstagedFile = makeNewUnstagedFile(&repositoryDir, "unstaged file content");
     let newUnstagedFile = makeRelativePath(&newUnstagedFile, &repositoryDir);
 
     let gtkApp = makeGtkApp();
