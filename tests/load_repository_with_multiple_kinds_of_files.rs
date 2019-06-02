@@ -55,12 +55,12 @@ fn loadRepositoryWithMultipleKindsOfFiles()
         let window = getWindow();
 
         assertUnstagedFilesViewContains(
-            &[FileInfo{status: "WT_MODIFIED".to_string(), name: modifiedUnstagedFile.clone()},
-              FileInfo{status: "WT_NEW".to_string(), name: newUnstagedFile.clone()}],
+            &[FileInfo{status: "WT_MODIFIED", name: &modifiedUnstagedFile},
+              FileInfo{status: "WT_NEW", name: &newUnstagedFile}],
             &window);
         assertStagedFilesViewContains(
-            &[FileInfo{status: "INDEX_MODIFIED".to_string(), name: modifiedStagedFile.clone()},
-              FileInfo{status: "INDEX_NEW".to_string(), name: newStagedFile.clone()}],
+            &[FileInfo{status: "INDEX_MODIFIED", name: &modifiedStagedFile},
+              FileInfo{status: "INDEX_NEW", name: &newStagedFile}],
             &window);
         assertDiffViewContains("@@ -1 +1,2 @@\n new staged file content\n+modified unstaged line\n", &window);
         assertCommitMessageViewIsEmpty(&window);

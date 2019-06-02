@@ -34,7 +34,7 @@ fn loadRepositoryWithNewStagedFile()
 
         let window = getWindow();
         assertStagedFilesViewContains(
-            &[FileInfo{status: "INDEX_NEW".to_string(), name: newStagedFile.clone()}],
+            &[FileInfo{status: "INDEX_NEW", name: &newStagedFile}],
             &window);
         assertDiffViewIsEmpty(&window);
         assertUnstagedFilesViewIsEmpty(&window);

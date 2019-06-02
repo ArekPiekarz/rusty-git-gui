@@ -1,6 +1,6 @@
-pub struct FileInfo
+pub struct FileInfo<'a>
 {
-    pub status: String,
-    pub name: String
+    pub status: &'a str,
+    pub name: &'a str
 }
 

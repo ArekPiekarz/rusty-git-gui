@@ -34,7 +34,7 @@ fn loadRepositoryWithCommitAndModifiedUnstagedFile()
 
         let window = getWindow();
         assertUnstagedFilesViewContains(
-            &[FileInfo{status: "WT_MODIFIED".to_string(), name: file.clone()}], &window);
+            &[FileInfo{status: "WT_MODIFIED", name: &file}], &window);
         assertStagedFilesViewIsEmpty(&window);
         assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &window);
         assertCommitMessageViewIsEmpty(&window);

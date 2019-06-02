@@ -38,7 +38,7 @@ fn loadRepositoryWithModifiedStagedFile()
 
         let window = getWindow();
         assertUnstagedFilesViewIsEmpty(&window);
-        assertStagedFilesViewContains(&[FileInfo{status: "INDEX_MODIFIED".to_string(), name: file.clone()}], &window);
+        assertStagedFilesViewContains(&[FileInfo{status: "INDEX_MODIFIED", name: &file}], &window);
         assertDiffViewIsEmpty(&window);
         assertCommitMessageViewIsEmpty(&window);
         assertCommitButtonIsDisabled(&window);

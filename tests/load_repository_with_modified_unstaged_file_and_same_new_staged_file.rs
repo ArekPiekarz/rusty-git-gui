@@ -34,12 +34,12 @@ fn loadRepositoryWithModifiedUnstagedFileAndSameNewStagedFile()
 
         let window = getWindow();
         assertUnstagedFilesViewContains(
-            &[FileInfo{status: "WT_MODIFIED".to_string(), name: file.clone()}],
+            &[FileInfo{status: "WT_MODIFIED", name: &file}],
             &window);
         assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified unstaged line\n", &window);
 
         assertStagedFilesViewContains(
-            &[FileInfo{status: "INDEX_NEW".to_string(), name: file.clone()}],
+            &[FileInfo{status: "INDEX_NEW", name: &file}],
             &window);
         assertCommitMessageViewIsEmpty(&window);
         assertCommitButtonIsDisabled(&window);

@@ -32,7 +32,7 @@ fn loadRepositoryWithNewUnstagedEmptyFile()
 
         let window = getWindow();
         assertUnstagedFilesViewContains(
-            &[FileInfo{status: "WT_NEW".to_string(), name: newUnstagedFile.clone()}],
+            &[FileInfo{status: "WT_NEW", name: &newUnstagedFile}],
             &window);
         assertStagedFilesViewIsEmpty(&window);
         assertDiffViewIsEmpty(&window);
