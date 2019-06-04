@@ -1,16 +1,12 @@
 use gtk::WidgetExt as _;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::Write as _;
 use std::ops::Deref;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use tempfile::NamedTempFile;
+use tempfile::{tempdir, TempDir};
 
-
-pub const NO_FILE_CONTENT : &str = "";
-
-
-pub fn setupTest() -> tempfile::TempDir
+pub fn setupTest() -> TempDir
 {
     color_backtrace::install();
     let repositoryDir = makeTemporaryDirectory();
@@ -18,9 +14,9 @@ pub fn setupTest() -> tempfile::TempDir
     repositoryDir
 }
 
-fn makeTemporaryDirectory() -> tempfile::TempDir
+fn makeTemporaryDirectory() -> TempDir
 {
-    tempfile::tempdir().unwrap_or_else(|e| panic!("Failed to create temporary directory: {}", e))
+    tempdir().unwrap_or_else(|e| panic!("Failed to create temporary directory: {}", e))
 }
 
 fn initializeGitRepository(repositoryDir: &Path)
@@ -32,18 +28,26 @@ fn initializeGitRepository(repositoryDir: &Path)
                repositoryDir.to_string_lossy(), status);
 }
 
-pub fn makeNewUnstagedFile(directory: &Path, content: &str) -> NamedTempFile
+pub fn makeNewUnstagedFile(filePath: &Path, content: &str, repositoryDir: &Path)
 {
-    let mut file = NamedTempFile::new_in(directory).unwrap();
+    let mut file = makeNewWritableFile(&repositoryDir.join(filePath));
     file.write(content.as_bytes()).unwrap();
-    file
 }
 
-pub fn makeNewStagedFile(directory: &Path, content: &str) -> NamedTempFile
+fn makeNewWritableFile(filePath: &Path) -> File
 {
-    let file = makeNewUnstagedFile(directory, content);
-    stageFile(file.path(), directory);
-    file
+    OpenOptions::new().write(true).create_new(true).open(filePath).unwrap()
+}
+
+pub fn makeNewUnstagedEmptyFile(filePath: &Path, repositoryDir: &Path)
+{
+    makeNewWritableFile(&repositoryDir.join(filePath));
+}
+
+pub fn makeNewStagedFile(filePath: &Path, content: &str, repositoryDir: &Path)
+{
+    makeNewUnstagedFile(filePath, content, repositoryDir);
+    stageFile(filePath, repositoryDir);
 }
 
 pub fn stageFile(filePath: &Path, repositoryDir: &Path)
@@ -54,11 +58,6 @@ pub fn stageFile(filePath: &Path, repositoryDir: &Path)
                r#"Failed to stage file "{}", command finished with {}"#, filePath.to_string_lossy(), status);
 }
 
-pub fn makeRelativePath(file: &NamedTempFile, repositoryDir: &Path) -> String
-{
-    file.path().strip_prefix(repositoryDir).unwrap().to_str().unwrap().to_string()
-}
-
 pub fn makeCommit(message: &str, repositoryDir: &Path)
 {
     let status = Command::new("git").args(&["commit", "-m", message])
@@ -67,10 +66,15 @@ pub fn makeCommit(message: &str, repositoryDir: &Path)
                r#"Failed to create a commit with message "{}", command finished with {}"#, message, status);
 }
 
-pub fn modifyFile(filePath: &str, newContent: &str, repositoryDir: &Path)
+pub fn modifyFile(filePath: &Path, newContent: &str, repositoryDir: &Path)
 {
-    let mut file = OpenOptions::new().write(true).create_new(false).open(repositoryDir.join(filePath)).unwrap();
+    let mut file = openExistingFileForWriting(&repositoryDir.join(filePath));
     file.write(newContent.as_bytes()).unwrap();
+}
+
+fn openExistingFileForWriting(filePath: &Path) -> File
+{
+    OpenOptions::new().write(true).create_new(false).open(filePath).unwrap()
 }
 
 pub fn getWindow() -> ScopedWindow

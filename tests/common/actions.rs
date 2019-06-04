@@ -2,20 +2,22 @@ use crate::common::accessors::{CONTINUE_ITERATING_MODEL, getCell, STOP_ITERATING
 use rusty_git_gui::gui_definitions::FileStatusModelColumn;
 use glib::object::Cast as _;
 use gtk::{TreeModelExt as _, TreeSelectionExt as _, TreeViewExt as _};
+use std::path::Path;
 
 
-pub fn selectUnstagedFile(filePath: &str, window: &gtk::Widget)
+pub fn selectUnstagedFile(filePath: &Path, window: &gtk::Widget)
 {
     selectFile(filePath, "Unstaged files view", window);
 }
 
-pub fn selectStagedFile(filePath: &str, window: &gtk::Widget)
+pub fn selectStagedFile(filePath: &Path, window: &gtk::Widget)
 {
     selectFile(filePath, "Staged files view", window);
 }
 
-fn selectFile(filePath: &str, widgetName: &str, window: &gtk::Widget)
+fn selectFile(filePath: &Path, widgetName: &str, window: &gtk::Widget)
 {
+    let filePath = filePath.to_str().unwrap();
     let widget = gtk_test::find_widget_by_name(window, widgetName).unwrap();
     let treeView = widget.downcast::<gtk::TreeView>().unwrap();
     let model = treeView.get_model().unwrap();

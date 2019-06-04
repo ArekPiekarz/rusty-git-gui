@@ -15,7 +15,6 @@ use common::setup::{
     makeCommit,
     makeNewStagedFile,
     makeNewUnstagedFile,
-    makeRelativePath,
     modifyFile,
     setupTest,
     stageFile,
@@ -28,26 +27,26 @@ use gio::{ApplicationExt as _, ApplicationExtManual as _};
 use std::path::PathBuf;
 use std::rc::Rc;
 
+
 #[test]
 fn loadRepositoryWithMultipleKindsOfFiles()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
 
-    let file = makeNewStagedFile(&repositoryDir, "some file content\nsecond line\n");
-    let file = makeRelativePath(&file, &repositoryDir);
+    let modifiedStagedFilePath = PathBuf::from("fileName1");
+    makeNewStagedFile(&modifiedStagedFilePath, "some file content\nsecond line\n", &repositoryDir);
     makeCommit("Initial commit", &repositoryDir);
-    modifyFile(&file, "some file content\nmodified second line\n", &repositoryDir);
-    stageFile(&PathBuf::from(&file), &repositoryDir);
-    let modifiedStagedFile = file;
+    modifyFile(&modifiedStagedFilePath, "some file content\nmodified second line\n", &repositoryDir);
+    stageFile(&modifiedStagedFilePath, &repositoryDir);
 
-    let newUnstagedFile = makeNewUnstagedFile(&repositoryDir, "new unstaged file content\n");
-    let newUnstagedFile = makeRelativePath(&newUnstagedFile, &repositoryDir);
+    let newUnstagedFilePath = PathBuf::from("fileName2");
+    makeNewUnstagedFile(&newUnstagedFilePath, "new unstaged file content\n", &repositoryDir);
 
-    let newStagedFile = makeNewStagedFile(&repositoryDir, "new staged file content\n");
-    let newStagedFile = makeRelativePath(&newStagedFile, &repositoryDir);
-    modifyFile(&newStagedFile, "new staged file content\nmodified unstaged line\n", &repositoryDir);
-    let modifiedUnstagedFile = newStagedFile.clone();
+    let newStagedFilePath = PathBuf::from("fileName3");
+    makeNewStagedFile(&newStagedFilePath, "new staged file content\n", &repositoryDir);
+    let modifiedUnstagedFilePath = newStagedFilePath.clone();
+    modifyFile(&modifiedUnstagedFilePath, "new staged file content\nmodified unstaged line\n", &repositoryDir);
 
     let gtkApp = makeGtkApp();
     gtkApp.connect_activate(move |gtkApp| {
@@ -55,22 +54,22 @@ fn loadRepositoryWithMultipleKindsOfFiles()
         let window = getWindow();
 
         assertUnstagedFilesViewContains(
-            &[FileInfo{status: "WT_MODIFIED", name: &modifiedUnstagedFile},
-              FileInfo{status: "WT_NEW", name: &newUnstagedFile}],
+            &[FileInfo::new("WT_NEW", &newUnstagedFilePath),
+              FileInfo::new("WT_MODIFIED", &modifiedUnstagedFilePath)],
             &window);
         assertStagedFilesViewContains(
-            &[FileInfo{status: "INDEX_MODIFIED", name: &modifiedStagedFile},
-              FileInfo{status: "INDEX_NEW", name: &newStagedFile}],
+            &[FileInfo::new("INDEX_MODIFIED", &modifiedStagedFilePath),
+              FileInfo::new("INDEX_NEW", &newStagedFilePath)],
             &window);
-        assertDiffViewContains("@@ -1 +1,2 @@\n new staged file content\n+modified unstaged line\n", &window);
+        assertDiffViewContains("@@ -0,0 +1 @@\n+new unstaged file content\n", &window);
         assertCommitMessageViewIsEmpty(&window);
         assertCommitButtonIsDisabled(&window);
 
-        selectUnstagedFile(&newUnstagedFile, &window);
-        assertDiffViewContains("@@ -0,0 +1 @@\n+new unstaged file content\n", &window);
-        selectStagedFile(&modifiedStagedFile, &window);
+        selectUnstagedFile(&modifiedUnstagedFilePath, &window);
+        assertDiffViewContains("@@ -1 +1,2 @@\n new staged file content\n+modified unstaged line\n", &window);
+        selectStagedFile(&modifiedStagedFilePath, &window);
         assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &window);
-        selectStagedFile(&newStagedFile, &window);
+        selectStagedFile(&newStagedFilePath, &window);
         assertDiffViewContains("@@ -0,0 +1 @@\n+new staged file content\n", &window);
     });
     gtkApp.run(&NO_APP_ARGUMENTS);

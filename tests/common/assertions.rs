@@ -78,7 +78,7 @@ fn assertFilesViewContains(files: &[FileInfo], window: &gtk::Widget, widgetName:
         let row = row.to_string().parse::<usize>().unwrap();
         assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status),
                    "File status differs at row {} in {}.", row, widgetName.to_lowercase());
-        assert_eq!(files[row].name, getCell(model, iter, FileStatusModelColumn::Path),
+        assert_eq!(files[row].path, getCell(model, iter, FileStatusModelColumn::Path),
                    "File path differs at row {} in {}.", row, widgetName.to_lowercase());
         rowCount += 1;
         CONTINUE_ITERATING_MODEL});
