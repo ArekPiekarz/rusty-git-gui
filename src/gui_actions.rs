@@ -2,10 +2,12 @@ use crate::diff_line_printer::DiffLinePrinter;
 use crate::diff_maker::DiffMaker;
 use crate::error_handling::exit;
 use crate::gui_definitions::{
+    CONTINUE_ITERATING_MODEL,
     FileStatusModelColumn,
     EXCLUDE_HIDDEN_CHARACTERS,
     FILE_STATUS_MODEL_COLUMN_INDICES,
-    StagingAreaChangeModels};
+    StagingAreaChangeModels,
+    STOP_ITERATING_MODEL};
 use crate::gui_utils::{clearBuffer,getBuffer, isModelEmpty, isTextBufferEmpty};
 use crate::repository::Repository;
 use failchain::{bail, ResultExt as _};
@@ -118,8 +120,22 @@ pub fn changeStagingState(
 
     let fileStatus = convertFileStatusAfterStagingSwitch(&fileStatus);
     models.source.remove(&iterator);
-    models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
-                      &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]);
+    if !containsFilePath(&models.target, &filePath) {
+        models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
+                          &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]); }
+}
+
+fn containsFilePath(model: &gtk::ListStore, filePath: &str) -> bool
+{
+    let mut filePathFound = false;
+    model.foreach(|model, row, iter| {
+        let actualFilePath = model.get_value(iter, FileStatusModelColumn::Path as i32).get::<String>()
+            .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)));
+        if actualFilePath != filePath {
+            return CONTINUE_ITERATING_MODEL; }
+        filePathFound = true;
+        STOP_ITERATING_MODEL });
+    filePathFound
 }
 
 pub fn convertFileStatusToStaged(fileStatus: &str) -> String

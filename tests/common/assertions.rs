@@ -1,9 +1,10 @@
-use crate::common::accessors::{CONTINUE_ITERATING_MODEL, getCell};
+use crate::common::accessors::{getCell, getFirstRowCell};
 use crate::common::utils::FileInfo;
-use rusty_git_gui::gui_definitions::FileStatusModelColumn;
+use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn};
 use rusty_git_gui::gui_utils::getText;
 use glib::object::Cast as _;
 use gtk::{TextViewExt as _, TreeModelExt as _, TreeViewExt as _, WidgetExt as _};
+use more_asserts::assert_lt;
 
 
 const NO_TEXT_CONTENT : &str = "";
@@ -24,7 +25,11 @@ fn assertFilesViewIsEmpty(window: &gtk::Widget, name: &str)
     let widget = gtk_test::find_widget_by_name(window, name).unwrap();
     let treeView = widget.downcast::<gtk::TreeView>().unwrap();
     let model = treeView.get_model().unwrap();
-    assert_eq!(None, model.get_iter_first());
+    assert_eq!(None, model.get_iter_first(),
+               "{} is not empty, the first row is: [{}, {}]",
+               name,
+               getFirstRowCell(&model, FileStatusModelColumn::Status),
+               getFirstRowCell(&model, FileStatusModelColumn::Path));
 }
 
 pub fn assertDiffViewIsEmpty(window: &gtk::Widget)
@@ -76,13 +81,18 @@ fn assertFilesViewContains(files: &[FileInfo], window: &gtk::Widget, widgetName:
     let mut rowCount = 0;
     model.foreach(|model, row, iter| {
         let row = row.to_string().parse::<usize>().unwrap();
+        assert_lt!(row, files.len(),
+                   "{} has more rows than expected. The unexpected row is: [{}, {}]",
+                   widgetName,
+                   getCell(model, iter, FileStatusModelColumn::Status),
+                   getCell(model, iter, FileStatusModelColumn::Path));
         assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status),
                    "File status differs at row {} in {}.", row, widgetName.to_lowercase());
         assert_eq!(files[row].path, getCell(model, iter, FileStatusModelColumn::Path),
                    "File path differs at row {} in {}.", row, widgetName.to_lowercase());
         rowCount += 1;
         CONTINUE_ITERATING_MODEL});
-    assert_eq!(files.len(), rowCount);
+    assert_eq!(files.len(), rowCount, "{} contained too few rows.", widgetName);
 }
 
 pub fn assertDiffViewContains(content: &str, window: &gtk::Widget)

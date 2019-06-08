@@ -1,5 +1,5 @@
-use crate::common::accessors::{CONTINUE_ITERATING_MODEL, getCell, STOP_ITERATING_MODEL};
-use rusty_git_gui::gui_definitions::FileStatusModelColumn;
+use crate::common::accessors::getCell;
+use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn, STOP_ITERATING_MODEL};
 use glib::object::Cast as _;
 use gtk::{TreeModelExt as _, TreeSelectionExt as _, TreeViewExt as _};
 use std::path::Path;
