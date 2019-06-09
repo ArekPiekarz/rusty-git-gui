@@ -22,7 +22,7 @@ use std::rc::Rc;
 
 
 #[test]
-fn unstageFile()
+fn unstageNewFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
