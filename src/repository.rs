@@ -96,15 +96,11 @@ impl Repository
 
     pub fn unstageFile(&self, path: &str)
     {
-        let mut index = self.gitRepo.index()
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to unstage file {}, because index could not be acquired: {}", path, e)));
-        index.remove_path(Path::new(path))
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to unstage file {}, because removing path from index failed: {}", path, e)));
-        index.write()
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to unstage file {}, because writing the index to disk failed: {}", path, e)));
+        let commitObject = match self.findHeadCommit() {
+            Some(commit) => Some(commit.into_object()),
+            None => None };
+        self.gitRepo.reset_default(commitObject.as_ref(), &[path])
+            .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", path, e)));
     }
 
     pub fn commitChanges(&self, message: &str)
@@ -126,19 +122,25 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
     }
 
-    fn findParentCommits(&self) -> Vec<git2::Commit>
+    fn findHeadCommit(&self) -> Option<git2::Commit>
     {
-        let isRepositoryEmpty = self.gitRepo.is_empty()
-            .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)));
-        if isRepositoryEmpty {
-            return vec![];
+        if self.isRepositoryEmpty() {
+            return None;
         }
 
         let head = self.gitRepo.head()
             .unwrap_or_else(|e| exit(&format!("Failed to get reference to HEAD: {}", e)));
         let commit = head.peel_to_commit()
             .unwrap_or_else(|e| exit(&format!("Failed to turn a reference to HEAD into a commit: {}", e)));
-        vec![commit]
+        Some(commit)
+    }
+
+    fn findParentCommits(&self) -> Vec<git2::Commit>
+    {
+        match self.findHeadCommit() {
+            Some(commit) => vec![commit],
+            None => vec![]
+        }
     }
 
     fn findCurrentTree(&self) -> Option<git2::Tree>
@@ -149,6 +151,12 @@ impl Repository
             Err(ref e) if e.class() == git2::ErrorClass::Reference && e.code() == git2::ErrorCode::UnbornBranch => None,
             Err(e) => exit(&format!("Failed to get reference to HEAD: {}", e))
         }
+    }
+
+    fn isRepositoryEmpty(&self) -> bool
+    {
+        self.gitRepo.is_empty()
+            .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
     }
 }
 
