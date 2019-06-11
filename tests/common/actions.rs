@@ -1,7 +1,8 @@
 use crate::common::accessors::getCell;
 use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn, STOP_ITERATING_MODEL};
+
 use glib::object::Cast as _;
-use gtk::{TreeModelExt as _, TreeSelectionExt as _, TreeViewExt as _};
+use gtk::{TextBufferExt as _, TextViewExt as _, TreeModelExt as _, TreeSelectionExt as _, TreeViewExt as _};
 use std::path::Path;
 
 
@@ -66,4 +67,12 @@ fn invokeForRowInFilesView(
 fn getFilePathColumn(treeView: &gtk::TreeView) -> gtk::TreeViewColumn
 {
     treeView.get_column(FileStatusModelColumn::Path as i32).unwrap()
+}
+
+pub fn setCommitMessage(message: &str, window: &gtk::Widget)
+{
+    let widget = gtk_test::find_widget_by_name(&*window, "Commit message view").unwrap();
+    let textView = widget.downcast::<gtk::TextView>().unwrap();
+    let buffer = textView.get_buffer().unwrap();
+    buffer.insert(&mut buffer.get_start_iter(), message);
 }

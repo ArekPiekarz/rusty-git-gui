@@ -2,12 +2,15 @@ use crate::common::accessors::{getCell, getFirstRowCell};
 use crate::common::utils::FileInfo;
 use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn};
 use rusty_git_gui::gui_utils::getText;
+
 use glib::object::Cast as _;
 use gtk::{TextViewExt as _, TreeModelExt as _, TreeViewExt as _, WidgetExt as _};
 use more_asserts::assert_lt;
 
 
 const NO_TEXT_CONTENT : &str = "";
+const BUTTON_ENABLED : bool = true;
+const BUTTON_DISABLED : bool = false;
 
 
 pub fn assertUnstagedFilesViewIsEmpty(window: &gtk::Widget)
@@ -56,11 +59,33 @@ fn assertTextViewContains(content: &str, window: &gtk::Widget, name: &str)
     assert_eq!(content, textViewContent.as_str());
 }
 
+pub fn assertCommitButtonIsEnabled(window: &gtk::Widget)
+{
+    assertCommitButtonIsInState(BUTTON_ENABLED, window);
+}
+
 pub fn assertCommitButtonIsDisabled(window: &gtk::Widget)
+{
+    assertCommitButtonIsInState(BUTTON_DISABLED, window);
+}
+
+fn assertCommitButtonIsInState(buttonState: bool, window: &gtk::Widget)
 {
     let widget = gtk_test::find_widget_by_name(window, "Commit button").unwrap();
     let button = widget.downcast::<gtk::Button>().unwrap();
-    assert_eq!(false, button.is_sensitive());
+    assert_eq!(buttonState, button.is_sensitive());
+}
+
+pub fn assertCommitButtonTooltipContains(tooltip: &str, window: &gtk::Widget)
+{
+    let widget = gtk_test::find_widget_by_name(&*window, "Commit button").unwrap();
+    assert_eq!(tooltip, widget.get_tooltip_text().unwrap().as_str());
+}
+
+pub fn assertCommitButtonTooltipIsEmpty(window: &gtk::Widget)
+{
+    let widget = gtk_test::find_widget_by_name(&*window, "Commit button").unwrap();
+    assert_eq!(None, widget.get_tooltip_text());
 }
 
 pub fn assertUnstagedFilesViewContains(files: &[FileInfo], window: &gtk::Widget)

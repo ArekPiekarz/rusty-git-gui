@@ -155,7 +155,7 @@ pub fn updateCommitButton(
 {
     if isModelEmpty(stagedFilesModel) {
         commitButton.set_sensitive(false);
-        commitButton.set_tooltip_text("No file is staged for commit.");
+        commitButton.set_tooltip_text("No changes are staged for commit.");
         return;
     }
 
