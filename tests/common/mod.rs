@@ -5,6 +5,7 @@
 
 pub mod accessors;
 pub mod actions;
-pub mod assertions;
+pub mod gui_assertions;
+pub mod repository_assertions;
 pub mod setup;
 pub mod utils;

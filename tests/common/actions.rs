@@ -2,7 +2,13 @@ use crate::common::accessors::getCell;
 use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn, STOP_ITERATING_MODEL};
 
 use glib::object::Cast as _;
-use gtk::{TextBufferExt as _, TextViewExt as _, TreeModelExt as _, TreeSelectionExt as _, TreeViewExt as _};
+use gtk::{
+    ButtonExt as _,
+    TextBufferExt as _,
+    TextViewExt as _,
+    TreeModelExt as _,
+    TreeSelectionExt as _,
+    TreeViewExt as _};
 use std::path::Path;
 
 
@@ -75,4 +81,11 @@ pub fn setCommitMessage(message: &str, window: &gtk::Widget)
     let textView = widget.downcast::<gtk::TextView>().unwrap();
     let buffer = textView.get_buffer().unwrap();
     buffer.insert(&mut buffer.get_start_iter(), message);
+}
+
+pub fn clickCommitButton(window: &gtk::Widget)
+{
+    let widget = gtk_test::find_widget_by_name(window, "Commit button").unwrap();
+    let button = widget.downcast::<gtk::Button>().unwrap();
+    button.clicked();
 }

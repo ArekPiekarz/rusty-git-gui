@@ -3,7 +3,7 @@
 mod common;
 
 use common::actions::{selectStagedFile, selectUnstagedFile};
-use common::assertions::{
+use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,

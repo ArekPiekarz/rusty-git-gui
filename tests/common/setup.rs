@@ -21,11 +21,19 @@ fn makeTemporaryDirectory() -> TempDir
 
 fn initializeGitRepository(repositoryDir: &Path)
 {
-    let status = Command::new("git").arg("init")
-        .current_dir(&repositoryDir).stdout(Stdio::null()).status().unwrap();
+    initializeGitRepositoryWith(&["git", "init"], repositoryDir);
+    initializeGitRepositoryWith(&["git", "config", "user.name", "John Smith"], repositoryDir);
+    initializeGitRepositoryWith(&["git", "config", "user.email", "john.smith@example.com"], repositoryDir);
+}
+
+fn initializeGitRepositoryWith(commandParts: &[&str], repositoryDir: &Path)
+{
+    let mut command = Command::new(commandParts[0]);
+    command.args(&commandParts[1..]).current_dir(&repositoryDir).stdout(Stdio::null());
+    let status = command.status().unwrap();
     assert_eq!(true, status.success(),
-               r#"Failed to initialize git repository in path "{}", command finished with {}"#,
-               repositoryDir.to_string_lossy(), status);
+               "Failed to initialize git repository.\nPath: {}\nCommand: {:?}\nCommand status: {}",
+               repositoryDir.to_string_lossy(), command, status);
 }
 
 pub fn makeNewUnstagedFile(filePath: &Path, content: &str, repositoryDir: &Path)

@@ -2,7 +2,7 @@
 
 mod common;
 
-use common::assertions::{
+use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewIsEmpty,

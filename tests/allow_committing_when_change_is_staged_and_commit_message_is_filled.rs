@@ -3,7 +3,7 @@
 mod common;
 
 use common::actions::setCommitMessage;
-use common::assertions::{assertCommitButtonIsEnabled, assertCommitButtonTooltipIsEmpty};
+use common::gui_assertions::{assertCommitButtonIsEnabled, assertCommitButtonTooltipIsEmpty};
 use common::setup::{getWindow, makeNewStagedFile, setupTest};
 use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
 use rusty_git_gui::gui_setup::buildGui;

@@ -3,7 +3,7 @@
 mod common;
 
 use common::actions::{activateStagedFile, selectUnstagedFile};
-use common::assertions::{
+use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
     assertStagedFilesViewContains,
