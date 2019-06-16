@@ -6,7 +6,7 @@ use gtk::MessageDialogExt as _;
 
 const NO_WINDOW_PARENT: Option<&gtk::Window> = None;
 
-pub fn formatFail(fail: &failure::Fail) -> String
+pub fn formatFail(fail: &dyn failure::Fail) -> String
 {
     let mut result = format!("error: {}", fail);
     for cause in fail.iter_causes() {

@@ -122,7 +122,7 @@ pub fn changeStagingState(
     models.source.remove(&iterator);
     if !containsFilePath(&models.target, &filePath) {
         models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
-                          &[&fileStatus as &gtk::ToValue, &filePath as &gtk::ToValue]); }
+                          &[&fileStatus as &dyn gtk::ToValue, &filePath as &dyn gtk::ToValue]); }
 }
 
 fn containsFilePath(model: &gtk::ListStore, filePath: &str) -> bool

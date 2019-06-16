@@ -112,7 +112,7 @@ fn makeFileStatusModels(repository: &Repository) -> FileStatusModels
 fn makeFileStatusModel(fileInfos: &[FileInfo]) -> Rc<gtk::ListStore>
 {
     let fileInfosForModel = fileInfos.iter().map(
-        |fileInfo| [&fileInfo.status as &gtk::ToValue, &fileInfo.path as &gtk::ToValue]).collect::<Vec<_>>();
+        |fileInfo| [&fileInfo.status as &dyn gtk::ToValue, &fileInfo.path as &dyn gtk::ToValue]).collect::<Vec<_>>();
 
     let fileStatusModel = Rc::new(gtk::ListStore::new(&[FILE_STATUS_COLUMN_TYPE, FILE_PATH_COLUMN_TYPE]));
     for fileInfo in fileInfosForModel {
