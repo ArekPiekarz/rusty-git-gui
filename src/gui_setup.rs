@@ -61,25 +61,25 @@ pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
 
     let unstagedVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     filesPane.add1(&unstagedVerticalBox);
-    unstagedVerticalBox.add(&gtk::Label::new("Unstaged:"));
+    unstagedVerticalBox.add(&gtk::Label::new(Some("Unstaged:")));
     let unstagedFilesStatusView = makeUnstagedFilesStatusView(fileStatusModels.clone(), repository.clone());
     unstagedVerticalBox.add(&*unstagedFilesStatusView);
 
     let stagedVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     filesPane.add2(&stagedVerticalBox);
-    stagedVerticalBox.add(&gtk::Label::new("Staged:"));
+    stagedVerticalBox.add(&gtk::Label::new(Some("Staged:")));
     let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels.clone(), repository.clone());
     stagedVerticalBox.add(&*stagedFilesStatusView);
 
     let diffVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     diffAndCommitPane.add1(&diffVerticalBox);
-    diffVerticalBox.add(&gtk::Label::new("Diff:"));
+    diffVerticalBox.add(&gtk::Label::new(Some("Diff:")));
     let diffView = makeDiffView();
     diffVerticalBox.add(&*diffView);
 
     let commitVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     diffAndCommitPane.add2(&commitVerticalBox);
-    commitVerticalBox.add(&gtk::Label::new("Commit message:"));
+    commitVerticalBox.add(&gtk::Label::new(Some("Commit message:")));
     let commitMessageView = makeCommitMessageView();
     commitVerticalBox.add(&*commitMessageView);
     let commitButton = makeCommitButton(

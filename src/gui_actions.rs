@@ -155,17 +155,17 @@ pub fn updateCommitButton(
 {
     if isModelEmpty(stagedFilesModel) {
         commitButton.set_sensitive(false);
-        commitButton.set_tooltip_text("No changes are staged for commit.");
+        commitButton.set_tooltip_text(Some("No changes are staged for commit."));
         return;
     }
 
     if isTextBufferEmpty(commitMessageBuffer) {
         commitButton.set_sensitive(false);
-        commitButton.set_tooltip_text("The commit message is empty.");
+        commitButton.set_tooltip_text(Some("The commit message is empty."));
         return;
     }
     commitButton.set_sensitive(true);
-    commitButton.set_tooltip_text("");
+    commitButton.set_tooltip_text(None);
 }
 
 pub fn commitStagedChanges(

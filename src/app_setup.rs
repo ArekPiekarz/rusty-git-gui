@@ -27,11 +27,12 @@ use ErrorKind::*;
 
 
 pub const NO_APP_ARGUMENTS : [String; 0] = [];
+const NO_APPLICATION_ID : Option<&str> = None;
 
 
 pub fn makeGtkApp() -> gtk::Application
 {
-    let gtkApp = gtk::Application::new("org.rusty-git-gui", gio::ApplicationFlags::default())
+    let gtkApp = gtk::Application::new(NO_APPLICATION_ID, gio::ApplicationFlags::default())
         .unwrap_or_else(|e| panic!("Failed to create GTK application: {}", e));
     gtkApp.connect_startup(|_gtkApp| {});
     gtkApp
