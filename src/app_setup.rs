@@ -30,6 +30,19 @@ pub const NO_APP_ARGUMENTS : [String; 0] = [];
 const NO_APPLICATION_ID : Option<&str> = None;
 
 
+pub fn setupPanicHandler()
+{
+    // color-backtrace since version 0.2.0 doesn't print colors by default in IntelliJ IDEA with Rust plugin,
+    // therefore we force it to do it even when stderr is not a TTY.
+    // See https://github.com/athre0z/color-backtrace/issues/14 for details.
+    match term::stderr() {
+        Some(stderr) => {
+            let output = color_backtrace::ColorizedStderrOutput::new(stderr);
+            let settings = color_backtrace::Settings::new().output_stream(Box::new(output));
+            color_backtrace::install_with_settings(settings); },
+        None => color_backtrace::install() }
+}
+
 pub fn makeGtkApp() -> gtk::Application
 {
     let gtkApp = gtk::Application::new(NO_APPLICATION_ID, gio::ApplicationFlags::default())

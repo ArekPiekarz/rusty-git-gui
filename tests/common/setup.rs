@@ -1,3 +1,5 @@
+use rusty_git_gui::app_setup::setupPanicHandler;
+
 use gtk::WidgetExt as _;
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
@@ -8,7 +10,7 @@ use tempfile::{tempdir, TempDir};
 
 pub fn setupTest() -> TempDir
 {
-    color_backtrace::install();
+    setupPanicHandler();
     let repositoryDir = makeTemporaryDirectory();
     initializeGitRepository(repositoryDir.path());
     repositoryDir
