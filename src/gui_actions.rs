@@ -3,9 +3,8 @@ use crate::diff_maker::DiffMaker;
 use crate::error_handling::exit;
 use crate::gui_definitions::{
     CONTINUE_ITERATING_MODEL,
-    FileChangesColumn,
     EXCLUDE_HIDDEN_CHARACTERS,
-    FILE_CHANGES_COLUMNS_U32,
+    FileChangesColumn,
     StagingSwitchStores,
     STOP_ITERATING_MODEL};
 use crate::gui_utils::{clearBuffer,getBuffer, isModelEmpty, isTextBufferEmpty};
@@ -19,8 +18,7 @@ use gtk::{
     TreeModelExt as _,
     TreeSelectionExt as _,
     TreeViewExt as _,
-    WidgetExt as _,
-};
+    WidgetExt as _};
 
 
 pub type Error = failchain::BoxedError<ErrorKind>;
@@ -121,7 +119,7 @@ pub fn changeStagingState(
     let fileStatus = convertFileStatusAfterStagingSwitch(&fileStatus);
     models.source.remove(&iterator);
     if !containsFilePath(&models.target, &filePath) {
-        models.target.set(&models.target.append(), &FILE_CHANGES_COLUMNS_U32,
+        models.target.set(&models.target.append(), &FileChangesColumn::asArrayOfU32(),
                           &[&fileStatus as &dyn gtk::ToValue, &filePath as &dyn gtk::ToValue]); }
 }
 

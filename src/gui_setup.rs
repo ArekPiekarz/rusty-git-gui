@@ -8,8 +8,7 @@ use crate::gui_actions::{
     handleChangedFileViewSelection,
     updateCommitButton};
 use crate::gui_definitions::{
-    FILE_CHANGES_COLUMNS_I32,
-    FILE_CHANGES_COLUMNS_U32,
+    FileChangesColumn,
     StagingSwitchStores};
 use crate::gui_utils::getBuffer;
 use crate::repository::{FileInfo, Repository};
@@ -183,7 +182,7 @@ fn fillFileChangesStore(store: &gtk::ListStore, fileInfos: &[FileInfo])
         |fileInfo| [&fileInfo.status as &dyn gtk::ToValue, &fileInfo.path as &dyn gtk::ToValue]).collect::<Vec<_>>();
 
     for fileInfo in fileInfosForStore {
-        store.set(&store.append(), &FILE_CHANGES_COLUMNS_U32, &fileInfo);
+        store.set(&store.append(), &FileChangesColumn::asArrayOfU32(), &fileInfo);
     };
 }
 
@@ -223,7 +222,7 @@ fn setupFilesChangesView(
     switchStagingOfFileInRepository: impl Fn(&str) + 'static,
     convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String + 'static)
 {
-    FILE_CHANGES_COLUMNS_I32.iter().for_each(|i| setupColumn(*i, &view));
+    FileChangesColumn::asArrayOfI32().iter().for_each(|i| setupColumn(*i, &view));
 
     view.connect_row_activated(move |_view, row, _column|
         changeStagingState(&models, row, &switchStagingOfFileInRepository, &convertFileStatusAfterStagingSwitch));
