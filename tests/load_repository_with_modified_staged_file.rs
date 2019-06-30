@@ -9,14 +9,13 @@ use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
     assertStagedFilesViewContains,
-    assertUnstagedFilesViewIsEmpty,
-};
-use common::setup::{getWindow, makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
+    assertUnstagedFilesViewIsEmpty};
+use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
 use common::utils::FileInfo;
-use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
-use rusty_git_gui::gui_setup::buildGui;
+
+use rusty_git_gui::gui_setup::makeGui;
 use rusty_git_gui::repository::Repository;
-use gio::{ApplicationExt as _, ApplicationExtManual as _};
+
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -32,19 +31,14 @@ fn loadRepositoryWithModifiedStagedFile()
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
 
-    let gtkApp = makeGtkApp();
-    gtkApp.connect_activate(move |gtkApp| {
-        buildGui(gtkApp, Rc::new(Repository::new(&repositoryDir)));
-        let window = getWindow();
+    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
 
-        assertStagedFilesViewContains(&[FileInfo::new("INDEX_MODIFIED", &filePath)], &window);
-        assertUnstagedFilesViewIsEmpty(&window);
-        assertDiffViewIsEmpty(&window);
-        assertCommitMessageViewIsEmpty(&window);
-        assertCommitButtonIsDisabled(&window);
+    assertStagedFilesViewContains(&[FileInfo::new("INDEX_MODIFIED", &filePath)], &gui);
+    assertUnstagedFilesViewIsEmpty(&gui);
+    assertDiffViewIsEmpty(&gui);
+    assertCommitMessageViewIsEmpty(&gui);
+    assertCommitButtonIsDisabled(&gui);
 
-        selectStagedFile(&filePath, &window);
-        assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &window);
-    });
-    gtkApp.run(&NO_APP_ARGUMENTS);
+    selectStagedFile(&filePath, &gui);
+    assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 }

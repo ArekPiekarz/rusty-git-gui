@@ -12,13 +12,11 @@ use common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use common::setup::{getWindow, makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
+use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
 
-use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
-use rusty_git_gui::gui_setup::buildGui;
+use rusty_git_gui::gui_setup::makeGui;
 use rusty_git_gui::repository::Repository;
 
-use gio::{ApplicationExt as _, ApplicationExtManual as _};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -34,54 +32,49 @@ fn commitStagedChangesGivenOnePreviousCommit()
     modifyFile(&filePath, "modified file content\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
 
-    let gtkApp = makeGtkApp();
-    gtkApp.connect_activate(move |gtkApp| {
-        buildGui(gtkApp, Rc::new(Repository::new(&repositoryDir)));
-        let window = getWindow();
+    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
 
-        let firstCommitLog =
-            "Author: John Smith\n\
-             Email: john.smith@example.com\n\
-             Subject: initial commit\n\
-             ---\n \
-              file | 1 +\n \
-              1 file changed, 1 insertion(+)\n\
-             \n\
-             diff --git a/file b/file\n\
-             new file mode 100644\n\
-             index 0000000..c2e7a8d\n\
-             --- /dev/null\n\
-             +++ b/file\n\
-             @@ -0,0 +1 @@\n\
-             +some file content\n";
-        assertRepositoryLogIs(firstCommitLog, &repositoryDir);
-        assertRepositoryStatusIs("M  file\n", &repositoryDir);
+    let firstCommitLog =
+        "Author: John Smith\n\
+         Email: john.smith@example.com\n\
+         Subject: initial commit\n\
+         ---\n \
+          file | 1 +\n \
+          1 file changed, 1 insertion(+)\n\
+         \n\
+         diff --git a/file b/file\n\
+         new file mode 100644\n\
+         index 0000000..c2e7a8d\n\
+         --- /dev/null\n\
+         +++ b/file\n\
+         @@ -0,0 +1 @@\n\
+         +some file content\n";
+    assertRepositoryLogIs(firstCommitLog, &repositoryDir);
+    assertRepositoryStatusIs("M  file\n", &repositoryDir);
 
-        setCommitMessage("second commit", &window);
-        clickCommitButton(&window);
+    setCommitMessage("second commit", &gui);
+    clickCommitButton(&gui);
 
-        assertRepositoryLogIs(
-            &("Author: John Smith\n\
-            Email: john.smith@example.com\n\
-            Subject: second commit\n\
-            ---\n \
-             file | 2 +-\n \
-             1 file changed, 1 insertion(+), 1 deletion(-)\n\
-            \n\
-            diff --git a/file b/file\n\
-            index c2e7a8d..5683396 100644\n\
-            --- a/file\n\
-            +++ b/file\n\
-            @@ -1 +1 @@\n\
-            -some file content\n\
-            +modified file content\n".to_string()
-            + firstCommitLog),
-            &repositoryDir);
-        assertRepositoryStatusIsEmpty(&repositoryDir);
-        assertStagedFilesViewIsEmpty(&window);
-        assertCommitMessageViewIsEmpty(&window);
-        assertCommitButtonIsDisabled(&window);
-        assertCommitButtonTooltipContains("No changes are staged for commit.", &window);
-    });
-    gtkApp.run(&NO_APP_ARGUMENTS);
+    assertRepositoryLogIs(
+        &("Author: John Smith\n\
+        Email: john.smith@example.com\n\
+        Subject: second commit\n\
+        ---\n \
+         file | 2 +-\n \
+         1 file changed, 1 insertion(+), 1 deletion(-)\n\
+        \n\
+        diff --git a/file b/file\n\
+        index c2e7a8d..5683396 100644\n\
+        --- a/file\n\
+        +++ b/file\n\
+        @@ -1 +1 @@\n\
+        -some file content\n\
+        +modified file content\n".to_string()
+        + firstCommitLog),
+        &repositoryDir);
+    assertRepositoryStatusIsEmpty(&repositoryDir);
+    assertStagedFilesViewIsEmpty(&gui);
+    assertCommitMessageViewIsEmpty(&gui);
+    assertCommitButtonIsDisabled(&gui);
+    assertCommitButtonTooltipContains("No changes are staged for commit.", &gui);
 }

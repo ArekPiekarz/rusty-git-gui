@@ -1,4 +1,3 @@
-use crate::converters::toI32;
 use crate::diff_maker::{DiffMaker, StagedDiffMaker, UnstagedDiffMaker};
 use crate::error_handling::{exit, formatFail};
 use crate::gui_actions::{
@@ -7,29 +6,60 @@ use crate::gui_actions::{
     convertFileStatusToStaged,
     convertFileStatusToUnstaged,
     handleChangedFileViewSelection,
-    updateCommitButton,
-};
-use crate::gui_definitions::{FILE_STATUS_MODEL_COLUMN_INDICES, StagingAreaChangeModels};
+    updateCommitButton};
+use crate::gui_definitions::{
+    FILE_CHANGES_COLUMNS_I32,
+    FILE_CHANGES_COLUMNS_U32,
+    StagingSwitchStores};
 use crate::gui_utils::getBuffer;
 use crate::repository::{FileInfo, Repository};
+
 use gtk::{
+    BuilderExtManual as _,
     ButtonExt as _,
     CellLayoutExt as _,
-    ContainerExt as _,
     GtkListStoreExt as _,
     GtkListStoreExtManual as _,
-    GtkWindowExt as _,
-    PanedExt as _,
     TextBufferExt as _,
     TreeModelExt as _,
     TreeSelectionExt as _,
-    TextViewExt as _,
-    TreeViewColumnExt as _,
     TreeViewExt as _,
-    WidgetExt as _,
-};
+    WidgetExt as _};
+use std::ops::Deref;
 use std::rc::Rc;
 
+
+pub type ApplicationWindow = GuiElement<gtk::ApplicationWindow>;
+pub type FileChangesView = GuiElement<gtk::TreeView>;
+pub type UnstagedChangesView = FileChangesView;
+pub type StagedChangesView = FileChangesView;
+pub type TextView = GuiElement<gtk::TextView>;
+pub type DiffView = TextView;
+pub type CommitMessageView = TextView;
+pub type CommitButton = GuiElement<gtk::Button>;
+pub type FileChangesStore = GuiElement<gtk::ListStore>;
+type UnstagedChangesStore = FileChangesStore;
+type StagedChangesStore = FileChangesStore;
+
+pub struct Gui
+{
+    pub mainWindow: ApplicationWindow,
+    pub unstagedChangesView: Rc<UnstagedChangesView>,
+    pub stagedChangesView: Rc<StagedChangesView>,
+    pub diffView: Rc<DiffView>,
+    pub commitMessageView: Rc<CommitMessageView>,
+    pub commitButton: Rc<CommitButton>,
+    unstagedChangesStore: Rc<UnstagedChangesStore>,
+    stagedChangesStore: Rc<StagedChangesStore>
+}
+
+impl Gui
+{
+    pub fn show(&self)
+    {
+        self.mainWindow.show_all();
+    }
+}
 
 #[derive(Clone)]
 struct FileStatusModels
@@ -40,175 +70,212 @@ struct FileStatusModels
 
 
 const EXPAND_IN_LAYOUT : bool = true;
-const SPACING : i32 = 8;
-const FILE_STATUS_COLUMN_TYPE : gtk::Type = gtk::Type::String;
-const FILE_PATH_COLUMN_TYPE : gtk::Type = gtk::Type::String;
+const PROPAGATE_SIGNAL_TO_DEFAULT_HANDLER : gtk::Inhibit = gtk::Inhibit(true);
 
 
-pub fn buildGui(gtkApplication: &gtk::Application, repository: Rc<Repository>)
+pub fn makeGui(repository: Rc<Repository>) -> Gui
 {
-    let window = makeWindow(gtkApplication);
+    let gui = buildGuiFromXml();
+    setupMainWindow(
+        &gui.mainWindow);
+    setupFileChangesStores(
+        &gui.unstagedChangesStore,
+        &gui.stagedChangesStore,
+        &repository);
+    setupUnstagedChangesView(
+        &gui.unstagedChangesView,
+        gui.unstagedChangesStore.clone(),
+        gui.stagedChangesStore.clone(),
+        repository.clone());
+    setupStagedChangesView(
+        &*gui.stagedChangesView,
+        gui.unstagedChangesStore.clone(),
+        gui.stagedChangesStore.clone(),
+        repository.clone());
+    setupFileChangeViewsInteractions(
+        gui.unstagedChangesView.clone(),
+        gui.stagedChangesView.clone(),
+        gui.diffView.clone(),
+        repository.clone());
+    setupCommitButton(
+        gui.commitButton.clone(),
+        gui.commitMessageView.clone(),
+        repository,
+        gui.stagedChangesStore.clone(),
+        &gui.stagedChangesView);
 
-    let generalPane = gtk::Paned::new(gtk::Orientation::Horizontal);
-    let filesPane = gtk::Paned::new(gtk::Orientation::Vertical);
-    let diffAndCommitPane = gtk::Paned::new(gtk::Orientation::Vertical);
-    generalPane.add1(&filesPane);
-    generalPane.add2(&diffAndCommitPane);
-
-    window.add(&generalPane);
-
-    let fileStatusModels = makeFileStatusModels(&repository);
-
-    let unstagedVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    filesPane.add1(&unstagedVerticalBox);
-    unstagedVerticalBox.add(&gtk::Label::new(Some("Unstaged:")));
-    let unstagedFilesStatusView = makeUnstagedFilesStatusView(fileStatusModels.clone(), repository.clone());
-    unstagedVerticalBox.add(&*unstagedFilesStatusView);
-
-    let stagedVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    filesPane.add2(&stagedVerticalBox);
-    stagedVerticalBox.add(&gtk::Label::new(Some("Staged:")));
-    let stagedFilesStatusView = makeStagedFilesStatusView(fileStatusModels.clone(), repository.clone());
-    stagedVerticalBox.add(&*stagedFilesStatusView);
-
-    let diffVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    diffAndCommitPane.add1(&diffVerticalBox);
-    diffVerticalBox.add(&gtk::Label::new(Some("Diff:")));
-    let diffView = makeDiffView();
-    diffVerticalBox.add(&*diffView);
-
-    let commitVerticalBox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    diffAndCommitPane.add2(&commitVerticalBox);
-    commitVerticalBox.add(&gtk::Label::new(Some("Commit message:")));
-    let commitMessageView = makeCommitMessageView();
-    commitVerticalBox.add(&*commitMessageView);
-    let commitButton = makeCommitButton(
-        commitMessageView.clone(), repository.clone(), &commitVerticalBox, fileStatusModels.staged);
-
-    setupFileViews(unstagedFilesStatusView, &stagedFilesStatusView, diffView, repository);
-    setupCommitButtonUpdater(commitButton, &*stagedFilesStatusView, &commitMessageView);
-
-    window.show_all();
+    gui
 }
 
-fn makeWindow(gtkApp: &gtk::Application) -> gtk::ApplicationWindow
+fn buildGuiFromXml() -> Gui
 {
-    let window = gtk::ApplicationWindow::new(gtkApp);
-    window.set_title("Rusty Git Gui");
-    window.set_default_size(400, 400);
-    window
-}
-
-fn makeFileStatusModels(repository: &Repository) -> FileStatusModels
-{
-    let fileInfos = repository.collectFileInfos();
-
-    FileStatusModels {
-        unstaged: makeFileStatusModel(&fileInfos.unstaged),
-        staged: makeFileStatusModel(&fileInfos.staged)
+    let xml = include_str!("main_window.glade");
+    let builder = gtk::Builder::new_from_string(xml);
+    Gui{
+        mainWindow: makeGuiElement::<gtk::ApplicationWindow>("Main window", &builder),
+        unstagedChangesView: Rc::new(makeGuiElement::<gtk::TreeView>("Unstaged changes view", &builder)),
+        stagedChangesView: Rc::new(makeGuiElement::<gtk::TreeView>("Staged changes view", &builder)),
+        diffView: Rc::new(makeGuiElement::<gtk::TextView>("Diff view", &builder)),
+        commitMessageView: Rc::new(makeGuiElement::<gtk::TextView>("Commit message view", &builder)),
+        commitButton: Rc::new(makeGuiElement::<gtk::Button>("Commit button", &builder)),
+        unstagedChangesStore: Rc::new(makeGuiElement::<gtk::ListStore>("Unstaged changes store", &builder)),
+        stagedChangesStore: Rc::new(makeGuiElement::<gtk::ListStore>("Staged changes store", &builder))
     }
 }
 
-fn makeFileStatusModel(fileInfos: &[FileInfo]) -> Rc<gtk::ListStore>
+pub struct GuiElement<T>
 {
-    let fileInfosForModel = fileInfos.iter().map(
+    object: T,
+    name: &'static str
+}
+
+impl<T> GuiElement<T>
+{
+    fn new(object: T, name: &'static str) -> Self
+    {
+        Self{object, name}
+    }
+
+    pub fn name(&self) -> &str
+    {
+        self.name
+    }
+}
+
+impl<T> Deref for GuiElement<T>
+{
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target
+    {
+        &self.object
+    }
+}
+
+fn makeGuiElement<T: gtk::IsA<gtk::Object>>
+    (name: &'static str, builder: &gtk::Builder) -> GuiElement<T>
+{
+    let object = builder.get_object::<T>(name)
+        .unwrap_or_else(|| exit(&format!("Failed to get GTK object named {} from XML.", name)));
+    GuiElement::new(object, name)
+}
+
+fn setupMainWindow(mainWindow: &gtk::ApplicationWindow)
+{
+    mainWindow.connect_delete_event(|_window, _event| {
+        gtk::main_quit();
+        PROPAGATE_SIGNAL_TO_DEFAULT_HANDLER });
+}
+
+fn setupFileChangesStores(
+    unstagedChangesStore: &gtk::ListStore,
+    stagedChangesStore: &gtk::ListStore,
+    repository: &Repository)
+{
+    let fileInfos = repository.collectFileInfos();
+    fillFileChangesStore(unstagedChangesStore, &fileInfos.unstaged);
+    fillFileChangesStore(stagedChangesStore, &fileInfos.staged);
+}
+
+fn fillFileChangesStore(store: &gtk::ListStore, fileInfos: &[FileInfo])
+{
+    let fileInfosForStore = fileInfos.iter().map(
         |fileInfo| [&fileInfo.status as &dyn gtk::ToValue, &fileInfo.path as &dyn gtk::ToValue]).collect::<Vec<_>>();
 
-    let fileStatusModel = Rc::new(gtk::ListStore::new(&[FILE_STATUS_COLUMN_TYPE, FILE_PATH_COLUMN_TYPE]));
-    for fileInfo in fileInfosForModel {
-        fileStatusModel.set(&fileStatusModel.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..], &fileInfo);
+    for fileInfo in fileInfosForStore {
+        store.set(&store.append(), &FILE_CHANGES_COLUMNS_U32, &fileInfo);
     };
-    fileStatusModel
 }
 
-fn makeUnstagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+fn setupUnstagedChangesView(
+    view: &gtk::TreeView,
+    unstagedChangesStore: Rc<UnstagedChangesStore>,
+    stagedChangesStore: Rc<StagedChangesStore>,
+    repository: Rc<Repository>)
 {
-    makeFilesStatusView(
-        "Unstaged files view",
-        StagingAreaChangeModels{
-            source: fileStatusModels.unstaged,
-            target: fileStatusModels.staged},
+    setupFilesChangesView(
+        view,
+        StagingSwitchStores {
+            source: unstagedChangesStore,
+            target: stagedChangesStore},
         move |path| repository.stageFile(path),
-        |fileStatus| convertFileStatusToStaged(&fileStatus))
+        |fileStatus| convertFileStatusToStaged(&fileStatus));
 }
 
-fn makeStagedFilesStatusView(fileStatusModels: FileStatusModels, repository: Rc<Repository>) -> Rc<gtk::TreeView>
+fn setupStagedChangesView(
+    view: &gtk::TreeView,
+    unstagedChangesStore: Rc<UnstagedChangesStore>,
+    stagedChangesStore: Rc<StagedChangesStore>,
+    repository: Rc<Repository>)
 {
-    makeFilesStatusView(
-        "Staged files view",
-        StagingAreaChangeModels{
-            source: fileStatusModels.staged,
-            target: fileStatusModels.unstaged},
+    setupFilesChangesView(
+        view,
+        StagingSwitchStores {
+            source: stagedChangesStore,
+            target: unstagedChangesStore},
         move |path| repository.unstageFile(path),
-        |fileStatus| convertFileStatusToUnstaged(&fileStatus))
+        |fileStatus| convertFileStatusToUnstaged(&fileStatus));
 }
 
-fn makeFilesStatusView(
-    name: &str,
-    models: StagingAreaChangeModels,
+fn setupFilesChangesView(
+    view: &gtk::TreeView,
+    models: StagingSwitchStores,
     switchStagingOfFileInRepository: impl Fn(&str) + 'static,
     convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String + 'static)
-    -> Rc<gtk::TreeView>
 {
-    let fileStatusView = Rc::new(gtk::TreeView::new_with_model(&*models.source));
-    fileStatusView.set_vexpand(true);
-    appendColumn("Status", &fileStatusView);
-    appendColumn("File", &fileStatusView);
-    fileStatusView.connect_row_activated(move |_view, row, _column|
+    FILE_CHANGES_COLUMNS_I32.iter().for_each(|i| setupColumn(*i, &view));
+
+    view.connect_row_activated(move |_view, row, _column|
         changeStagingState(&models, row, &switchStagingOfFileInRepository, &convertFileStatusAfterStagingSwitch));
-    fileStatusView.set_name(name);
-    fileStatusView
 }
 
-fn appendColumn(title: &str, view: &gtk::TreeView)
+fn setupColumn(columnIndex: i32, view: &gtk::TreeView)
 {
     let renderer = gtk::CellRendererText::new();
-    let column = gtk::TreeViewColumn::new();
+    let column = view.get_column(columnIndex)
+        .unwrap_or_else(|| exit(&format!("Failed to get column with index {}", columnIndex)));
     column.pack_start(&renderer, EXPAND_IN_LAYOUT);
-    column.set_title(title);
-    column.add_attribute(&renderer, "text", toI32(view.get_n_columns()));
-    view.append_column(&column);
+    column.add_attribute(&renderer, "text", columnIndex);
 }
 
-fn makeDiffView() -> Rc<gtk::TextView>
-{
-    let diffView = Rc::new(gtk::TextView::new());
-    diffView.set_name("Diff view");
-    diffView.set_editable(false);
-    diffView.set_monospace(true);
-    diffView.set_vexpand(true);
-    diffView.set_hexpand(true);
-    diffView
-}
-
-fn makeCommitMessageView() -> Rc<gtk::TextView>
-{
-    let commitMessageView = Rc::new(gtk::TextView::new());
-    commitMessageView.set_name("Commit message view");
-    commitMessageView.set_vexpand(true);
-    commitMessageView
-}
-
-fn makeCommitButton(
-    commitMessageView: Rc<gtk::TextView>,
+fn setupCommitButton(
+    commitButton: Rc<CommitButton>,
+    commitMessageView: Rc<TextView>,
     repository: Rc<Repository>,
-    layoutBox: &gtk::Box,
-    stagedFilesModel: Rc<gtk::ListStore>)
-    -> Rc<gtk::Button>
+    stagedChangesStore: Rc<StagedChangesStore>,
+    stagedChangesView: &gtk::TreeView)
 {
-    let commitButton = Rc::new(gtk::Button::new_with_label("Commit"));
-    commitButton.set_name("Commit button");
+    let commitMessageBuffer = Rc::new(getBuffer(&commitMessageView)
+        .unwrap_or_else(
+            |_e| exit("Failed to setup commit button updater, because commit message view does not have a buffer.")));
+
     commitButton.connect_clicked(
-        move |_button| commitStagedChanges(&commitMessageView, &repository, &stagedFilesModel)
+        move |_button| commitStagedChanges(&commitMessageView, &repository, &stagedChangesStore)
             .unwrap_or_else(|e| exit(&formatFail(&e))));
-    layoutBox.add(&*commitButton);
-    commitButton
+
+    let stagedChangesModel = stagedChangesView.get_model()
+        .unwrap_or_else(
+            || exit("Failed to setup commit button updater, because staged files view does not have a model."));
+
+    updateCommitButton(&commitButton, &stagedChangesModel, &commitMessageBuffer);
+
+    let commitButton2 = commitButton.clone();
+    let commitButton3 = commitButton.clone();
+    let commitMessageBuffer2 = commitMessageBuffer.clone();
+    let commitMessageBuffer3 = commitMessageBuffer.clone();
+
+    stagedChangesModel.connect_row_inserted(
+        move |model, _row, _iter| updateCommitButton(&commitButton, model, &commitMessageBuffer));
+    stagedChangesModel.connect_row_deleted(
+        move |model, _row| updateCommitButton(&commitButton2, model, &commitMessageBuffer2));
+    commitMessageBuffer3.connect_changed(
+        move |buffer| updateCommitButton(&commitButton3, &stagedChangesModel, buffer));
 }
 
-fn setupFileViews(
-    unstagedFilesView: Rc<gtk::TreeView>,
-    stagedFilesView: &Rc<gtk::TreeView>,
-    diffView: Rc<gtk::TextView>,
+fn setupFileChangeViewsInteractions(
+    unstagedFilesView: Rc<UnstagedChangesView>,
+    stagedFilesView: Rc<StagedChangesView>,
+    diffView: Rc<TextView>,
     repository: Rc<Repository>)
 {
     let stagedFilesViewToUnselect = stagedFilesView.clone();
@@ -220,7 +287,7 @@ fn setupFileViews(
 
     let unstagedFilesViewToUnselect = unstagedFilesView;
     connectSelectionChanged(
-        stagedFilesView,
+        &stagedFilesView,
         diffView,
         StagedDiffMaker{repository},
         unstagedFilesViewToUnselect);
@@ -228,39 +295,11 @@ fn setupFileViews(
 
 fn connectSelectionChanged(
     filesView: &gtk::TreeView,
-    diffView: Rc<gtk::TextView>,
+    diffView: Rc<TextView>,
     diffMaker: impl DiffMaker + 'static,
-    filesViewToUnselect: Rc<gtk::TreeView>)
+    filesViewToUnselect: Rc<FileChangesView>)
 {
     filesView.get_selection().connect_changed(
         move |selection| handleChangedFileViewSelection(selection, &diffView, &diffMaker, &filesViewToUnselect)
             .unwrap_or_else(|e| exit(&formatFail(&e))));
-}
-
-fn setupCommitButtonUpdater(
-    commitButton: Rc<gtk::Button>,
-    stagedFilesView: &gtk::TreeView,
-    commitMessageView: &gtk::TextView)
-{
-    let stagedFilesModel = stagedFilesView.get_model()
-        .unwrap_or_else(
-            || exit("Failed to setup commit button updater, because staged files view does not have a model."));
-    let commitMessageBuffer = Rc::new(getBuffer(&commitMessageView)
-        .unwrap_or_else(
-            |_e| exit("Failed to setup commit button updater, because commit message view does not have a buffer.")));
-
-    updateCommitButton(&commitButton, &stagedFilesModel, &commitMessageBuffer);
-
-    let commitButton2 = commitButton.clone();
-    let commitButton3 = commitButton.clone();
-    let commitMessageBuffer2 = commitMessageBuffer.clone();
-    let commitMessageBuffer3 = commitMessageBuffer.clone();
-
-    stagedFilesModel.connect_row_inserted(
-        move |model, _row, _iter| updateCommitButton(&commitButton, model, &commitMessageBuffer));
-    stagedFilesModel.connect_row_deleted(
-        move |model, _row| updateCommitButton(&commitButton2, model, &commitMessageBuffer2));
-    commitMessageBuffer3.connect_changed(
-        move |buffer| updateCommitButton(&commitButton3, &stagedFilesModel, buffer));
-
 }

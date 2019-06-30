@@ -9,14 +9,13 @@ use common::gui_assertions::{
     assertStagedFilesViewContains,
     assertStagedFilesViewIsEmpty,
     assertUnstagedFilesViewContains,
-    assertUnstagedFilesViewIsEmpty
-};
-use common::setup::{getWindow, makeNewStagedFile, setupTest};
+    assertUnstagedFilesViewIsEmpty};
+use common::setup::{makeNewStagedFile, setupTest};
 use common::utils::FileInfo;
-use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
-use rusty_git_gui::gui_setup::buildGui;
+
+use rusty_git_gui::gui_setup::makeGui;
 use rusty_git_gui::repository::Repository;
-use gio::{ApplicationExt as _, ApplicationExtManual as _};
+
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -29,23 +28,18 @@ fn unstageNewFile()
     let filePath = PathBuf::from("fileName");
     makeNewStagedFile(&filePath, "file content\n", &repositoryDir);
 
-    let gtkApp = makeGtkApp();
-    gtkApp.connect_activate(move |gtkApp| {
-        buildGui(gtkApp, Rc::new(Repository::new(&repositoryDir)));
-        let window = getWindow();
+    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
 
-        assertUnstagedFilesViewIsEmpty(&window);
-        assertStagedFilesViewContains(&[FileInfo::new("INDEX_NEW", &filePath)], &window);
-        assertDiffViewIsEmpty(&window);
+    assertUnstagedFilesViewIsEmpty(&gui);
+    assertStagedFilesViewContains(&[FileInfo::new("INDEX_NEW", &filePath)], &gui);
+    assertDiffViewIsEmpty(&gui);
 
-        activateStagedFile(&filePath, &window);
+    activateStagedFile(&filePath, &gui);
 
-        assertUnstagedFilesViewContains(&[FileInfo::new("WT_NEW", &filePath)], &window);
-        assertStagedFilesViewIsEmpty(&window);
-        assertDiffViewIsEmpty(&window);
+    assertUnstagedFilesViewContains(&[FileInfo::new("WT_NEW", &filePath)], &gui);
+    assertStagedFilesViewIsEmpty(&gui);
+    assertDiffViewIsEmpty(&gui);
 
-        selectUnstagedFile(&filePath, &window);
-        assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &window);
-    });
-    gtkApp.run(&NO_APP_ARGUMENTS);
+    selectUnstagedFile(&filePath, &gui);
+    assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &gui);
 }

@@ -1,9 +1,7 @@
-use rusty_git_gui::app_setup::setupPanicHandler;
+use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
 
-use gtk::WidgetExt as _;
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
-use std::ops::Deref;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use tempfile::{tempdir, TempDir};
@@ -11,6 +9,7 @@ use tempfile::{tempdir, TempDir};
 pub fn setupTest() -> TempDir
 {
     setupPanicHandler();
+    setupGtk();
     let repositoryDir = makeTemporaryDirectory();
     initializeGitRepository(repositoryDir.path());
     repositoryDir
@@ -85,42 +84,4 @@ pub fn modifyFile(filePath: &Path, newContent: &str, repositoryDir: &Path)
 fn openExistingFileForWriting(filePath: &Path) -> File
 {
     OpenOptions::new().write(true).create_new(false).open(filePath).unwrap()
-}
-
-pub fn getWindow() -> ScopedWindow
-{
-    let mut topLevelWindows = gtk::Window::list_toplevels();
-    assert_eq!(topLevelWindows.len(), 1);
-    ScopedWindow::new(topLevelWindows.remove(0))
-}
-
-pub struct ScopedWindow
-{
-    window: gtk::Widget
-}
-
-impl ScopedWindow
-{
-    fn new(window: gtk::Widget) -> Self
-    {
-        ScopedWindow{window}
-    }
-}
-
-impl Drop for ScopedWindow
-{
-    fn drop(&mut self)
-    {
-        self.window.destroy();
-    }
-}
-
-impl Deref for ScopedWindow
-{
-    type Target = gtk::Widget;
-
-    fn deref(&self) -> &gtk::Widget
-    {
-        &self.window
-    }
 }

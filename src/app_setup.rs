@@ -1,5 +1,4 @@
 use failchain::ResultExt as _;
-use gio::ApplicationExt as _;
 use std::path::PathBuf;
 #[cfg(test)] use mocktopus::macros::mockable;
 
@@ -26,10 +25,6 @@ impl failchain::ChainErrorKind for ErrorKind
 use ErrorKind::*;
 
 
-pub const NO_APP_ARGUMENTS : [String; 0] = [];
-const NO_APPLICATION_ID : Option<&str> = None;
-
-
 pub fn setupPanicHandler()
 {
     // color-backtrace since version 0.2.0 doesn't print colors by default in IntelliJ IDEA with Rust plugin,
@@ -43,12 +38,10 @@ pub fn setupPanicHandler()
         None => color_backtrace::install() }
 }
 
-pub fn makeGtkApp() -> gtk::Application
+pub fn setupGtk()
 {
-    let gtkApp = gtk::Application::new(NO_APPLICATION_ID, gio::ApplicationFlags::default())
-        .unwrap_or_else(|e| panic!("Failed to create GTK application: {}", e));
-    gtkApp.connect_startup(|_gtkApp| {});
-    gtkApp
+    gtk::init()
+        .unwrap_or_else(|e| panic!("Failed to initialize GTK. Cause: {}", e));
 }
 
 pub fn findRepositoryDir() -> Result<PathBuf>

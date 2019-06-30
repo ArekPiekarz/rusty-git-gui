@@ -7,14 +7,13 @@ use common::gui_assertions::{
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
     assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewContains,
-};
-use common::setup::{getWindow, makeCommit, makeNewStagedFile, modifyFile, setupTest};
+    assertUnstagedFilesViewContains};
+use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest};
 use common::utils::FileInfo;
-use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
-use rusty_git_gui::gui_setup::buildGui;
+
+use rusty_git_gui::gui_setup::makeGui;
 use rusty_git_gui::repository::Repository;
-use gio::{ApplicationExt as _, ApplicationExtManual as _};
+
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -29,16 +28,12 @@ fn loadRepositoryWithCommitAndModifiedUnstagedFile()
     makeCommit("Initial commit", &repositoryDir);
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
 
-    let gtkApp = makeGtkApp();
-    gtkApp.connect_activate(move |gtkApp| {
-        buildGui(gtkApp, Rc::new(Repository::new(&repositoryDir)));
-        let window = getWindow();
+    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    gui.show();
 
-        assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &window);
-        assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &window);
-        assertStagedFilesViewIsEmpty(&window);
-        assertCommitMessageViewIsEmpty(&window);
-        assertCommitButtonIsDisabled(&window);
-    });
-    gtkApp.run(&NO_APP_ARGUMENTS);
+    assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &gui);
+    assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
+    assertStagedFilesViewIsEmpty(&gui);
+    assertCommitMessageViewIsEmpty(&gui);
+    assertCommitButtonIsDisabled(&gui);
 }

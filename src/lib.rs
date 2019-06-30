@@ -3,7 +3,6 @@
 #[macro_use] extern crate failure;
 
 pub mod app_setup;
-pub mod converters;
 pub mod diff_line_printer;
 pub mod diff_maker;
 pub mod error_handling;

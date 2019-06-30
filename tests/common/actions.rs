@@ -1,7 +1,8 @@
 use crate::common::accessors::getCell;
-use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn, STOP_ITERATING_MODEL};
 
-use glib::object::Cast as _;
+use rusty_git_gui::gui_setup::{FileChangesView, Gui};
+use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileChangesColumn, STOP_ITERATING_MODEL};
+
 use gtk::{
     ButtonExt as _,
     TextBufferExt as _,
@@ -12,80 +13,71 @@ use gtk::{
 use std::path::Path;
 
 
-pub fn selectUnstagedFile(filePath: &Path, window: &gtk::Widget)
+pub fn selectUnstagedFile(filePath: &Path, gui: &Gui)
 {
-    selectFile(filePath, "Unstaged files view", window);
+    selectFile(filePath, &gui.unstagedChangesView);
 }
 
-pub fn selectStagedFile(filePath: &Path, window: &gtk::Widget)
+pub fn selectStagedFile(filePath: &Path, gui: &Gui)
 {
-    selectFile(filePath, "Staged files view", window);
+    selectFile(filePath, &gui.stagedChangesView);
 }
 
-fn selectFile(filePath: &Path, widgetName: &str, window: &gtk::Widget)
+fn selectFile(filePath: &Path, fileChangesView: &FileChangesView)
 {
     invokeForRowInFilesView(
         filePath,
-        widgetName,
-        window,
+        fileChangesView,
         |treeView, _row, iter| { treeView.get_selection().select_iter(iter); });
 }
 
-pub fn activateUnstagedFile(filePath: &Path, window: &gtk::Widget)
+pub fn activateUnstagedFile(filePath: &Path, gui: &Gui)
 {
-    activateFile(filePath, "Unstaged files view", window);
+    activateFile(filePath, &gui.unstagedChangesView);
 }
 
-pub fn activateStagedFile(filePath: &Path, window: &gtk::Widget)
+pub fn activateStagedFile(filePath: &Path, gui: &Gui)
 {
-    activateFile(filePath, "Staged files view", window);
+    activateFile(filePath, &gui.stagedChangesView);
 }
 
-fn activateFile(filePath: &Path, widgetName: &str, window: &gtk::Widget)
+fn activateFile(filePath: &Path, fileChangesView: &FileChangesView)
 {
     invokeForRowInFilesView(
         filePath,
-        widgetName,
-        window,
+        fileChangesView,
         |treeView, row, _iter| { treeView.row_activated(row, &getFilePathColumn(treeView)); });
 }
 
 fn invokeForRowInFilesView(
     filePath: &Path,
-    widgetName: &str,
-    window: &gtk::Widget,
+    fileChangesView: &FileChangesView,
     action: impl Fn(&gtk::TreeView, &gtk::TreePath, &gtk::TreeIter))
 {
     let filePath = filePath.to_str().unwrap();
-    let widget = gtk_test::find_widget_by_name(window, widgetName).unwrap();
-    let treeView = widget.downcast::<gtk::TreeView>().unwrap();
-    let model = treeView.get_model().unwrap();
+    let model = (*fileChangesView).get_model().unwrap();
     let mut rowFound = false;
     model.foreach(|model, row, iter| {
-        if getCell(model, iter, FileStatusModelColumn::Path) != filePath {
+        if getCell(model, iter, FileChangesColumn::Path) != filePath {
             return CONTINUE_ITERATING_MODEL; }
         rowFound = true;
-        action(&treeView, &row, &iter);
+        action(&fileChangesView, &row, &iter);
         STOP_ITERATING_MODEL });
     assert_eq!(true, rowFound);
 }
 
 fn getFilePathColumn(treeView: &gtk::TreeView) -> gtk::TreeViewColumn
 {
-    treeView.get_column(FileStatusModelColumn::Path as i32).unwrap()
+    treeView.get_column(FileChangesColumn::Path as i32).unwrap()
 }
 
-pub fn setCommitMessage(message: &str, window: &gtk::Widget)
+pub fn setCommitMessage(message: &str, gui: &Gui)
 {
-    let widget = gtk_test::find_widget_by_name(&*window, "Commit message view").unwrap();
-    let textView = widget.downcast::<gtk::TextView>().unwrap();
-    let buffer = textView.get_buffer().unwrap();
+    let buffer = gui.commitMessageView.get_buffer().unwrap();
     buffer.insert(&mut buffer.get_start_iter(), message);
 }
 
-pub fn clickCommitButton(window: &gtk::Widget)
+pub fn clickCommitButton(gui: &Gui)
 {
-    let widget = gtk_test::find_widget_by_name(window, "Commit button").unwrap();
-    let button = widget.downcast::<gtk::Button>().unwrap();
-    button.clicked();
+    gui.commitButton.clicked();
 }

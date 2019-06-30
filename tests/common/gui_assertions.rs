@@ -1,126 +1,111 @@
 use crate::common::accessors::{getCell, getFirstRowCell};
 use crate::common::utils::FileInfo;
-use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileStatusModelColumn};
+
+use rusty_git_gui::gui_definitions::{CONTINUE_ITERATING_MODEL, FileChangesColumn};
+use rusty_git_gui::gui_setup::{FileChangesView, Gui, TextView};
 use rusty_git_gui::gui_utils::getText;
 
-use glib::object::Cast as _;
 use gtk::{TextViewExt as _, TreeModelExt as _, TreeViewExt as _, WidgetExt as _};
 use more_asserts::assert_lt;
 
 
 const NO_TEXT_CONTENT : &str = "";
-const BUTTON_ENABLED : bool = true;
-const BUTTON_DISABLED : bool = false;
 
 
-pub fn assertUnstagedFilesViewIsEmpty(window: &gtk::Widget)
+pub fn assertUnstagedFilesViewIsEmpty(gui: &Gui)
 {
-    assertFilesViewIsEmpty(window, "Unstaged files view");
+    assertFilesViewIsEmpty(&gui.unstagedChangesView);
 }
 
-pub fn assertStagedFilesViewIsEmpty(window: &gtk::Widget)
+pub fn assertStagedFilesViewIsEmpty(gui: &Gui)
 {
-    assertFilesViewIsEmpty(window, "Staged files view");
+    assertFilesViewIsEmpty(&gui.stagedChangesView);
 }
 
-fn assertFilesViewIsEmpty(window: &gtk::Widget, name: &str)
+fn assertFilesViewIsEmpty(view: &FileChangesView)
 {
-    let widget = gtk_test::find_widget_by_name(window, name).unwrap();
-    let treeView = widget.downcast::<gtk::TreeView>().unwrap();
-    let model = treeView.get_model().unwrap();
+    let model = view.get_model().unwrap();
     assert_eq!(None, model.get_iter_first(),
                "{} is not empty, the first row is: [{}, {}]",
-               name,
-               getFirstRowCell(&model, FileStatusModelColumn::Status),
-               getFirstRowCell(&model, FileStatusModelColumn::Path));
+               view.name(),
+               getFirstRowCell(&model, FileChangesColumn::Status),
+               getFirstRowCell(&model, FileChangesColumn::Path));
 }
 
-pub fn assertDiffViewIsEmpty(window: &gtk::Widget)
+pub fn assertDiffViewIsEmpty(gui: &Gui)
 {
-    assertDiffViewContains(NO_TEXT_CONTENT, window);
+    assertDiffViewContains(NO_TEXT_CONTENT, gui);
 }
 
-pub fn assertCommitMessageViewIsEmpty(window: &gtk::Widget)
+pub fn assertCommitMessageViewIsEmpty(gui: &Gui)
 {
-    assertTextViewIsEmpty(window, "Commit message view");
+    assertTextViewIsEmpty(&gui.commitMessageView);
 }
 
-fn assertTextViewIsEmpty(window: &gtk::Widget, name: &str)
+fn assertTextViewIsEmpty(textView: &TextView)
 {
-    assertTextViewContains(NO_TEXT_CONTENT, window, name);
+    assertTextViewContains(NO_TEXT_CONTENT, textView);
 }
 
-fn assertTextViewContains(content: &str, window: &gtk::Widget, name: &str)
+fn assertTextViewContains(content: &str, textView: &TextView)
 {
-    let widget = gtk_test::find_widget_by_name(window, name).unwrap();
-    let textView = widget.downcast::<gtk::TextView>().unwrap();
     let buffer = textView.get_buffer().unwrap();
     let textViewContent = getText(&buffer).unwrap();
-    assert_eq!(content, textViewContent.as_str());
+    assert_eq!(content, textViewContent.as_str(),
+               "\nExpected {} content differs from actual.", textView.name().to_lowercase());
 }
 
-pub fn assertCommitButtonIsEnabled(window: &gtk::Widget)
+pub fn assertCommitButtonIsEnabled(gui: &Gui)
 {
-    assertCommitButtonIsInState(BUTTON_ENABLED, window);
+    assert_eq!(true, gui.commitButton.is_sensitive());
 }
 
-pub fn assertCommitButtonIsDisabled(window: &gtk::Widget)
+pub fn assertCommitButtonIsDisabled(gui: &Gui)
 {
-    assertCommitButtonIsInState(BUTTON_DISABLED, window);
+    assert_eq!(false, gui.commitButton.is_sensitive());
 }
 
-fn assertCommitButtonIsInState(buttonState: bool, window: &gtk::Widget)
+pub fn assertCommitButtonTooltipContains(tooltip: &str, gui: &Gui)
 {
-    let widget = gtk_test::find_widget_by_name(window, "Commit button").unwrap();
-    let button = widget.downcast::<gtk::Button>().unwrap();
-    assert_eq!(buttonState, button.is_sensitive());
+    assert_eq!(tooltip, gui.commitButton.get_tooltip_text().unwrap().as_str());
 }
 
-pub fn assertCommitButtonTooltipContains(tooltip: &str, window: &gtk::Widget)
+pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
 {
-    let widget = gtk_test::find_widget_by_name(&*window, "Commit button").unwrap();
-    assert_eq!(tooltip, widget.get_tooltip_text().unwrap().as_str());
+    assert_eq!(None, gui.commitButton.get_tooltip_text());
 }
 
-pub fn assertCommitButtonTooltipIsEmpty(window: &gtk::Widget)
+pub fn assertUnstagedFilesViewContains(files: &[FileInfo], gui: &Gui)
 {
-    let widget = gtk_test::find_widget_by_name(&*window, "Commit button").unwrap();
-    assert_eq!(None, widget.get_tooltip_text());
+    assertFilesViewContains(files, &gui.unstagedChangesView);
 }
 
-pub fn assertUnstagedFilesViewContains(files: &[FileInfo], window: &gtk::Widget)
+pub fn assertStagedFilesViewContains(files: &[FileInfo], gui: &Gui)
 {
-    assertFilesViewContains(files, window, "Unstaged files view");
+    assertFilesViewContains(files, &gui.stagedChangesView);
 }
 
-pub fn assertStagedFilesViewContains(files: &[FileInfo], window: &gtk::Widget)
+fn assertFilesViewContains(files: &[FileInfo], fileChangesView: &FileChangesView)
 {
-    assertFilesViewContains(files, window, "Staged files view");
-}
-
-fn assertFilesViewContains(files: &[FileInfo], window: &gtk::Widget, widgetName: &str)
-{
-    let widget = gtk_test::find_widget_by_name(window, widgetName).unwrap();
-    let treeView = widget.downcast::<gtk::TreeView>().unwrap();
-    let model = treeView.get_model().unwrap();
+    let model = (*fileChangesView).get_model().unwrap();
     let mut rowCount = 0;
     model.foreach(|model, row, iter| {
         let row = row.to_string().parse::<usize>().unwrap();
         assert_lt!(row, files.len(),
                    "{} has more rows than expected. The unexpected row is: [{}, {}]",
-                   widgetName,
-                   getCell(model, iter, FileStatusModelColumn::Status),
-                   getCell(model, iter, FileStatusModelColumn::Path));
-        assert_eq!(files[row].status, getCell(model, iter, FileStatusModelColumn::Status),
-                   "File status differs at row {} in {}.", row, widgetName.to_lowercase());
-        assert_eq!(files[row].path, getCell(model, iter, FileStatusModelColumn::Path),
-                   "File path differs at row {} in {}.", row, widgetName.to_lowercase());
+                   fileChangesView.name(),
+                   getCell(model, iter, FileChangesColumn::Status),
+                   getCell(model, iter, FileChangesColumn::Path));
+        assert_eq!(files[row].status, getCell(model, iter, FileChangesColumn::Status),
+                   "File status differs at row {} in {}.", row, fileChangesView.name().to_lowercase());
+        assert_eq!(files[row].path, getCell(model, iter, FileChangesColumn::Path),
+                   "File path differs at row {} in {}.", row, fileChangesView.name().to_lowercase());
         rowCount += 1;
         CONTINUE_ITERATING_MODEL});
-    assert_eq!(files.len(), rowCount, "{} contained too few rows.", widgetName);
+    assert_eq!(files.len(), rowCount, "{} contained too few rows.", fileChangesView.name());
 }
 
-pub fn assertDiffViewContains(content: &str, window: &gtk::Widget)
+pub fn assertDiffViewContains(content: &str, gui: &Gui)
 {
-    assertTextViewContains(content, window, "Diff view");
+    assertTextViewContains(content, &gui.diffView);
 }

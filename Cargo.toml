@@ -5,18 +5,17 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-cast = "0.2.2"
 color-backtrace = "0.2.1"
 failchain = "0.1015.2"
 failure = "0.1.5"
-gio = "0.7.0"
 git2 = "0.9.1"
 glib = "0.8.0"
 gtk = { version = "0.7.0", features = ["v3_24"] }
+strum = "0.15.0"
+strum_macros = "0.15.0"
 term = "0.5.2"
 
 [dev-dependencies]
-gtk-test = "0.4.0"
 mocktopus = "0.7.2"
 more-asserts = "0.2.1"
 pretty_assertions = "0.6.1"

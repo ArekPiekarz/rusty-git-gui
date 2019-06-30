@@ -8,14 +8,13 @@ use common::gui_assertions::{
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
     assertStagedFilesViewContains,
-    assertUnstagedFilesViewContains,
-};
-use common::setup::{getWindow, makeNewStagedFile, modifyFile, setupTest};
+    assertUnstagedFilesViewContains};
+use common::setup::{makeNewStagedFile, modifyFile, setupTest};
 use common::utils::FileInfo;
-use rusty_git_gui::app_setup::{makeGtkApp, NO_APP_ARGUMENTS};
-use rusty_git_gui::gui_setup::buildGui;
+
+use rusty_git_gui::gui_setup::makeGui;
 use rusty_git_gui::repository::Repository;
-use gio::{ApplicationExt as _, ApplicationExtManual as _};
+
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -29,19 +28,15 @@ fn loadRepositoryWithModifiedUnstagedFileAndSameNewStagedFile()
     makeNewStagedFile(&filePath, "staged file content\n", &repositoryDir);
     modifyFile(&filePath, "staged file content\nmodified unstaged line\n", &repositoryDir);
 
-    let gtkApp = makeGtkApp();
-    gtkApp.connect_activate(move |gtkApp| {
-        buildGui(gtkApp, Rc::new(Repository::new(&repositoryDir)));
-        let window = getWindow();
+    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    gui.show();
 
-        assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &window);
-        assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified unstaged line\n", &window);
-        assertStagedFilesViewContains(&[FileInfo::new("INDEX_NEW", &filePath)], &window);
-        assertCommitMessageViewIsEmpty(&window);
-        assertCommitButtonIsDisabled(&window);
+    assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &gui);
+    assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified unstaged line\n", &gui);
+    assertStagedFilesViewContains(&[FileInfo::new("INDEX_NEW", &filePath)], &gui);
+    assertCommitMessageViewIsEmpty(&gui);
+    assertCommitButtonIsDisabled(&gui);
 
-        selectStagedFile(&filePath, &window);
-        assertDiffViewContains("@@ -0,0 +1 @@\n+staged file content\n", &window);
-    });
-    gtkApp.run(&NO_APP_ARGUMENTS);
+    selectStagedFile(&filePath, &gui);
+    assertDiffViewContains("@@ -0,0 +1 @@\n+staged file content\n", &gui);
 }

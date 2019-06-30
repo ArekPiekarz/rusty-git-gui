@@ -3,10 +3,10 @@ use crate::diff_maker::DiffMaker;
 use crate::error_handling::exit;
 use crate::gui_definitions::{
     CONTINUE_ITERATING_MODEL,
-    FileStatusModelColumn,
+    FileChangesColumn,
     EXCLUDE_HIDDEN_CHARACTERS,
-    FILE_STATUS_MODEL_COLUMN_INDICES,
-    StagingAreaChangeModels,
+    FILE_CHANGES_COLUMNS_U32,
+    StagingSwitchStores,
     STOP_ITERATING_MODEL};
 use crate::gui_utils::{clearBuffer,getBuffer, isModelEmpty, isTextBufferEmpty};
 use crate::repository::Repository;
@@ -96,32 +96,32 @@ fn getFilePathFromFileStatusModel(row: &gtk::TreePath, fileStatusModel: &gtk::Tr
 {
     let iterator = fileStatusModel.get_iter(row)
         .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
-    fileStatusModel.get_value(&iterator, FileStatusModelColumn::Path as i32).get().
+    fileStatusModel.get_value(&iterator, FileChangesColumn::Path as i32).get().
         unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
-                                        iterator, FileStatusModelColumn::Path as i32)))
+                                        iterator, FileChangesColumn::Path as i32)))
 }
 
 pub fn changeStagingState(
-    models: &StagingAreaChangeModels,
+    models: &StagingSwitchStores,
     row: &gtk::TreePath,
     switchStagingOfFileInRepository: impl Fn(&str),
     convertFileStatusAfterStagingSwitch: impl Fn(&str) -> String)
 {
     let iterator = models.source.get_iter(row)
         .unwrap_or_else(|| exit(&format!("Failed to get iterator from file status model for row {}", row)));
-    let filePath = models.source.get_value(&iterator, FileStatusModelColumn::Path as i32).get::<String>().
+    let filePath = models.source.get_value(&iterator, FileChangesColumn::Path as i32).get::<String>().
         unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
-                                        iterator, FileStatusModelColumn::Path as i32)));
-    let fileStatus = models.source.get_value(&iterator, FileStatusModelColumn::Status as i32).get::<String>().
+                                        iterator, FileChangesColumn::Path as i32)));
+    let fileStatus = models.source.get_value(&iterator, FileChangesColumn::Status as i32).get::<String>().
         unwrap_or_else(|| exit(&format!("Failed to get value from file status model for iterator {:?}, column {}",
-                                        iterator, FileStatusModelColumn::Status as i32)));
+                                        iterator, FileChangesColumn::Status as i32)));
 
     switchStagingOfFileInRepository(&filePath);
 
     let fileStatus = convertFileStatusAfterStagingSwitch(&fileStatus);
     models.source.remove(&iterator);
     if !containsFilePath(&models.target, &filePath) {
-        models.target.set(&models.target.append(), &FILE_STATUS_MODEL_COLUMN_INDICES[..],
+        models.target.set(&models.target.append(), &FILE_CHANGES_COLUMNS_U32,
                           &[&fileStatus as &dyn gtk::ToValue, &filePath as &dyn gtk::ToValue]); }
 }
 
@@ -129,7 +129,7 @@ fn containsFilePath(model: &gtk::ListStore, filePath: &str) -> bool
 {
     let mut filePathFound = false;
     model.foreach(|model, row, iter| {
-        let actualFilePath = model.get_value(iter, FileStatusModelColumn::Path as i32).get::<String>()
+        let actualFilePath = model.get_value(iter, FileChangesColumn::Path as i32).get::<String>()
             .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)));
         if actualFilePath != filePath {
             return CONTINUE_ITERATING_MODEL; }
