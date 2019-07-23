@@ -13,7 +13,6 @@ glib = "0.8.1"
 gtk = { version = "0.7.0", features = ["v3_24"] }
 strum = "0.15.0"
 strum_macros = "0.15.0"
-term = "0.5.2"
 
 [dev-dependencies]
 mocktopus = "0.7.2"
