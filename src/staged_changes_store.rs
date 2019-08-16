@@ -1,25 +1,18 @@
-use crate::error_handling::exit;
 use crate::file_change::{FileChange, StagedFileChanges};
-use crate::file_change_column::FileChangeColumn;
 use crate::file_change_store_observer::FileChangeStoreObserver;
+use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 use crate::repository_observer::RepositoryObserver;
-use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 
-use gtk::GtkListStoreExt as _;
-use gtk::GtkListStoreExtManual as _;
-use gtk::TreeModelExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
 
-const NO_PARENT_ITERATOR : Option<&gtk::TreeIter> = None;
-
 
 pub struct StagedFileChangesStore
 {
-    store: gtk::ListStore,
+    store: FileChangesStore,
     onFilledObservers: RefCell<Vec<Weak<dyn FileChangeStoreObserver>>>,
     onEmptiedObservers: RefCell<Vec<Weak<dyn FileChangeStoreObserver>>>
 }
@@ -30,10 +23,9 @@ impl StagedFileChangesStore
         -> Rc<Self>
     {
         let newSelf = Rc::new(Self{
-            store: guiElementProvider.get::<gtk::ListStore>("Staged changes store"),
+            store: FileChangesStore::new(guiElementProvider, "Staged changes store", changes),
             onFilledObservers: RefCell::new(vec![]),
             onEmptiedObservers: RefCell::new(vec![]) });
-        newSelf.fillFileChangesStore(&changes);
         newSelf.connectSelfToRepository(repository);
         newSelf
     }
@@ -48,12 +40,12 @@ impl StagedFileChangesStore
 
     pub fn isFilled(&self) -> bool
     {
-        self.store.get_iter_first().is_some()
+        self.store.isFilled()
     }
 
     pub fn isEmpty(&self) -> bool
     {
-        self.store.get_iter_first().is_none()
+        self.store.isEmpty()
     }
 
     pub fn connectOnFilled(&self, observer: Weak<dyn FileChangeStoreObserver>)
@@ -67,18 +59,6 @@ impl StagedFileChangesStore
     }
 
     // private
-
-    fn fillFileChangesStore(&self, fileChanges: &[FileChange])
-    {
-        let changeInfosForStore = fileChanges.iter().map(
-            |changeInfo|
-                [&changeInfo.status as &dyn gtk::ToValue,
-                 &changeInfo.path as &dyn gtk::ToValue])
-                .collect::<Vec<_>>();
-
-        for changeInfo in changeInfosForStore {
-            self.store.set(&self.store.append(), &FileChangeColumn::asArrayOfU32(), &changeInfo); };
-    }
 
     fn connectSelfToRepository(self: &Rc<Self>, repository: &Repository)
     {
@@ -107,7 +87,7 @@ impl StagedFileChangesStore
 
     fn rowCount(&self) -> i32
     {
-        self.store.iter_n_children(NO_PARENT_ITERATOR)
+        self.store.rowCount()
     }
 }
 
@@ -115,14 +95,11 @@ impl RepositoryObserver for StagedFileChangesStore
 {
     fn onStaged(&self, fileChange: &FileChange)
     {
-        if containsFilePath(&self.store, &fileChange.path) {
+        if self.store.containsFilePath(&fileChange.path) {
             return; }
 
         let newStatus = convertToStaged(&fileChange.status);
-        self.store.set(
-            &self.store.append(),
-            &FileChangeColumn::asArrayOfU32(),
-            &[&newStatus as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue]);
+        self.store.append(&FileChange{status: newStatus, path: fileChange.path.clone()});
 
         if self.rowCount() == 1 {
             self.notifyOnFilled(); }
@@ -133,19 +110,6 @@ impl RepositoryObserver for StagedFileChangesStore
         self.store.clear();
         self.notifyOnEmptied();
     }
-}
-
-fn containsFilePath(model: &gtk::ListStore, filePath: &str) -> bool
-{
-    let mut filePathFound = false;
-    model.foreach(|model, row, iter| {
-        let actualFilePath = model.get_value(iter, FileChangeColumn::Path as i32).get::<String>()
-            .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)));
-        if actualFilePath != filePath {
-            return CONTINUE_ITERATING_MODEL; }
-        filePathFound = true;
-        STOP_ITERATING_MODEL });
-    filePathFound
 }
 
 pub fn convertToStaged(fileChangeStatus: &str) -> String
