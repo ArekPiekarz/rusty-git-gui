@@ -2,18 +2,18 @@
 
 mod common;
 
-use common::actions::{activateUnstagedFile, selectStagedFile};
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
-    assertStagedFilesViewContains,
-    assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewContains,
-    assertUnstagedFilesViewIsEmpty};
+    assertStagedChangesViewContains,
+    assertStagedChangesViewIsEmpty,
+    assertUnstagedChangesViewContains,
+    assertUnstagedChangesViewIsEmpty};
+use common::gui_interactions::{activateUnstagedChange, selectStagedChange};
 use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest};
-use common::utils::FileInfo;
+use common::utils::makeFileChange;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -30,19 +30,19 @@ fn stageModifiedFileGivenItWasCommittedBefore()
     makeCommit("Initial commit", &repositoryDir);
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
     gui.show();
 
-    assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &gui);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 
-    activateUnstagedFile(&filePath, &gui);
+    activateUnstagedChange(&filePath, &gui);
 
-    assertUnstagedFilesViewIsEmpty(&gui);
-    assertStagedFilesViewContains(&[FileInfo::new("INDEX_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewIsEmpty(&gui);
+    assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
-    selectStagedFile(&filePath, &gui);
+    selectStagedChange(&filePath, &gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 }

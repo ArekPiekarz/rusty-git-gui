@@ -1,5 +1,7 @@
-use crate::repository::*;
+use crate::repository::Repository;
+
 use std::rc::Rc;
+
 
 pub trait DiffMaker
 {
@@ -8,12 +10,28 @@ pub trait DiffMaker
 
 pub struct UnstagedDiffMaker
 {
-    pub repository: Rc<Repository>
+    repository: Rc<Repository>
 }
 
 pub struct StagedDiffMaker
 {
-    pub repository: Rc<Repository>
+    repository: Rc<Repository>
+}
+
+impl UnstagedDiffMaker
+{
+    pub fn new(repository: Rc<Repository>) -> Self
+    {
+        Self{repository}
+    }
+}
+
+impl StagedDiffMaker
+{
+    pub fn new(repository: Rc<Repository>) -> Self
+    {
+        Self{repository}
+    }
 }
 
 impl DiffMaker for UnstagedDiffMaker

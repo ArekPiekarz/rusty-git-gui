@@ -2,14 +2,14 @@
 
 mod common;
 
-use common::actions::setCommitMessage;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitButtonIsEnabled,
     assertCommitButtonTooltipIsEmpty};
+use common::gui_interactions::setCommitMessage;
 use common::setup::{makeNewStagedFile, setupTest};
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -24,7 +24,7 @@ fn allowCommittingWhenChangeIsStagedAndCommitMessageIsFilled()
     let filePath = PathBuf::from("file");
     makeNewStagedFile(&filePath, "staged file content\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
     assertCommitButtonIsDisabled(&gui);
 
     setCommitMessage("some commit message", &gui);

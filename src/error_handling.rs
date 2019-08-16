@@ -6,12 +6,21 @@ use gtk::MessageDialogExt as _;
 
 const NO_WINDOW_PARENT: Option<&gtk::Window> = None;
 
+
+pub fn printFail(fail: &dyn failure::Fail)
+{
+    println!("{}", formatFail(fail));
+    if let Some(backtrace) = fail.find_root_cause().backtrace() {
+        unsafe {
+            color_backtrace::failure::print_backtrace(backtrace, &mut color_backtrace::Settings::new())
+                .unwrap_or_else(|e| println!("Failed to print backtrace: {}", e)); }}
+}
+
 pub fn formatFail(fail: &dyn failure::Fail) -> String
 {
     let mut result = format!("error: {}", fail);
     for cause in fail.iter_causes() {
-        result.push_str(&format!("\n  cause: {}", cause));
-    }
+        result.push_str(&format!("\n  cause: {}", cause)); }
     result
 }
 

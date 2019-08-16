@@ -6,11 +6,11 @@ use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewIsEmpty,
-    assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewIsEmpty};
+    assertStagedChangesViewIsEmpty,
+    assertUnstagedChangesViewIsEmpty};
 use common::setup::setupTest;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::rc::Rc;
@@ -21,10 +21,10 @@ fn loadEmptyRepository()
 {
     let repositoryDir = setupTest();
 
-    let gui = makeGui(Rc::new(Repository::new(repositoryDir.path())));
+    let gui = Gui::new(Rc::new(Repository::new(repositoryDir.path())));
 
-    assertUnstagedFilesViewIsEmpty(&gui);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertUnstagedChangesViewIsEmpty(&gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);

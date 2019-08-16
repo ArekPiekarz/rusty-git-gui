@@ -1,15 +1,9 @@
+use rusty_git_gui::file_change::FileChange;
+
 use std::path::Path;
 
-pub struct FileInfo<'a>
-{
-    pub status: &'a str,
-    pub path: &'a str
-}
 
-impl<'a> FileInfo<'a>
+pub fn makeFileChange(status: &str, path: &Path) -> FileChange
 {
-    pub fn new(status: &'a str, path: &'a Path) -> Self
-    {
-        Self{status: status, path: path.to_str().unwrap()}
-    }
+    FileChange{status: status.into(), path: path.to_str().unwrap().into()}
 }

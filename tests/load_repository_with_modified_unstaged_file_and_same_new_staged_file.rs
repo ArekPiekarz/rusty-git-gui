@@ -2,17 +2,17 @@
 
 mod common;
 
-use common::actions::selectStagedFile;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
-    assertStagedFilesViewContains,
-    assertUnstagedFilesViewContains};
+    assertStagedChangesViewContains,
+    assertUnstagedChangesViewContains};
+use common::gui_interactions::selectStagedChange;
 use common::setup::{makeNewStagedFile, modifyFile, setupTest};
-use common::utils::FileInfo;
+use common::utils::makeFileChange;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -28,15 +28,15 @@ fn loadRepositoryWithModifiedUnstagedFileAndSameNewStagedFile()
     makeNewStagedFile(&filePath, "staged file content\n", &repositoryDir);
     modifyFile(&filePath, "staged file content\nmodified unstaged line\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
     gui.show();
 
-    assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified unstaged line\n", &gui);
-    assertStagedFilesViewContains(&[FileInfo::new("INDEX_NEW", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
 
-    selectStagedFile(&filePath, &gui);
+    selectStagedChange(&filePath, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+staged file content\n", &gui);
 }

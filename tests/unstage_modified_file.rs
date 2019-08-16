@@ -2,18 +2,18 @@
 
 mod common;
 
-use common::actions::{activateStagedFile, selectUnstagedFile};
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
-    assertStagedFilesViewContains,
-    assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewContains,
-    assertUnstagedFilesViewIsEmpty};
+    assertStagedChangesViewContains,
+    assertStagedChangesViewIsEmpty,
+    assertUnstagedChangesViewContains,
+    assertUnstagedChangesViewIsEmpty};
+use common::gui_interactions::{activateStagedChange, selectUnstagedChange};
 use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
-use common::utils::FileInfo;
+use common::utils::makeFileChange;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -31,18 +31,18 @@ fn unstageModifiedFile()
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
 
-    assertUnstagedFilesViewIsEmpty(&gui);
-    assertStagedFilesViewContains(&[FileInfo::new("INDEX_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewIsEmpty(&gui);
+    assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
-    activateStagedFile(&filePath, &gui);
+    activateStagedChange(&filePath, &gui);
 
-    assertUnstagedFilesViewContains(&[FileInfo::new("WT_MODIFIED", &filePath)], &gui);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
 
-    selectUnstagedFile(&filePath, &gui);
+    selectUnstagedChange(&filePath, &gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 }

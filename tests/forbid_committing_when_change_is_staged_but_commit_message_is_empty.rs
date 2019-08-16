@@ -4,11 +4,11 @@ mod common;
 
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
-    assertCommitButtonTooltipContains,
+    assertCommitButtonTooltipIs,
     assertCommitMessageViewIsEmpty};
 use common::setup::{makeNewStagedFile, setupTest};
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -23,9 +23,9 @@ fn forbidCommittingWhenChangeIsStagedButCommitMessageIsEmpty()
     let filePath = PathBuf::from("file");
     makeNewStagedFile(&filePath, "staged file content\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
 
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
-    assertCommitButtonTooltipContains("The commit message is empty.", &gui);
+    assertCommitButtonTooltipIs("The commit message is empty.", &gui);
 }

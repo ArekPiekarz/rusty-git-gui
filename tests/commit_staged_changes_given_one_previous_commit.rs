@@ -2,19 +2,19 @@
 
 mod common;
 
-use common::actions::{clickCommitButton, setCommitMessage};
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
-    assertCommitButtonTooltipContains,
+    assertCommitButtonTooltipIs,
     assertCommitMessageViewIsEmpty,
-    assertStagedFilesViewIsEmpty};
+    assertStagedChangesViewIsEmpty};
+use common::gui_interactions::{clickCommitButton, setCommitMessage};
 use common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
 use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -32,7 +32,7 @@ fn commitStagedChangesGivenOnePreviousCommit()
     modifyFile(&filePath, "modified file content\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
 
     let firstCommitLog =
         "Author: John Smith\n\
@@ -73,8 +73,8 @@ fn commitStagedChangesGivenOnePreviousCommit()
         + firstCommitLog),
         &repositoryDir);
     assertRepositoryStatusIsEmpty(&repositoryDir);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
-    assertCommitButtonTooltipContains("No changes are staged for commit.", &gui);
+    assertCommitButtonTooltipIs("No changes are staged for commit.", &gui);
 }

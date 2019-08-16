@@ -6,12 +6,12 @@ use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
-    assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewContains};
+    assertStagedChangesViewIsEmpty,
+    assertUnstagedChangesViewContains};
 use common::setup::{makeNewUnstagedFile, setupTest};
-use common::utils::FileInfo;
+use common::utils::makeFileChange;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -26,12 +26,12 @@ fn loadRepositoryWithNewUnstagedFile()
     let newUnstagedFilePath = PathBuf::from("unstagedFile");
     makeNewUnstagedFile(&newUnstagedFilePath, "unstaged file content\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
     gui.show();
 
-    assertUnstagedFilesViewContains(&[FileInfo::new("WT_NEW", &newUnstagedFilePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &newUnstagedFilePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
 }

@@ -2,13 +2,13 @@
 
 mod common;
 
-use common::actions::{selectStagedFile, selectUnstagedFile};
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
-    assertStagedFilesViewContains,
-    assertUnstagedFilesViewContains};
+    assertStagedChangesViewContains,
+    assertUnstagedChangesViewContains};
+use common::gui_interactions::{selectStagedChange, selectUnstagedChange};
 use common::setup::{
     makeCommit,
     makeNewStagedFile,
@@ -16,9 +16,9 @@ use common::setup::{
     modifyFile,
     setupTest,
     stageFile};
-use common::utils::FileInfo;
+use common::utils::makeFileChange;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -45,25 +45,25 @@ fn loadRepositoryWithMultipleKindsOfFiles()
     let modifiedUnstagedFilePath = newStagedFilePath.clone();
     modifyFile(&modifiedUnstagedFilePath, "new staged file content\nmodified unstaged line\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
     gui.show();
 
-    assertUnstagedFilesViewContains(
-        &[FileInfo::new("WT_NEW", &newUnstagedFilePath),
-          FileInfo::new("WT_MODIFIED", &modifiedUnstagedFilePath)],
+    assertUnstagedChangesViewContains(
+        &[makeFileChange("WT_NEW", &newUnstagedFilePath),
+          makeFileChange("WT_MODIFIED", &modifiedUnstagedFilePath)],
         &gui);
-    assertStagedFilesViewContains(
-        &[FileInfo::new("INDEX_MODIFIED", &modifiedStagedFilePath),
-          FileInfo::new("INDEX_NEW", &newStagedFilePath)],
+    assertStagedChangesViewContains(
+        &[makeFileChange("INDEX_MODIFIED", &modifiedStagedFilePath),
+          makeFileChange("INDEX_NEW", &newStagedFilePath)],
         &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+new unstaged file content\n", &gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
 
-    selectUnstagedFile(&modifiedUnstagedFilePath, &gui);
+    selectUnstagedChange(&modifiedUnstagedFilePath, &gui);
     assertDiffViewContains("@@ -1 +1,2 @@\n new staged file content\n+modified unstaged line\n", &gui);
-    selectStagedFile(&modifiedStagedFilePath, &gui);
+    selectStagedChange(&modifiedStagedFilePath, &gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
-    selectStagedFile(&newStagedFilePath, &gui);
+    selectStagedChange(&newStagedFilePath, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+new staged file content\n", &gui);
 }

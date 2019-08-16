@@ -1,69 +1,53 @@
-use crate::gui_utils::getBuffer;
-use failure::ResultExt as _;
-use gtk::TextBufferExt as _;
+use crate::color::Color;
+use crate::text_view::TextView;
 
-pub type Error = failchain::BoxedError<ErrorKind>;
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorKind {
-    #[fail(display = "Failed to make diff line printer.")]
-    NewDiffLinePrinter
-}
-
+const IGNORE_FILE_HEADER: () = ();
 const PRINTING_SUCCEEDED : bool = true;
 
-pub struct DiffLinePrinter
+
+pub struct DiffLinePrinter<'a>
 {
-    buffer: gtk::TextBuffer
+    textView: &'a TextView
 }
 
-impl DiffLinePrinter
+impl<'a> DiffLinePrinter<'a>
 {
-    pub fn new(textView: &gtk::TextView) -> Result<Self>
+    pub fn new(textView: &'a TextView) -> Self
     {
-        let buffer = getBuffer(textView).context(ErrorKind::NewDiffLinePrinter)?;
-        buffer.delete(&mut buffer.get_start_iter(), &mut buffer.get_end_iter());
-        Ok(Self { buffer })
+        textView.clear();
+        Self{textView}
     }
 
     pub fn printDiff(&self, line: &git2::DiffLine) -> bool
     {
         let lineContent = String::from_utf8_lossy(line.content());
         match line.origin() {
-            '+' => self.insertAddedLineDiff(&lineContent),
-            '-' => self.insertRemovedLineDiff(&lineContent),
-            ' ' => self.insertKeptLineDiff(&lineContent),
-            'F' => (), // ignore file header
-             _  => self.insertDiffLine(&lineContent)
+            '+' => self.appendAddedLineDiff(&lineContent),
+            '-' => self.appendRemovedLineDiff(&lineContent),
+            ' ' => self.appendKeptLineDiff(&lineContent),
+            'F' => IGNORE_FILE_HEADER,
+             _  => self.appendDiffLine(&lineContent)
         };
         PRINTING_SUCCEEDED
     }
 
-    fn insertAddedLineDiff(&self, line : &str)
+    fn appendAddedLineDiff(&self, line : &str)
     {
-        self.insertColoredLineDiff("green", "+", line);
+        self.textView.appendColored(Color("green"), &format!("+{}", line));
     }
 
-    fn insertRemovedLineDiff(&self, line : &str)
+    fn appendRemovedLineDiff(&self, line : &str)
     {
-        self.insertColoredLineDiff("red", "-", line);
+        self.textView.appendColored(Color("red"), &format!("-{}", line));
     }
 
-    fn insertColoredLineDiff(&self, color: &str, linePrefix: &str, line : &str)
+    fn appendKeptLineDiff(&self, line : &str)
     {
-        self.buffer.insert_markup(
-            &mut self.buffer.get_end_iter(),
-            &format!("<span color='{}'>{}{}</span>", color, linePrefix, glib::markup_escape_text(line)));
+        self.textView.append(&format!(" {}", line));
     }
 
-    fn insertKeptLineDiff(&self, line : &str)
+    fn appendDiffLine(&self, line : &str)
     {
-        self.buffer.insert(&mut self.buffer.get_end_iter(), &format!(" {}", line));
-    }
-
-    fn insertDiffLine(&self, line : &str)
-    {
-        self.buffer.insert(&mut self.buffer.get_end_iter(), line);
+        self.textView.append(line);
     }
 }

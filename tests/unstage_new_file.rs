@@ -2,18 +2,18 @@
 
 mod common;
 
-use common::actions::{activateStagedFile, selectUnstagedFile};
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
-    assertStagedFilesViewContains,
-    assertStagedFilesViewIsEmpty,
-    assertUnstagedFilesViewContains,
-    assertUnstagedFilesViewIsEmpty};
+    assertStagedChangesViewContains,
+    assertStagedChangesViewIsEmpty,
+    assertUnstagedChangesViewContains,
+    assertUnstagedChangesViewIsEmpty};
+use common::gui_interactions::{activateStagedChange, selectUnstagedChange};
 use common::setup::{makeNewStagedFile, setupTest};
-use common::utils::FileInfo;
+use common::utils::makeFileChange;
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -28,18 +28,18 @@ fn unstageNewFile()
     let filePath = PathBuf::from("fileName");
     makeNewStagedFile(&filePath, "file content\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
 
-    assertUnstagedFilesViewIsEmpty(&gui);
-    assertStagedFilesViewContains(&[FileInfo::new("INDEX_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewIsEmpty(&gui);
+    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
-    activateStagedFile(&filePath, &gui);
+    activateStagedChange(&filePath, &gui);
 
-    assertUnstagedFilesViewContains(&[FileInfo::new("WT_NEW", &filePath)], &gui);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
 
-    selectUnstagedFile(&filePath, &gui);
+    selectUnstagedChange(&filePath, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &gui);
 }

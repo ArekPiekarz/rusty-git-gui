@@ -5,12 +5,13 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-color-backtrace = "0.2.2"
+color-backtrace = { version = "0.2.2", features = ["failure-bt"] }
 failchain = "0.1015.2"
 failure = "0.1.5"
 git2 = "0.9.2"
 glib = "0.8.1"
 gtk = { version = "0.7.0", features = ["v3_24"] }
+shrinkwraprs = "0.2.1"
 strum = "0.15.0"
 strum_macros = "0.15.0"
 

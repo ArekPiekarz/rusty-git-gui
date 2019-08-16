@@ -3,9 +3,8 @@
 // about unused functions and constants.
 #![allow(dead_code)]
 
-pub mod accessors;
-pub mod actions;
 pub mod gui_assertions;
+pub mod gui_interactions;
 pub mod repository_assertions;
 pub mod setup;
 pub mod utils;

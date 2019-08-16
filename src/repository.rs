@@ -1,5 +1,10 @@
 use crate::error_handling::exit;
+use crate::file_change::{FileChange, GroupedFileChanges, StagedFileChanges, UnstagedFileChanges};
+use crate::repository_observer::RepositoryObserver;
+
+use std::cell::RefCell;
 use std::path::Path;
+use std::rc::Weak;
 
 const NO_INDEX : Option<&git2::Index> = None;
 const UNSTAGED_STATUSES : [git2::Status; 5] = [
@@ -17,35 +22,31 @@ const STAGED_STATUSES : [git2::Status; 5] = [
 const STATUS_FOUND : bool = true;
 const STATUS_NOT_FOUND : bool = false;
 
-#[derive(Debug)]
-pub struct FileInfo
-{
-    pub path: String,
-    pub status: String
-}
 
 pub struct Repository
 {
-    gitRepo: git2::Repository
-}
-
-pub struct FileInfos
-{
-    pub unstaged: Vec<FileInfo>,
-    pub staged: Vec<FileInfo>
+    gitRepo: git2::Repository,
+    onStagedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>,
+    onUnstagedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>,
+    onCommittedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>
 }
 
 impl Repository
 {
     pub fn new(path: &Path) -> Self
     {
-        Self{gitRepo: openRepository(path)}
+        Self{
+            gitRepo: openRepository(path),
+            onStagedObservers: RefCell::new(vec![]),
+            onUnstagedObservers: RefCell::new(vec![]),
+            onCommittedObservers: RefCell::new(vec![])
+        }
     }
 
-    pub fn collectFileInfos(&self) -> FileInfos
+    pub fn collectFileChanges(&self) -> GroupedFileChanges
     {
-        let mut unstaged = vec![];
-        let mut staged = vec![];
+        let mut unstaged = UnstagedFileChanges::new();
+        let mut staged = StagedFileChanges::new();
         for fileStatusEntry in self.collectFileStatuses().iter() {
             let mut statusFound = false;
             statusFound |= maybeAddToUnstaged(&fileStatusEntry, &mut unstaged);
@@ -56,13 +57,7 @@ impl Repository
                   fileStatusEntry.status(), getFilePath(&fileStatusEntry)));
             }
         }
-        FileInfos {unstaged, staged}
-    }
-
-    fn collectFileStatuses(&self) -> git2::Statuses
-    {
-        self.gitRepo.statuses(Some(&mut makeStatusOptions()))
-            .unwrap_or_else(|e| exit(&format!("Failed to get statuses: {}", e)))
+        GroupedFileChanges{unstaged, staged}
     }
 
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
@@ -81,29 +76,33 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
     }
 
-    pub fn stageFile(&self, path: &str)
+    pub fn stageFileChange(&self, fileChange: &FileChange)
     {
         let mut index = self.gitRepo.index()
             .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {}, because index could not be acquired: {}", path, e)));
-        index.add_path(Path::new(path))
+                "Failed to stage file {}, because index could not be acquired: {}", fileChange.path, e)));
+        index.add_path(Path::new(&fileChange.path))
             .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {}, because adding path to index failed: {}", path, e)));
+                "Failed to stage file {}, because adding path to index failed: {}", fileChange.path, e)));
         index.write()
             .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {}, because writing the index to disk failed: {}", path, e)));
+                "Failed to stage file {}, because writing the index to disk failed: {}", fileChange.path, e)));
+
+        self.notifyOnStaged(fileChange);
     }
 
-    pub fn unstageFile(&self, path: &str)
+    pub fn unstageFileChange(&self, fileChange: &FileChange)
     {
         let commitObject = match self.findHeadCommit() {
             Some(commit) => Some(commit.into_object()),
             None => None };
-        self.gitRepo.reset_default(commitObject.as_ref(), &[path])
-            .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", path, e)));
+        self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
+            .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
+
+        self.notifyOnUnstaged(fileChange);
     }
 
-    pub fn commitChanges(&self, message: &str)
+    pub fn commit(&self, message: &str)
     {
         let author = self.gitRepo.signature()
             .unwrap_or_else(|e| exit(&format!("Failed to get a name and/or email of the commit author: {}", e)));
@@ -120,6 +119,30 @@ impl Repository
 
         self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
             .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
+        self.notifyOnCommitted();
+    }
+
+    pub fn connectOnStaged(&self, observer: Weak<dyn RepositoryObserver>)
+    {
+        self.onStagedObservers.borrow_mut().push(observer);
+    }
+
+    pub fn connectOnUnstaged(&self, observer: Weak<dyn RepositoryObserver>)
+    {
+        self.onUnstagedObservers.borrow_mut().push(observer);
+    }
+
+    pub fn connectOnCommitted(&self, observer: Weak<dyn RepositoryObserver>)
+    {
+        self.onCommittedObservers.borrow_mut().push(observer);
+    }
+
+    // private
+
+    fn collectFileStatuses(&self) -> git2::Statuses
+    {
+        self.gitRepo.statuses(Some(&mut makeStatusOptions()))
+            .unwrap_or_else(|e| exit(&format!("Failed to get statuses: {}", e)))
     }
 
     fn findHeadCommit(&self) -> Option<git2::Commit>
@@ -158,6 +181,33 @@ impl Repository
         self.gitRepo.is_empty()
             .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
     }
+
+    fn notifyOnStaged(&self, fileChange: &FileChange)
+    {
+        for observer in &*self.onStagedObservers.borrow() {
+            if let Some(observer) = observer.upgrade() {
+                observer.onStaged(fileChange);
+            }
+        }
+    }
+
+    fn notifyOnUnstaged(&self, fileChange: &FileChange)
+    {
+        for observer in &*self.onUnstagedObservers.borrow() {
+            if let Some(observer) = observer.upgrade() {
+                observer.onUnstaged(fileChange);
+            }
+        }
+    }
+
+    fn notifyOnCommitted(&self)
+    {
+        for observer in &*self.onCommittedObservers.borrow() {
+            if let Some(observer) = observer.upgrade() {
+                observer.onCommitted();
+            }
+        }
+    }
 }
 
 fn openRepository(repositoryDir: &Path) -> git2::Repository
@@ -173,34 +223,34 @@ fn makeStatusOptions() -> git2::StatusOptions
     options
 }
 
-fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, unstaged: &mut Vec<FileInfo>) -> bool
+fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, mut unstaged: &mut UnstagedFileChanges) -> bool
 {
-    maybeAddToFileInfos(fileStatusEntry, unstaged, &UNSTAGED_STATUSES)
+    maybeAddToFileChanges(fileStatusEntry, &mut unstaged, &UNSTAGED_STATUSES)
 }
 
-fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, staged: &mut Vec<FileInfo>) -> bool
+fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, mut staged: &mut StagedFileChanges) -> bool
 {
-    maybeAddToFileInfos(fileStatusEntry, staged, &STAGED_STATUSES)
+    maybeAddToFileChanges(fileStatusEntry, &mut staged, &STAGED_STATUSES)
 }
 
-fn maybeAddToFileInfos(
+fn maybeAddToFileChanges(
     fileStatusEntry: &git2::StatusEntry,
-    fileInfos: &mut Vec<FileInfo>,
+    fileChanges: &mut Vec<FileChange>,
     statusTypes: &[git2::Status]) -> bool
 {
     let statusFlag = fileStatusEntry.status();
     for statusType in statusTypes {
         if statusFlag.intersects(*statusType) {
-            fileInfos.push(makeFileInfo(&fileStatusEntry, *statusType));
+            fileChanges.push(makeFileChange(&fileStatusEntry, *statusType));
             return STATUS_FOUND;
         }
     }
     STATUS_NOT_FOUND
 }
 
-fn makeFileInfo(statusEntry: &git2::StatusEntry, status: git2::Status) -> FileInfo
+fn makeFileChange(statusEntry: &git2::StatusEntry, status: git2::Status) -> FileChange
 {
-    FileInfo { path: getFilePath(statusEntry), status: format!("{:?}", status) }
+    FileChange { path: getFilePath(statusEntry), status: format!("{:?}", status) }
 }
 
 fn getFilePath(statusEntry: &git2::StatusEntry) -> String

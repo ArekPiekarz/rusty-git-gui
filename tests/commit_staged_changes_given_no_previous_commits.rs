@@ -2,12 +2,12 @@
 
 mod common;
 
-use common::actions::{clickCommitButton, setCommitMessage};
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
-    assertCommitButtonTooltipContains,
+    assertCommitButtonTooltipIs,
     assertCommitMessageViewIsEmpty,
-    assertStagedFilesViewIsEmpty};
+    assertStagedChangesViewIsEmpty};
+use common::gui_interactions::{clickCommitButton, setCommitMessage};
 use common::repository_assertions::{
     assertRepositoryHasNoCommits,
     assertRepositoryLogIs,
@@ -15,7 +15,7 @@ use common::repository_assertions::{
     assertRepositoryStatusIsEmpty};
 use common::setup::{makeNewStagedFile, setupTest};
 
-use rusty_git_gui::gui_setup::makeGui;
+use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use std::path::PathBuf;
@@ -30,7 +30,7 @@ fn commitStagedChangesGivenNoPreviousCommits()
     let filePath = PathBuf::from("file");
     makeNewStagedFile(&filePath, "some file content\n", &repositoryDir);
 
-    let gui = makeGui(Rc::new(Repository::new(&repositoryDir)));
+    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
 
     assertRepositoryHasNoCommits(&repositoryDir);
     assertRepositoryStatusIs("A  file\n", &repositoryDir);
@@ -55,8 +55,8 @@ fn commitStagedChangesGivenNoPreviousCommits()
         +some file content\n",
         &repositoryDir);
     assertRepositoryStatusIsEmpty(&repositoryDir);
-    assertStagedFilesViewIsEmpty(&gui);
+    assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
-    assertCommitButtonTooltipContains("No changes are staged for commit.", &gui);
+    assertCommitButtonTooltipIs("No changes are staged for commit.", &gui);
 }
