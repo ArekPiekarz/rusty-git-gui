@@ -85,3 +85,8 @@ fn openExistingFileForWriting(filePath: &Path) -> File
 {
     OpenOptions::new().write(true).create_new(false).open(filePath).unwrap()
 }
+
+pub fn makeSubdirectory(subdir: &Path, repositoryDir: &Path)
+{
+    std::fs::create_dir(repositoryDir.join(subdir)).unwrap()
+}

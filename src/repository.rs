@@ -219,7 +219,7 @@ fn openRepository(repositoryDir: &Path) -> git2::Repository
 fn makeStatusOptions() -> git2::StatusOptions
 {
     let mut options = git2::StatusOptions::new();
-    options.include_ignored(false).include_untracked(true);
+    options.include_ignored(false).include_untracked(true).recurse_untracked_dirs(true);
     options
 }
 
@@ -263,6 +263,6 @@ fn getFilePath(statusEntry: &git2::StatusEntry) -> String
 fn makeDiffOptions(path: &str) -> git2::DiffOptions
 {
     let mut diffOptions = git2::DiffOptions::new();
-    diffOptions.pathspec(path).show_untracked_content(true);
+    diffOptions.pathspec(path).show_untracked_content(true).recurse_untracked_dirs(true);
     diffOptions
 }
