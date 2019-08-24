@@ -5,7 +5,7 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-color-backtrace = { version = "0.2.2", features = ["failure-bt"] }
+color-backtrace = { version = "0.2.3", features = ["failure-bt"] }
 failchain = "0.1015.2"
 failure = "0.1.5"
 git2 = "0.10.0"
