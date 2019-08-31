@@ -38,8 +38,8 @@ impl UnstagedChangesView
             repository,
             onSelectedObservers: RefCell::new(vec![]),
             onDeselectedObservers: RefCell::new(vec![]) });
-        Self::connectToSelectionChanged(&newSelf);
-        Self::connectToRowActivated(&newSelf);
+        Self::connectSelfToWidget(&newSelf);
+        Self::connectSelfToWidgetSelection(&newSelf);
         newSelf
     }
 
@@ -101,7 +101,7 @@ impl UnstagedChangesView
         self.widget.get_column(FileChangeColumn::Path as i32).unwrap()
     }
 
-    fn connectToSelectionChanged(rcSelf: &Rc<Self>)
+    fn connectSelfToWidgetSelection(rcSelf: &Rc<Self>)
     {
         let weakSelf = Rc::downgrade(&rcSelf);
         rcSelf.widget.get_selection().connect_changed(
@@ -120,7 +120,7 @@ impl UnstagedChangesView
             return self.notifyOnDeselected();
         }
         else if rows.len() > 1 {
-                return;
+            return;
         }
 
         self.notifyOnSelected(&findSelectedFileChange(&rows[0], &model));
@@ -144,7 +144,7 @@ impl UnstagedChangesView
         }
     }
 
-    fn connectToRowActivated(rcSelf: &Rc<Self>)
+    fn connectSelfToWidget(rcSelf: &Rc<Self>)
     {
         let weakSelf = Rc::downgrade(&rcSelf);
         rcSelf.widget.connect_row_activated(
