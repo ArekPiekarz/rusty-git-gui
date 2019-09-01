@@ -26,7 +26,7 @@ impl Gui
     pub fn new(repository: Rc<Repository>) -> Self
     {
         let guiElementProvider = GuiElementProvider::new(include_str!("main_window.glade"));
-        let fileChanges = repository.collectFileChanges();
+        let fileChanges = repository.getFileChanges();
 
         let unstagedChangesView = UnstagedChangesView::new(
             &guiElementProvider, &fileChanges.unstaged, Rc::clone(&repository));
@@ -40,13 +40,14 @@ impl Gui
 
         let commitMessageView = CommitMessageView::new(&guiElementProvider, &repository);
         let commitButton = CommitButton::new(
-            &guiElementProvider, &stagedChangesView, Rc::clone(&commitMessageView), Rc::clone(&repository));
+            &guiElementProvider, Rc::clone(&commitMessageView), Rc::clone(&repository));
 
         Self{
             applicationWindow: ApplicationWindow::new(&guiElementProvider),
             unstagedChangesView: Rc::clone(&unstagedChangesView),
             stagedChangesView: Rc::clone(&stagedChangesView),
-            diffView: DiffView::new(&guiElementProvider, &unstagedChangesView, &stagedChangesView, repository),
+            diffView: DiffView::new(
+                &guiElementProvider, &unstagedChangesView, &stagedChangesView, Rc::clone(&repository)),
             commitMessageView,
             commitButton
         }

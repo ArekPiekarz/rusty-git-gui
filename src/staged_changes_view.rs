@@ -1,7 +1,6 @@
 use crate::file_change_column::FileChangeColumn;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::file_change::{FileChange, StagedFileChanges};
-use crate::file_change_store_observer::FileChangeStoreObserver;
 use crate::file_change_view_observer::FileChangeViewObserver;
 use crate::repository::Repository;
 use crate::staged_changes_store::StagedFileChangesStore;
@@ -22,9 +21,7 @@ pub struct StagedChangesView
     widget: gtk::TreeView,
     repository: Rc<Repository>,
     onSelectedObservers: RefCell<Vec<Weak<dyn FileChangeViewObserver>>>,
-    onDeselectedObservers: RefCell<Vec<Weak<dyn FileChangeViewObserver>>>,
-    onFilledObservers: RefCell<Vec<Weak<dyn FileChangeViewObserver>>>,
-    onEmptiedObservers: RefCell<Vec<Weak<dyn FileChangeViewObserver>>>,
+    onDeselectedObservers: RefCell<Vec<Weak<dyn FileChangeViewObserver>>>
 }
 
 impl StagedChangesView
@@ -40,11 +37,8 @@ impl StagedChangesView
             widget: makeView(guiElementProvider),
             repository,
             onSelectedObservers: RefCell::new(vec![]),
-            onDeselectedObservers: RefCell::new(vec![]),
-            onFilledObservers: RefCell::new(vec![]),
-            onEmptiedObservers: RefCell::new(vec![])
+            onDeselectedObservers: RefCell::new(vec![])
         });
-        Self::connectSelfToStore(&newSelf);
         Self::connectSelfToWidget(&newSelf);
         Self::connectSelfToWidgetSelection(&newSelf);
         newSelf
@@ -88,21 +82,6 @@ impl StagedChangesView
     pub fn connectOnDeselected(&self, observer: Weak<dyn FileChangeViewObserver>)
     {
         self.onDeselectedObservers.borrow_mut().push(observer);
-    }
-
-    pub fn connectOnFilled(&self, observer: Weak<dyn FileChangeViewObserver>)
-    {
-        self.onFilledObservers.borrow_mut().push(observer);
-    }
-
-    pub fn connectOnEmptied(&self, observer: Weak<dyn FileChangeViewObserver>)
-    {
-        self.onEmptiedObservers.borrow_mut().push(observer);
-    }
-
-    pub fn hasContent(&self) -> bool
-    {
-        self.store.isFilled()
     }
 
 
@@ -189,12 +168,6 @@ impl StagedChangesView
         self.store.remove(&iterator);
     }
 
-    fn connectSelfToStore(rcSelf: &Rc<Self>)
-    {
-        rcSelf.store.connectOnFilled(Rc::downgrade(&(rcSelf.clone() as Rc<dyn FileChangeStoreObserver>)));
-        rcSelf.store.connectOnEmptied(Rc::downgrade(&(rcSelf.clone() as Rc<dyn FileChangeStoreObserver>)));
-    }
-
     fn invokeForRowWith(
         &self,
         filePath: &str,
@@ -211,27 +184,6 @@ impl StagedChangesView
             STOP_ITERATING_MODEL
         });
         rowFound
-    }
-}
-
-impl FileChangeStoreObserver for StagedChangesView
-{
-    fn onFilled(&self)
-    {
-        for observer in &*self.onFilledObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onFilled();
-            }
-        }
-    }
-
-    fn onEmptied(&self)
-    {
-        for observer in &*self.onEmptiedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onEmptied();
-            }
-        }
     }
 }
 

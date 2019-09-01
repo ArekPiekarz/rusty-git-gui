@@ -2,7 +2,7 @@ use crate::error_handling::exit;
 use crate::file_change::{FileChange, GroupedFileChanges, StagedFileChanges, UnstagedFileChanges};
 use crate::repository_observer::RepositoryObserver;
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::path::Path;
 use std::rc::Weak;
 
@@ -26,6 +26,7 @@ const STATUS_NOT_FOUND : bool = false;
 pub struct Repository
 {
     gitRepo: git2::Repository,
+    fileChanges: RefCell<GroupedFileChanges>,
     onStagedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>,
     onUnstagedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>,
     onCommittedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>
@@ -35,15 +36,18 @@ impl Repository
 {
     pub fn new(path: &Path) -> Self
     {
-        Self{
+        let newSelf = Self{
             gitRepo: openRepository(path),
+            fileChanges: RefCell::new(GroupedFileChanges::new()),
             onStagedObservers: RefCell::new(vec![]),
             onUnstagedObservers: RefCell::new(vec![]),
             onCommittedObservers: RefCell::new(vec![])
-        }
+        };
+        newSelf.collectCurrentFileChanges();
+        newSelf
     }
 
-    pub fn collectFileChanges(&self) -> GroupedFileChanges
+    pub fn collectCurrentFileChanges(&self) -> &RefCell<GroupedFileChanges>
     {
         let mut unstaged = UnstagedFileChanges::new();
         let mut staged = StagedFileChanges::new();
@@ -57,7 +61,18 @@ impl Repository
                   fileStatusEntry.status(), getFilePath(&fileStatusEntry)));
             }
         }
-        GroupedFileChanges{unstaged, staged}
+        *self.fileChanges.borrow_mut() = GroupedFileChanges{unstaged, staged};
+        &self.fileChanges
+    }
+
+    pub fn getFileChanges(&self) -> Ref<GroupedFileChanges>
+    {
+        self.fileChanges.borrow()
+    }
+
+    pub fn hasStagedChanges(&self) -> bool
+    {
+        !self.fileChanges.borrow().staged.is_empty()
     }
 
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
@@ -99,6 +114,7 @@ impl Repository
         self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
             .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
 
+        self.collectCurrentFileChanges();
         self.notifyOnUnstaged(fileChange);
     }
 
@@ -119,6 +135,8 @@ impl Repository
 
         self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
             .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
+
+        self.collectCurrentFileChanges();
         self.notifyOnCommitted();
     }
 

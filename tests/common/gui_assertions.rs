@@ -34,7 +34,7 @@ pub fn assertCommitButtonIsDisabled(gui: &Gui)
 
 pub fn assertCommitButtonTooltipIs(tooltip: &str, gui: &Gui)
 {
-    assert_eq!(tooltip, gui.commitButton.getTooltip());
+    assert_eq!(tooltip, gui.commitButton.getTooltip(), "\nExpected commit button tooltip does not match actual.");
 }
 pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
 {

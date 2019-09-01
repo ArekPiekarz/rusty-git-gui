@@ -37,3 +37,11 @@ pub struct GroupedFileChanges
     pub unstaged: UnstagedFileChanges,
     pub staged: StagedFileChanges
 }
+
+impl GroupedFileChanges
+{
+    pub fn new() -> Self
+    {
+        Self{unstaged: UnstagedFileChanges::new(), staged: StagedFileChanges::new()}
+    }
+}

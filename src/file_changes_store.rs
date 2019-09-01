@@ -8,8 +8,6 @@ use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::TreeModelExt as _;
 
-const NO_PARENT_ITERATOR : Option<&gtk::TreeIter> = None;
-
 
 pub struct FileChangesStore
 {
@@ -23,21 +21,6 @@ impl FileChangesStore
         let newSelf = Self{store: guiElementProvider.get::<gtk::ListStore>(name)};
         newSelf.fillFileChangesStore(&changes);
         newSelf
-    }
-
-    pub fn isFilled(&self) -> bool
-    {
-        self.store.get_iter_first().is_some()
-    }
-
-    pub fn isEmpty(&self) -> bool
-    {
-        !self.isFilled()
-    }
-
-    pub fn rowCount(&self) -> i32
-    {
-        self.store.iter_n_children(NO_PARENT_ITERATOR)
     }
 
     pub fn containsFilePath(&self, filePath: &str) -> bool

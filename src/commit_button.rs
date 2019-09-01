@@ -1,9 +1,9 @@
 use crate::commit_message_view::CommitMessageView;
 use crate::commit_message_view_observer::CommitMessageViewObserver;
-use crate::file_change_view_observer::FileChangeViewObserver;
+use crate::file_change::FileChange;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
-use crate::staged_changes_view::StagedChangesView;
+use crate::repository_observer::RepositoryObserver;
 
 use gtk::ButtonExt as _;
 use gtk::WidgetExt as _;
@@ -24,7 +24,6 @@ impl CommitButton
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
-        stagedChangesView: &StagedChangesView,
         commitMessageView: Rc<CommitMessageView>,
         repository: Rc<Repository>)
         -> Rc<Self>
@@ -32,12 +31,12 @@ impl CommitButton
         let isCommitMessageWritten = RefCell::new(commitMessageView.hasText());
         let newSelf = Rc::new(Self{
             widget: guiElementProvider.get::<gtk::Button>("Commit button"),
-            repository,
+            repository: Rc::clone(&repository),
             commitMessageView,
-            areChangesStaged: RefCell::new(stagedChangesView.hasContent()),
+            areChangesStaged: RefCell::new(repository.hasStagedChanges()),
             isCommitMessageWritten
         });
-        newSelf.connectSelfToStagedChangesView(&stagedChangesView);
+        newSelf.connectSelfToRepository(&repository);
         newSelf.connectSelfToCommitMessageView();
         newSelf.connectSelfToWidget();
         newSelf.update();
@@ -70,10 +69,10 @@ impl CommitButton
 
     // private
 
-    fn connectSelfToStagedChangesView(self: &Rc<Self>, stagedChangesView: &StagedChangesView)
+    fn connectSelfToRepository(self: &Rc<Self>, repository: &Repository)
     {
-        stagedChangesView.connectOnFilled(Rc::downgrade(&(self.clone() as Rc<dyn FileChangeViewObserver>)));
-        stagedChangesView.connectOnEmptied(Rc::downgrade(&(self.clone() as Rc<dyn FileChangeViewObserver>)));
+        repository.connectOnStaged(Rc::downgrade(&(self.clone() as Rc<dyn RepositoryObserver>)));
+        repository.connectOnUnstaged(Rc::downgrade(&(self.clone() as Rc<dyn RepositoryObserver>)));
     }
 
     fn connectSelfToCommitMessageView(self: &Rc<Self>)
@@ -143,19 +142,27 @@ impl CommitButton
     fn commit(&self)
     {
         self.repository.commit(&self.commitMessageView.getText());
+        *self.areChangesStaged.borrow_mut() = false;
+        self.update();
     }
 }
 
-impl FileChangeViewObserver for CommitButton
+impl RepositoryObserver for CommitButton
 {
-    fn onFilled(&self)
+    fn onStaged(&self, _: &FileChange)
     {
+        if *self.areChangesStaged.borrow() {
+            return;
+        }
         *self.areChangesStaged.borrow_mut() = true;
         self.update();
     }
 
-    fn onEmptied(&self)
+    fn onUnstaged(&self, _: &FileChange)
     {
+        if self.repository.hasStagedChanges() {
+            return;
+        }
         *self.areChangesStaged.borrow_mut() = false;
         self.update();
     }

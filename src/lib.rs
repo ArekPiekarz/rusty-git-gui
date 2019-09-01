@@ -18,7 +18,6 @@ mod diff_line_printer;
 mod diff_maker;
 mod diff_view;
 mod file_change_column;
-mod file_change_store_observer;
 mod file_change_view_observer;
 mod file_changes_store;
 mod gui_element_provider;
