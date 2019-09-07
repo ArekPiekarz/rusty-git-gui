@@ -2,7 +2,7 @@ use crate::diff_line_printer::DiffLinePrinter;
 use crate::diff_maker::{DiffMaker, StagedDiffMaker, UnstagedDiffMaker};
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
-use crate::file_change_view_observer::FileChangeViewObserver;
+use crate::file_changes_view_observer::FileChangesViewObserver;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 use crate::staged_changes_view::StagedChangesView;
@@ -111,13 +111,13 @@ impl UnstagedChangesViewObserver
     fn new(selectionChangedHandler: Rc<DiffViewHandler>, unstagedChangesView: &UnstagedChangesView) -> Rc<Self>
     {
         let newSelf = Rc::new(Self{selectionChangedHandler});
-        unstagedChangesView.connectOnSelected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangeViewObserver>)));
-        unstagedChangesView.connectOnDeselected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangeViewObserver>)));
+        unstagedChangesView.connectOnSelected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangesViewObserver>)));
+        unstagedChangesView.connectOnDeselected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangesViewObserver>)));
         newSelf
     }
 }
 
-impl FileChangeViewObserver for UnstagedChangesViewObserver
+impl FileChangesViewObserver for UnstagedChangesViewObserver
 {
     fn onSelected(&self, fileChange: &FileChange)
     {
@@ -141,13 +141,13 @@ impl StagedChangesViewObserver
     fn new(selectionChangedHandler: Rc<DiffViewHandler>, view: &StagedChangesView) -> Rc<Self>
     {
         let newSelf = Rc::new(Self{selectionChangedHandler});
-        view.connectOnSelected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangeViewObserver>)));
-        view.connectOnDeselected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangeViewObserver>)));
+        view.connectOnSelected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangesViewObserver>)));
+        view.connectOnDeselected(Rc::downgrade(&(newSelf.clone() as Rc<dyn FileChangesViewObserver>)));
         newSelf
     }
 }
 
-impl FileChangeViewObserver for StagedChangesViewObserver
+impl FileChangesViewObserver for StagedChangesViewObserver
 {
     fn onSelected(&self, fileChange: &FileChange)
     {

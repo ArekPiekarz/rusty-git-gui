@@ -1,6 +1,9 @@
 use crate::error_handling::exit;
-use crate::file_change::{FileChange, GroupedFileChanges, StagedFileChanges, UnstagedFileChanges};
+use crate::file_change::FileChange;
+use crate::grouped_file_changes::GroupedFileChanges;
 use crate::repository_observer::RepositoryObserver;
+use crate::staged_changes::StagedChanges;
+use crate::unstaged_changes::UnstagedChanges;
 
 use std::cell::{Ref, RefCell};
 use std::path::Path;
@@ -49,8 +52,8 @@ impl Repository
 
     pub fn collectCurrentFileChanges(&self) -> &RefCell<GroupedFileChanges>
     {
-        let mut unstaged = UnstagedFileChanges::new();
-        let mut staged = StagedFileChanges::new();
+        let mut unstaged = UnstagedChanges::new();
+        let mut staged = StagedChanges::new();
         for fileStatusEntry in self.collectFileStatuses().iter() {
             let mut statusFound = false;
             statusFound |= maybeAddToUnstaged(&fileStatusEntry, &mut unstaged);
@@ -241,12 +244,12 @@ fn makeStatusOptions() -> git2::StatusOptions
     options
 }
 
-fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, mut unstaged: &mut UnstagedFileChanges) -> bool
+fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, mut unstaged: &mut UnstagedChanges) -> bool
 {
     maybeAddToFileChanges(fileStatusEntry, &mut unstaged, &UNSTAGED_STATUSES)
 }
 
-fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, mut staged: &mut StagedFileChanges) -> bool
+fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, mut staged: &mut StagedChanges) -> bool
 {
     maybeAddToFileChanges(fileStatusEntry, &mut staged, &STAGED_STATUSES)
 }

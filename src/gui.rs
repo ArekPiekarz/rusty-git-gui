@@ -2,11 +2,11 @@ use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
 use crate::commit_message_view::CommitMessageView;
 use crate::diff_view::DiffView;
-use crate::file_change_view_observer::FileChangeViewObserver;
+use crate::file_changes_view_observer::FileChangesViewObserver;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
-use crate::staged_changes_view::StagedChangesView;
-use crate::unstaged_changes_view::UnstagedChangesView;
+use crate::staged_changes_view::{makeStagedChangesView, StagedChangesView};
+use crate::unstaged_changes_view::{makeUnstagedChangesView, UnstagedChangesView};
 
 use std::rc::Rc;
 
@@ -28,15 +28,15 @@ impl Gui
         let guiElementProvider = GuiElementProvider::new(include_str!("main_window.glade"));
         let fileChanges = repository.getFileChanges();
 
-        let unstagedChangesView = UnstagedChangesView::new(
+        let unstagedChangesView = makeUnstagedChangesView(
             &guiElementProvider, &fileChanges.unstaged, Rc::clone(&repository));
-        let stagedChangesView = StagedChangesView::new(
+        let stagedChangesView = makeStagedChangesView(
             &guiElementProvider, &fileChanges.staged, Rc::clone(&repository));
 
         unstagedChangesView.connectOnSelected(
-            Rc::downgrade(&(stagedChangesView.clone() as Rc<dyn FileChangeViewObserver>)));
+            Rc::downgrade(&(stagedChangesView.clone() as Rc<dyn FileChangesViewObserver>)));
         stagedChangesView.connectOnSelected(
-            Rc::downgrade(&(unstagedChangesView.clone() as Rc<dyn FileChangeViewObserver>)));
+            Rc::downgrade(&(unstagedChangesView.clone() as Rc<dyn FileChangesViewObserver>)));
 
         let commitMessageView = CommitMessageView::new(&guiElementProvider, &repository);
         let commitButton = CommitButton::new(

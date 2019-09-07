@@ -1,31 +1,28 @@
-use crate::file_change::{FileChange, StagedFileChanges};
+use crate::file_change::FileChange;
+use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 use crate::repository_observer::RepositoryObserver;
+use crate::staged_changes::StagedChanges;
 
 use std::rc::Rc;
 
 
-pub struct StagedFileChangesStore
+pub struct StagedChangesStore
 {
     store: FileChangesStore
 }
 
-impl StagedFileChangesStore
+impl StagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, changes: &StagedFileChanges, repository: &Repository)
+    pub fn new(guiElementProvider: &GuiElementProvider, changes: &StagedChanges, repository: &Repository)
         -> Rc<Self>
     {
         let newSelf = Rc::new(Self{
             store: FileChangesStore::new(guiElementProvider, "Staged changes store", changes)});
         newSelf.connectSelfToRepository(repository);
         newSelf
-    }
-
-    pub fn remove(&self, iterator: &gtk::TreeIter)
-    {
-        self.store.remove(iterator);
     }
 
 
@@ -39,7 +36,15 @@ impl StagedFileChangesStore
     }
 }
 
-impl RepositoryObserver for StagedFileChangesStore
+impl FileChangesStorable for StagedChangesStore
+{
+    fn remove(&self, iterator: &gtk::TreeIter)
+    {
+        self.store.remove(iterator);
+    }
+}
+
+impl RepositoryObserver for StagedChangesStore
 {
     fn onStaged(&self, fileChange: &FileChange)
     {
@@ -56,7 +61,7 @@ impl RepositoryObserver for StagedFileChangesStore
     }
 }
 
-pub fn convertToStaged(fileChangeStatus: &str) -> String
+fn convertToStaged(fileChangeStatus: &str) -> String
 {
     fileChangeStatus.replace("WT", "INDEX")
 }

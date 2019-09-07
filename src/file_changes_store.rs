@@ -1,6 +1,6 @@
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
-use crate::file_change_column::FileChangeColumn;
+use crate::file_changes_column::FileChangesColumn;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 
@@ -27,7 +27,7 @@ impl FileChangesStore
     {
         let mut filePathFound = false;
         self.store.foreach(|model, row, iter| {
-            let actualFilePath = model.get_value(iter, FileChangeColumn::Path as i32).get::<String>()
+            let actualFilePath = model.get_value(iter, FileChangesColumn::Path as i32).get::<String>()
                 .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)));
             if actualFilePath != filePath {
                 return CONTINUE_ITERATING_MODEL; }
@@ -40,7 +40,7 @@ impl FileChangesStore
     {
         self.store.set(
             &self.store.append(),
-            &FileChangeColumn::asArrayOfU32(),
+            &FileChangesColumn::asArrayOfU32(),
             &[&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue]);
     }
 
@@ -64,6 +64,6 @@ impl FileChangesStore
             .collect::<Vec<_>>();
 
         for fileChange in fileChangesForStore {
-            self.store.set(&self.store.append(), &FileChangeColumn::asArrayOfU32(), &fileChange); };
+            self.store.set(&self.store.append(), &FileChangesColumn::asArrayOfU32(), &fileChange); };
     }
 }
