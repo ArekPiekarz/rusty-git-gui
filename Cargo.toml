@@ -8,7 +8,7 @@ edition = "2018"
 color-backtrace = { version = "0.2.3", features = ["failure-bt"] }
 failchain = "0.1015.2"
 failure = "0.1.5"
-git2 = "0.10.0"
+git2 = "0.10.1"
 glib = "0.8.1"
 gtk = { version = "0.7.0", features = ["v3_24"] }
 shrinkwraprs = "0.2.1"
