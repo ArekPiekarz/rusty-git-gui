@@ -4,55 +4,55 @@ use rusty_git_gui::gui::Gui;
 
 pub fn assertUnstagedChangesViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.unstagedChangesView.isEmpty());
+    assert!(gui.unstagedChangesView.borrow().isEmpty());
 }
 
 pub fn assertStagedChangesViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.stagedChangesView.isEmpty());
+    assert!(gui.stagedChangesView.borrow().isEmpty());
 }
 
 pub fn assertDiffViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.diffView.isEmpty());
+    assert!(gui.diffView.borrow().isEmpty());
 }
 
 pub fn assertCommitMessageViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.commitMessageView.isEmpty());
+    assert!(gui.commitMessageView.borrow().isEmpty());
 }
 
 pub fn assertCommitButtonIsEnabled(gui: &Gui)
 {
-    assert!(gui.commitButton.isEnabled());
+    assert!(gui.commitButton.borrow().isEnabled());
 }
 
 pub fn assertCommitButtonIsDisabled(gui: &Gui)
 {
-    assert!(gui.commitButton.isDisabled());
+    assert!(gui.commitButton.borrow().isDisabled());
 }
 
 pub fn assertCommitButtonTooltipIs(tooltip: &str, gui: &Gui)
 {
-    assert_eq!(tooltip, gui.commitButton.getTooltip(), "\nExpected commit button tooltip does not match actual.");
+    assert_eq!(tooltip, gui.commitButton.borrow().getTooltip(), "\nExpected commit button tooltip does not match actual.");
 }
 pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
 {
-    assert_eq!("", gui.commitButton.getTooltip());
+    assert_eq!("", gui.commitButton.borrow().getTooltip());
 }
 
 pub fn assertUnstagedChangesViewContains(changes: &[FileChange], gui: &Gui)
 {
-    assert_eq!(changes, &gui.unstagedChangesView.getData()[..]);
+    assert_eq!(changes, &gui.unstagedChangesView.borrow().getData()[..]);
 }
 
 pub fn assertStagedChangesViewContains(changes: &[FileChange], gui: &Gui)
 {
-    assert_eq!(changes, &gui.stagedChangesView.getData()[..]);
+    assert_eq!(changes, &gui.stagedChangesView.borrow().getData()[..]);
 }
 
 pub fn assertDiffViewContains(content: &str, gui: &Gui)
 {
-    assert_eq!(content, gui.diffView.getText(),
+    assert_eq!(content, gui.diffView.borrow().getText(),
            "\nExpected diff view content differs from actual.");
 }

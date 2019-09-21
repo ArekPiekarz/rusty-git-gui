@@ -1,33 +1,24 @@
-use crate::commit_message_view_observer::CommitMessageViewObserver;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
-use crate::repository_observer::RepositoryObserver;
 use crate::text_view::TextView;
-use crate::text_view_observer::TextViewObserver;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::rc::Weak;
 
 
 pub struct CommitMessageView
 {
-    widget: Rc<TextView>,
-    onFilledObservers: RefCell<Vec<Weak<dyn CommitMessageViewObserver>>>,
-    onEmptiedObservers: RefCell<Vec<Weak<dyn CommitMessageViewObserver>>>
+    widget: Rc<RefCell<TextView>>,
 }
 
 impl CommitMessageView
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: &Repository) -> Rc<Self>
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository) -> Rc<RefCell<Self>>
     {
-        let newSelf = Rc::new(Self{
+        let newSelf = Rc::new(RefCell::new(Self{
             widget: TextView::new(guiElementProvider, "Commit message view"),
-            onFilledObservers: RefCell::new(vec![]),
-            onEmptiedObservers: RefCell::new(vec![])
-        });
-        newSelf.connectSelfToWidget();
-        newSelf.connectSelfToRepository(repository);
+        }));
+        Self::connectSelfToRepository(&newSelf, repository);
         newSelf
     }
 
@@ -43,64 +34,40 @@ impl CommitMessageView
 
     pub fn getText(&self) -> String
     {
-        self.widget.getText()
+        self.widget.borrow().getText()
     }
 
     pub fn setText(&self, text: &str)
     {
-        self.widget.setText(text);
+        self.widget.borrow().setText(text);
     }
 
-    pub fn connectOnFilled(&self, observer: Weak<dyn CommitMessageViewObserver>)
+    pub fn connectOnFilled(&self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
-        self.onFilledObservers.borrow_mut().push(observer);
+        self.widget.borrow_mut().connectOnFilled(handler);
     }
 
-    pub fn connectOnEmptied(&self, observer: Weak<dyn CommitMessageViewObserver>)
+    pub fn connectOnEmptied(&self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
-        self.onEmptiedObservers.borrow_mut().push(observer);
+        self.widget.borrow_mut().connectOnEmptied(handler);
     }
 
 
     // private
 
-    fn connectSelfToWidget(self: &Rc<Self>)
+    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        self.widget.connectOnFilled(Rc::downgrade(&(self.clone() as Rc<dyn TextViewObserver>)));
-        self.widget.connectOnEmptied(Rc::downgrade(&(self.clone() as Rc<dyn TextViewObserver>)));
+        let weakSelf = Rc::downgrade(rcSelf);
+        repository.connectOnCommitted(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow().onCommitted();
+            }
+            glib::Continue(true)
+        }))
     }
 
-    fn connectSelfToRepository(self: &Rc<Self>, repository: &Repository)
-    {
-        repository.connectOnCommitted(Rc::downgrade(&(self.clone() as Rc<dyn RepositoryObserver>)));
-    }
-}
-
-impl RepositoryObserver for CommitMessageView
-{
     fn onCommitted(&self)
     {
-        self.widget.clear();
-    }
-}
-
-impl TextViewObserver for CommitMessageView
-{
-    fn onFilled(&self)
-    {
-        for observer in &*self.onFilledObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onFilled();
-            }
-        }
-    }
-
-    fn onEmptied(&self)
-    {
-        for observer in &*self.onEmptiedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onEmptied();
-            }
-        }
+        self.widget.borrow().clear();
     }
 }

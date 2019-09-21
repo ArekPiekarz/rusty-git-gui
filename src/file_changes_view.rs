@@ -1,19 +1,20 @@
 use crate::file_change::FileChange;
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_changes_view_observer::FileChangesViewObserver;
 use crate::file_changes_storable::FileChangesStorable;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::main_context::{attach, makeChannel};
 use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 use crate::tree_view_column_setup::setupColumn;
 
+use glib::Sender;
 use gtk::TreeModelExt as _;
 use gtk::TreeSelectionExt as _;
 use gtk::TreeViewExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::rc::Weak;
 
 pub type OnRowActivatedAction = Box<dyn Fn(&FileChange)>;
+
 
 pub struct FileChangesView<StoreType>
     where StoreType: FileChangesStorable
@@ -21,8 +22,8 @@ pub struct FileChangesView<StoreType>
     widget: gtk::TreeView,
     store: Rc<StoreType>,
     onRowActivatedAction: OnRowActivatedAction,
-    onSelectedObservers: RefCell<Vec<Weak<dyn FileChangesViewObserver>>>,
-    onDeselectedObservers: RefCell<Vec<Weak<dyn FileChangesViewObserver>>>,
+    onSelectedSenders: Vec<Sender<FileChange>>,
+    onUnselectedSenders: Vec<Sender<()>>
 }
 
 impl<StoreType> FileChangesView<StoreType>
@@ -33,14 +34,15 @@ impl<StoreType> FileChangesView<StoreType>
         widgetName: &str,
         store: Rc<StoreType>,
         onRowActivatedAction: OnRowActivatedAction)
-        -> Rc<Self>
+        -> Rc<RefCell<Self>>
     {
-        let newSelf = Rc::new(Self{
+        let newSelf = Rc::new(RefCell::new(Self {
             store,
             widget: makeView(guiElementProvider, widgetName),
             onRowActivatedAction,
-            onSelectedObservers: RefCell::new(vec![]),
-            onDeselectedObservers: RefCell::new(vec![]) });
+            onSelectedSenders: vec![],
+            onUnselectedSenders: vec![]
+        }));
         Self::connectSelfToWidget(&newSelf);
         Self::connectSelfToWidgetSelection(&newSelf);
         newSelf
@@ -66,24 +68,33 @@ impl<StoreType> FileChangesView<StoreType>
     {
         self.invokeForRowWith(
             filePath,
-            &|view: &gtk::TreeView, _row, iterator| { view.get_selection().select_iter(iterator); })
+            |view: &gtk::TreeView, _row, iterator| { view.get_selection().select_iter(iterator); })
     }
 
     pub fn activate(&self, filePath: &str) -> bool
     {
         self.invokeForRowWith(
             filePath,
-            &|view: &gtk::TreeView, row, _iterator| { view.row_activated(row, &self.getFilePathColumn()); })
+            |view: &gtk::TreeView, row, _iterator| { view.row_activated(row, &self.getFilePathColumn()); })
     }
 
-    pub fn connectOnSelected(&self, observer: Weak<dyn FileChangesViewObserver>)
+    pub fn connectOnSelected(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
-        self.onSelectedObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onSelectedSenders.push(sender);
+        attach(receiver, handler);
     }
 
-    pub fn connectOnDeselected(&self, observer: Weak<dyn FileChangesViewObserver>)
+    pub fn connectOnUnselected(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
-        self.onDeselectedObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onUnselectedSenders.push(sender);
+        attach(receiver, handler);
+    }
+
+    pub fn unselectAll(&self)
+    {
+        self.widget.get_selection().unselect_all();
     }
 
 
@@ -104,13 +115,13 @@ impl<StoreType> FileChangesView<StoreType>
         self.widget.get_column(FileChangesColumn::Path as i32).unwrap()
     }
 
-    fn connectSelfToWidgetSelection(rcSelf: &Rc<Self>)
+    fn connectSelfToWidgetSelection(rcSelf: &Rc<RefCell<Self>>)
     {
         let weakSelf = Rc::downgrade(&rcSelf);
-        rcSelf.widget.get_selection().connect_changed(
+        rcSelf.borrow().widget.get_selection().connect_changed(
             move |selection| {
                 if let Some(rcSelf) = weakSelf.upgrade() {
-                    rcSelf.notifyBasedOnSelectionChanged(selection);
+                    rcSelf.borrow().notifyBasedOnSelectionChanged(selection);
                 }
             }
         );
@@ -119,11 +130,9 @@ impl<StoreType> FileChangesView<StoreType>
     fn notifyBasedOnSelectionChanged(&self, selection: &gtk::TreeSelection)
     {
         let (rows, model) = selection.get_selected_rows();
+        debug_assert!(rows.len() <= 1);
         if rows.is_empty() {
-            return self.notifyOnDeselected();
-        }
-        else if rows.len() > 1 {
-            return;
+            return self.notifyOnUnselected();
         }
 
         self.notifyOnSelected(&findSelectedFileChange(&rows[0], &model));
@@ -131,29 +140,25 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn notifyOnSelected(&self, fileChange: &FileChange)
     {
-        for observer in &*self.onSelectedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onSelected(fileChange);
-            }
+        for sender in &self.onSelectedSenders {
+            sender.send(fileChange.clone()).unwrap();
         }
     }
 
-    fn notifyOnDeselected(&self)
+    fn notifyOnUnselected(&self)
     {
-        for observer in &*self.onDeselectedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onDeselected();
-            }
+        for sender in &self.onUnselectedSenders {
+            sender.send(()).unwrap();
         }
     }
 
-    fn connectSelfToWidget(rcSelf: &Rc<Self>)
+    fn connectSelfToWidget(rcSelf: &Rc<RefCell<Self>>)
     {
         let weakSelf = Rc::downgrade(&rcSelf);
-        rcSelf.widget.connect_row_activated(
+        rcSelf.borrow().widget.connect_row_activated(
             move |_view, row, _column| {
                 if let Some(rcSelf) = weakSelf.upgrade() {
-                    rcSelf.onRowActivated(row);
+                    rcSelf.borrow().onRowActivated(row);
                 }
             }
         );
@@ -174,7 +179,7 @@ impl<StoreType> FileChangesView<StoreType>
     fn invokeForRowWith(
         &self,
         filePath: &str,
-        action: &impl Fn(&gtk::TreeView, &gtk::TreePath, &gtk::TreeIter))
+        action: impl Fn(&gtk::TreeView, &gtk::TreePath, &gtk::TreeIter))
         -> bool
     {
         let model = self.getModel();
@@ -187,15 +192,6 @@ impl<StoreType> FileChangesView<StoreType>
             STOP_ITERATING_MODEL
         });
         rowFound
-    }
-}
-
-impl<StoreType> FileChangesViewObserver for FileChangesView<StoreType>
-    where StoreType: FileChangesStorable
-{
-    fn onSelected(&self, _: &FileChange)
-    {
-        self.widget.get_selection().unselect_all();
     }
 }
 

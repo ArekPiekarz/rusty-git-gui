@@ -1,9 +1,13 @@
 use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
+use rusty_git_gui::gui::Gui;
+use rusty_git_gui::repository::Repository;
 
+use std::cell::RefCell;
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::rc::Rc;
 use tempfile::{tempdir, TempDir};
 
 pub fn setupTest() -> TempDir
@@ -13,6 +17,11 @@ pub fn setupTest() -> TempDir
     let repositoryDir = makeTemporaryDirectory();
     initializeGitRepository(repositoryDir.path());
     repositoryDir
+}
+
+pub fn makeGui(repositoryDir: &Path) -> Gui
+{
+    Gui::new(Rc::new(RefCell::new(Repository::new(&repositoryDir))))
 }
 
 fn makeTemporaryDirectory() -> TempDir

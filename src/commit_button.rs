@@ -1,9 +1,7 @@
 use crate::commit_message_view::CommitMessageView;
-use crate::commit_message_view_observer::CommitMessageViewObserver;
-use crate::file_change::FileChange;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::main_context::{attach, makeChannel};
 use crate::repository::Repository;
-use crate::repository_observer::RepositoryObserver;
 
 use gtk::ButtonExt as _;
 use gtk::WidgetExt as _;
@@ -14,32 +12,32 @@ use std::rc::Rc;
 pub struct CommitButton
 {
     widget: gtk::Button,
-    repository: Rc<Repository>,
-    commitMessageView: Rc<CommitMessageView>,
-    areChangesStaged: RefCell<bool>,
-    isCommitMessageWritten: RefCell<bool>
+    repository: Rc<RefCell<Repository>>,
+    commitMessageView: Rc<RefCell<CommitMessageView>>,
+    areChangesStaged: bool,
+    isCommitMessageWritten: bool
 }
 
 impl CommitButton
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
-        commitMessageView: Rc<CommitMessageView>,
-        repository: Rc<Repository>)
-        -> Rc<Self>
+        commitMessageView: Rc<RefCell<CommitMessageView>>,
+        repository: Rc<RefCell<Repository>>)
+        -> Rc<RefCell<Self>>
     {
-        let isCommitMessageWritten = RefCell::new(commitMessageView.hasText());
-        let newSelf = Rc::new(Self{
+        let isCommitMessageWritten = commitMessageView.borrow().hasText();
+        let newSelf = Rc::new(RefCell::new(Self {
             widget: guiElementProvider.get::<gtk::Button>("Commit button"),
             repository: Rc::clone(&repository),
             commitMessageView,
-            areChangesStaged: RefCell::new(repository.hasStagedChanges()),
+            areChangesStaged: repository.borrow().hasStagedChanges(),
             isCommitMessageWritten
-        });
-        newSelf.connectSelfToRepository(&repository);
-        newSelf.connectSelfToCommitMessageView();
-        newSelf.connectSelfToWidget();
-        newSelf.update();
+        }));
+        Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
+        Self::connectSelfToCommitMessageView(&newSelf);
+        Self::connectSelfToWidget(&newSelf);
+        newSelf.borrow().update();
         newSelf
     }
 
@@ -69,26 +67,106 @@ impl CommitButton
 
     // private
 
-    fn connectSelfToRepository(self: &Rc<Self>, repository: &Repository)
+    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        repository.connectOnStaged(Rc::downgrade(&(self.clone() as Rc<dyn RepositoryObserver>)));
-        repository.connectOnUnstaged(Rc::downgrade(&(self.clone() as Rc<dyn RepositoryObserver>)));
+        Self::connectSelfToRepositoryOnStaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnUnstaged(rcSelf, repository);
     }
 
-    fn connectSelfToCommitMessageView(self: &Rc<Self>)
+    fn connectSelfToRepositoryOnStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        self.commitMessageView.connectOnFilled(Rc::downgrade(&(self.clone() as Rc<dyn CommitMessageViewObserver>)));
-        self.commitMessageView.connectOnEmptied(Rc::downgrade(&(self.clone() as Rc<dyn CommitMessageViewObserver>)));
-    }
-
-    fn connectSelfToWidget(self: &Rc<Self>)
-    {
-        let weakSelf = Rc::downgrade(&self);
-        self.widget.connect_clicked(move |_button| {
+        let weakSelf = Rc::downgrade(&rcSelf);
+        repository.connectOnStaged(Box::new(move |_fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.commit();
+                rcSelf.borrow_mut().onStaged();
             }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToRepositoryOnUnstaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(&rcSelf);
+        repository.connectOnUnstaged(Box::new(move |_fileChange| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onUnstaged();
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToCommitMessageView(rcSelf: &Rc<RefCell<Self>>)
+    {
+        Self::connectSelfToCommitMessageViewOnFilled(rcSelf);
+        Self::connectSelfToCommitMessageViewOnEmptied(rcSelf);
+    }
+
+    fn connectSelfToCommitMessageViewOnFilled(rcSelf: &Rc<RefCell<Self>>)
+    {
+        let weakSelf = Rc::downgrade(&rcSelf);
+        rcSelf.borrow().commitMessageView.borrow_mut().connectOnFilled(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onCommitMessageFilled();
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToCommitMessageViewOnEmptied(rcSelf: &Rc<RefCell<Self>>)
+    {
+        let weakSelf = Rc::downgrade(&rcSelf);
+        rcSelf.borrow().commitMessageView.borrow_mut().connectOnEmptied(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onCommitMessageEmptied();
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToWidget(rcSelf: &Rc<RefCell<Self>>)
+    {
+        let (sender, receiver) = makeChannel();
+        rcSelf.borrow().widget.connect_clicked(move |_button| {
+            sender.send(()).unwrap();
         });
+
+        let weakSelf = Rc::downgrade(&rcSelf);
+        attach(receiver, move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().commit();
+            }
+            glib::Continue(true)
+        });
+    }
+
+    fn onStaged(&mut self)
+    {
+        if self.areChangesStaged {
+            return;
+        }
+        self.areChangesStaged = true;
+        self.update();
+    }
+
+    fn onUnstaged(&mut self)
+    {
+        if self.repository.borrow().hasStagedChanges() {
+            return;
+        }
+        self.areChangesStaged = false;
+        self.update();
+    }
+
+    fn onCommitMessageFilled(&mut self)
+    {
+        self.isCommitMessageWritten = true;
+        self.update();
+    }
+
+    fn onCommitMessageEmptied(&mut self)
+    {
+        self.isCommitMessageWritten = false;
+        self.update();
     }
 
     fn update(&self)
@@ -111,12 +189,12 @@ impl CommitButton
 
     fn noChangesAreStaged(&self) -> bool
     {
-        !*self.areChangesStaged.borrow()
+        !self.areChangesStaged
     }
 
     fn commitMessageIsEmpty(&self) -> bool
     {
-        !*self.isCommitMessageWritten.borrow()
+        !self.isCommitMessageWritten
     }
 
     fn enable(&self)
@@ -139,46 +217,10 @@ impl CommitButton
         self.widget.set_tooltip_text(None);
     }
 
-    fn commit(&self)
+    fn commit(&mut self)
     {
-        self.repository.commit(&self.commitMessageView.getText());
-        *self.areChangesStaged.borrow_mut() = false;
-        self.update();
-    }
-}
-
-impl RepositoryObserver for CommitButton
-{
-    fn onStaged(&self, _: &FileChange)
-    {
-        if *self.areChangesStaged.borrow() {
-            return;
-        }
-        *self.areChangesStaged.borrow_mut() = true;
-        self.update();
-    }
-
-    fn onUnstaged(&self, _: &FileChange)
-    {
-        if self.repository.hasStagedChanges() {
-            return;
-        }
-        *self.areChangesStaged.borrow_mut() = false;
-        self.update();
-    }
-}
-
-impl CommitMessageViewObserver for CommitButton
-{
-    fn onFilled(&self)
-    {
-        *self.isCommitMessageWritten.borrow_mut() = true;
-        self.update();
-    }
-
-    fn onEmptied(&self)
-    {
-        *self.isCommitMessageWritten.borrow_mut() = false;
+        self.repository.borrow_mut().commit(&self.commitMessageView.borrow().getText());
+        self.areChangesStaged = false;
         self.update();
     }
 }

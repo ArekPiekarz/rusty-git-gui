@@ -10,14 +10,10 @@ use common::gui_assertions::{
     assertStagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
 use common::gui_interactions::selectStagedChange;
-use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
+use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
 use common::utils::makeFileChange;
 
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -31,7 +27,7 @@ fn loadRepositoryWithModifiedStagedFile()
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
+    let gui = makeGui(&repositoryDir);
 
     assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
     assertUnstagedChangesViewIsEmpty(&gui);

@@ -3,8 +3,6 @@ use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
-use crate::repository_observer::RepositoryObserver;
-use crate::staged_changes::StagedChanges;
 
 use std::rc::Rc;
 
@@ -16,11 +14,13 @@ pub struct StagedChangesStore
 
 impl StagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, changes: &StagedChanges, repository: &Repository)
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository)
         -> Rc<Self>
     {
-        let newSelf = Rc::new(Self{
-            store: FileChangesStore::new(guiElementProvider, "Staged changes store", changes)});
+        let newSelf = Rc::new(Self{store: FileChangesStore::new(
+            guiElementProvider,
+            "Staged changes store",
+            repository.getStagedChanges())});
         newSelf.connectSelfToRepository(repository);
         newSelf
     }
@@ -28,24 +28,34 @@ impl StagedChangesStore
 
     // private
 
-    fn connectSelfToRepository(self: &Rc<Self>, repository: &Repository)
+    fn connectSelfToRepository(self: &Rc<Self>, repository: &mut Repository)
     {
-        let selfAsObserver : Rc<dyn RepositoryObserver> = self.clone();
-        repository.connectOnStaged(Rc::downgrade(&selfAsObserver));
-        repository.connectOnCommitted(Rc::downgrade(&selfAsObserver));
+        self.connectSelfToRepositoryOnStaged(repository);
+        self.connectSelfToRepositoryOnCommitted(repository);
     }
-}
 
-impl FileChangesStorable for StagedChangesStore
-{
-    fn remove(&self, iterator: &gtk::TreeIter)
+    fn connectSelfToRepositoryOnStaged(self: &Rc<Self>, repository: &mut Repository)
     {
-        self.store.remove(iterator);
+        let weakSelf = Rc::downgrade(&self);
+        repository.connectOnStaged(Box::new(move |fileChange| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.onStaged(&fileChange);
+            }
+            glib::Continue(true)
+        }));
     }
-}
 
-impl RepositoryObserver for StagedChangesStore
-{
+    fn connectSelfToRepositoryOnCommitted(self: &Rc<Self>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(&self);
+        repository.connectOnCommitted(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.onCommitted();
+            }
+            glib::Continue(true)
+        }));
+    }
+
     fn onStaged(&self, fileChange: &FileChange)
     {
         if self.store.containsFilePath(&fileChange.path) {
@@ -58,6 +68,14 @@ impl RepositoryObserver for StagedChangesStore
     fn onCommitted(&self)
     {
         self.store.clear();
+    }
+}
+
+impl FileChangesStorable for StagedChangesStore
+{
+    fn remove(&self, iterator: &gtk::TreeIter)
+    {
+        self.store.remove(iterator);
     }
 }
 

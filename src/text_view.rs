@@ -1,13 +1,12 @@
 use crate::color::Color;
 use crate::gui_element_provider::GuiElementProvider;
-use crate::text_view_observer::TextViewObserver;
+use crate::main_context::{attach, makeChannel};
 
+use glib::Sender;
 use gtk::TextBufferExt as _;
 use gtk::TextViewExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::rc::Weak;
-
 
 pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 
@@ -15,23 +14,23 @@ pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 pub struct TextView
 {
     buffer: gtk::TextBuffer,
-    onFilledObservers: RefCell<Vec<Weak<dyn TextViewObserver>>>,
-    onEmptiedObservers: RefCell<Vec<Weak<dyn TextViewObserver>>>,
-    shouldNotifyOnFilled: RefCell<bool>
+    onFilledSenders: Vec<Sender<()>>,
+    onEmptiedSenders: Vec<Sender<()>>,
+    shouldNotifyOnFilled: bool
 }
 
 impl TextView
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, name: &str) -> Rc<Self>
+    pub fn new(guiElementProvider: &GuiElementProvider, name: &str) -> Rc<RefCell<Self>>
     {
         let widget = guiElementProvider.get::<gtk::TextView>(name);
-        let newSelf = Rc::new(Self{
+        let newSelf = Rc::new(RefCell::new(Self{
             buffer: widget.get_buffer().unwrap(),
-            onFilledObservers: RefCell::new(vec![]),
-            onEmptiedObservers: RefCell::new(vec![]),
-            shouldNotifyOnFilled: RefCell::new(true)
-        });
-        newSelf.connectSelfToBuffer();
+            onFilledSenders: vec![],
+            onEmptiedSenders: vec![],
+            shouldNotifyOnFilled: true
+        }));
+        Self::connectSelfToBuffer(&newSelf);
         newSelf
     }
 
@@ -73,25 +72,29 @@ impl TextView
         self.buffer.delete(&mut self.buffer.get_start_iter(), &mut self.buffer.get_end_iter());
     }
 
-    pub fn connectOnFilled(&self, observer: Weak<dyn TextViewObserver>)
+    pub fn connectOnFilled(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
-        self.onFilledObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onFilledSenders.push(sender);
+        attach(receiver, handler);
     }
 
-    pub fn connectOnEmptied(&self, observer: Weak<dyn TextViewObserver>)
+    pub fn connectOnEmptied(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
-        self.onEmptiedObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onEmptiedSenders.push(sender);
+        attach(receiver, handler);
     }
 
 
     // private
 
-    fn connectSelfToBuffer(self: &Rc<Self>)
+    fn connectSelfToBuffer(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&self);
-        self.buffer.connect_changed(move |_buffer| {
+        let weakSelf = Rc::downgrade(&rcSelf);
+        rcSelf.borrow().buffer.connect_changed(move |_buffer| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onBufferChanged();
+                rcSelf.borrow().onBufferChanged();
             }
         });
     }
@@ -99,7 +102,7 @@ impl TextView
     fn onBufferChanged(&self)
     {
         if self.isFilled() {
-            if *self.shouldNotifyOnFilled.borrow() {
+            if self.shouldNotifyOnFilled {
                 self.notifyOnFilled();
             }
         }
@@ -110,21 +113,15 @@ impl TextView
 
     fn notifyOnFilled(&self)
     {
-        *self.shouldNotifyOnFilled.borrow_mut() = false;
-        for observer in &*self.onFilledObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onFilled();
-            }
+        for sender in &self.onFilledSenders {
+            sender.send(()).unwrap();
         }
     }
 
     fn notifyOnEmptied(&self)
     {
-        *self.shouldNotifyOnFilled.borrow_mut() = true;
-        for observer in &*self.onEmptiedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onEmptied();
-            }
+        for sender in &self.onEmptiedSenders {
+            sender.send(()).unwrap();
         }
     }
 }

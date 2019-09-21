@@ -9,15 +9,11 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChange, selectStagedChange};
-use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest};
+use common::gui_interactions::{activateUnstagedChange, selectStagedChange, show};
+use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest};
 use common::utils::makeFileChange;
 
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -30,8 +26,8 @@ fn stageModifiedFileGivenItWasCommittedBefore()
     makeCommit("Initial commit", &repositoryDir);
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
-    gui.show();
+    let gui = makeGui(&repositoryDir);
+    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);

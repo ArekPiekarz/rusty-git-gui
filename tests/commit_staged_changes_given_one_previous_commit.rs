@@ -12,13 +12,9 @@ use common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest, stageFile};
-
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
+use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
 
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -32,7 +28,7 @@ fn commitStagedChangesGivenOnePreviousCommit()
     modifyFile(&filePath, "modified file content\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
+    let gui = makeGui(&repositoryDir);
 
     let firstCommitLog =
         "Author: John Smith\n\

@@ -10,6 +10,7 @@ use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
 
 use failchain::{ResultExt as _};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 
@@ -42,7 +43,7 @@ fn main()
     result.unwrap_or_else(|e| printFail(&e));
 }
 
-fn makeRepository() -> Result<Rc<Repository>>
+fn makeRepository() -> Result<Rc<RefCell<Repository>>>
 {
-    Ok(Rc::new(Repository::new(&findRepositoryDir().chain_err(|| AppStartFailed)?)))
+    Ok(Rc::new(RefCell::new(Repository::new(&findRepositoryDir().chain_err(|| AppStartFailed)?))))
 }

@@ -8,15 +8,11 @@ use common::gui_assertions::{
     assertStagedChangesViewContains,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChange, selectStagedChange};
-use common::setup::{makeNewStagedFile, modifyFile, setupTest};
+use common::gui_interactions::{activateUnstagedChange, selectStagedChange, show};
+use common::setup::{makeGui, makeNewStagedFile, modifyFile, setupTest};
 use common::utils::makeFileChange;
 
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -28,8 +24,8 @@ fn stageModifiedFileGivenNoCommits()
     makeNewStagedFile(&filePath, "staged file content\n", &repositoryDir);
     modifyFile(&filePath, "staged file content\nmodified line\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
-    gui.show();
+    let gui = makeGui(&repositoryDir);
+    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);

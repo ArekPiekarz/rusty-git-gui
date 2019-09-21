@@ -9,15 +9,11 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChange, selectStagedChange};
-use common::setup::{makeNewUnstagedFile, setupTest};
+use common::gui_interactions::{activateUnstagedChange, selectStagedChange, show};
+use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
 use common::utils::makeFileChange;
 
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -28,8 +24,8 @@ fn stageNewFile()
     let filePath = PathBuf::from("fileName");
     makeNewUnstagedFile(&filePath, "file content\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
-    gui.show();
+    let gui = makeGui(&repositoryDir);
+    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);

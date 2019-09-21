@@ -6,13 +6,9 @@ use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitButtonTooltipIs,
     assertCommitMessageViewIsEmpty};
-use common::setup::{makeNewUnstagedFile, setupTest};
-
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
+use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
 
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -23,7 +19,7 @@ fn forbidCommittingWhenNoChangesAreStaged()
     let filePath = PathBuf::from("file");
     makeNewUnstagedFile(&filePath, "unstaged file content\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
+    let gui = makeGui(&repositoryDir);
 
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);

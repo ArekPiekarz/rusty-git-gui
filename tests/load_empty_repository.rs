@@ -8,12 +8,7 @@ use common::gui_assertions::{
     assertDiffViewIsEmpty,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewIsEmpty};
-use common::setup::setupTest;
-
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
-use std::rc::Rc;
+use common::setup::{makeGui, setupTest};
 
 
 #[test]
@@ -21,7 +16,7 @@ fn loadEmptyRepository()
 {
     let repositoryDir = setupTest();
 
-    let gui = Gui::new(Rc::new(Repository::new(repositoryDir.path())));
+    let gui = makeGui(repositoryDir.path());
 
     assertUnstagedChangesViewIsEmpty(&gui);
     assertStagedChangesViewIsEmpty(&gui);

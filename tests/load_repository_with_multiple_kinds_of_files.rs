@@ -8,9 +8,10 @@ use common::gui_assertions::{
     assertDiffViewContains,
     assertStagedChangesViewContains,
     assertUnstagedChangesViewContains};
-use common::gui_interactions::{selectStagedChange, selectUnstagedChange};
+use common::gui_interactions::{selectStagedChange, selectUnstagedChange, show};
 use common::setup::{
     makeCommit,
+    makeGui,
     makeNewStagedFile,
     makeNewUnstagedFile,
     modifyFile,
@@ -18,11 +19,7 @@ use common::setup::{
     stageFile};
 use common::utils::makeFileChange;
 
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -45,8 +42,8 @@ fn loadRepositoryWithMultipleKindsOfFiles()
     let modifiedUnstagedFilePath = newStagedFilePath.clone();
     modifyFile(&modifiedUnstagedFilePath, "new staged file content\nmodified unstaged line\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
-    gui.show();
+    let gui = makeGui(&repositoryDir);
+    show(&gui);
 
     assertUnstagedChangesViewContains(
         &[makeFileChange("WT_NEW", &newUnstagedFilePath),

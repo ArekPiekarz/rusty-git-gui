@@ -13,13 +13,9 @@ use common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use common::setup::{makeNewStagedFile, setupTest};
-
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
+use common::setup::{makeGui, makeNewStagedFile, setupTest};
 
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -30,7 +26,7 @@ fn commitStagedChangesGivenNoPreviousCommits()
     let filePath = PathBuf::from("file");
     makeNewStagedFile(&filePath, "some file content\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
+    let gui = makeGui(&repositoryDir);
 
     assertRepositoryHasNoCommits(&repositoryDir);
     assertRepositoryStatusIs("A  file\n", &repositoryDir);

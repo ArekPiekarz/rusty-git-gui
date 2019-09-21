@@ -1,13 +1,12 @@
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
 use crate::grouped_file_changes::GroupedFileChanges;
-use crate::repository_observer::RepositoryObserver;
+use crate::main_context::{attach, makeChannel};
 use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
 
-use std::cell::{Ref, RefCell};
+use glib::Sender;
 use std::path::Path;
-use std::rc::Weak;
 
 const NO_INDEX : Option<&git2::Index> = None;
 const UNSTAGED_STATUSES : [git2::Status; 5] = [
@@ -29,28 +28,28 @@ const STATUS_NOT_FOUND : bool = false;
 pub struct Repository
 {
     gitRepo: git2::Repository,
-    fileChanges: RefCell<GroupedFileChanges>,
-    onStagedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>,
-    onUnstagedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>,
-    onCommittedObservers: RefCell<Vec<Weak<dyn RepositoryObserver>>>
+    fileChanges: GroupedFileChanges,
+    onStagedSenders: Vec<Sender<FileChange>>,
+    onUnstagedSenders: Vec<Sender<FileChange>>,
+    onCommittedSenders: Vec<Sender<()>>
 }
 
 impl Repository
 {
     pub fn new(path: &Path) -> Self
     {
-        let newSelf = Self{
+        let mut newSelf = Self{
             gitRepo: openRepository(path),
-            fileChanges: RefCell::new(GroupedFileChanges::new()),
-            onStagedObservers: RefCell::new(vec![]),
-            onUnstagedObservers: RefCell::new(vec![]),
-            onCommittedObservers: RefCell::new(vec![])
+            fileChanges: GroupedFileChanges::new(),
+            onStagedSenders: vec![],
+            onUnstagedSenders: vec![],
+            onCommittedSenders: vec![]
         };
         newSelf.collectCurrentFileChanges();
         newSelf
     }
 
-    pub fn collectCurrentFileChanges(&self) -> &RefCell<GroupedFileChanges>
+    pub fn collectCurrentFileChanges(&mut self) -> &GroupedFileChanges
     {
         let mut unstaged = UnstagedChanges::new();
         let mut staged = StagedChanges::new();
@@ -64,18 +63,23 @@ impl Repository
                   fileStatusEntry.status(), getFilePath(&fileStatusEntry)));
             }
         }
-        *self.fileChanges.borrow_mut() = GroupedFileChanges{unstaged, staged};
+        self.fileChanges = GroupedFileChanges{unstaged, staged};
         &self.fileChanges
     }
 
-    pub fn getFileChanges(&self) -> Ref<GroupedFileChanges>
+    pub fn getUnstagedChanges(&self) -> &UnstagedChanges
     {
-        self.fileChanges.borrow()
+        &self.fileChanges.unstaged
+    }
+
+    pub fn getStagedChanges(&self) -> &StagedChanges
+    {
+        &self.fileChanges.staged
     }
 
     pub fn hasStagedChanges(&self) -> bool
     {
-        !self.fileChanges.borrow().staged.is_empty()
+        !self.fileChanges.staged.is_empty()
     }
 
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
@@ -94,7 +98,7 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
     }
 
-    pub fn stageFileChange(&self, fileChange: &FileChange)
+    pub fn stageFileChange(&mut self, fileChange: &FileChange)
     {
         let mut index = self.gitRepo.index()
             .unwrap_or_else(|e| exit(&format!(
@@ -106,57 +110,69 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!(
                 "Failed to stage file {}, because writing the index to disk failed: {}", fileChange.path, e)));
 
+        self.collectCurrentFileChanges();
         self.notifyOnStaged(fileChange);
     }
 
-    pub fn unstageFileChange(&self, fileChange: &FileChange)
+    pub fn unstageFileChange(&mut self, fileChange: &FileChange)
     {
-        let commitObject = match self.findHeadCommit() {
-            Some(commit) => Some(commit.into_object()),
-            None => None };
-        self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
-            .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
+        {
+            let commitObject = match self.findHeadCommit() {
+                Some(commit) => Some(commit.into_object()),
+                None => None };
+            self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
+                .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
+        }
 
         self.collectCurrentFileChanges();
         self.notifyOnUnstaged(fileChange);
     }
 
-    pub fn commit(&self, message: &str)
+    pub fn commit(&mut self, message: &str)
     {
-        let author = self.gitRepo.signature()
-            .unwrap_or_else(|e| exit(&format!("Failed to get a name and/or email of the commit author: {}", e)));
-        let commiter = &author;
+        {
+            let author = self.gitRepo.signature()
+                .unwrap_or_else(|e| exit(&format!("Failed to get a name and/or email of the commit author: {}", e)));
+            let commiter = &author;
 
-        let mut index = self.gitRepo.index()
-            .unwrap_or_else(|e| exit(&format!("Failed to acquire repository index: {}", e)));
-        let treeId = index.write_tree()
-            .unwrap_or_else(|e| exit(&format!("Failed to write repository index as tree to disk: {}", e)));
-        let tree = self.gitRepo.find_tree(treeId)
-            .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)));
-        let parentCommits = self.findParentCommits();
-        let parentCommits = parentCommits.iter().collect::<Vec<&_>>();
+            let mut index = self.gitRepo.index()
+                .unwrap_or_else(|e| exit(&format!("Failed to acquire repository index: {}", e)));
+            let treeId = index.write_tree()
+                .unwrap_or_else(|e| exit(&format!("Failed to write repository index as tree to disk: {}", e)));
+            let tree = self.gitRepo.find_tree(treeId)
+                .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)));
+            let parentCommits = self.findParentCommits();
+            let parentCommits = parentCommits.iter().collect::<Vec<&_>>();
 
-        self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
-            .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
+            self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
+                .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
+        }
 
         self.collectCurrentFileChanges();
         self.notifyOnCommitted();
     }
 
-    pub fn connectOnStaged(&self, observer: Weak<dyn RepositoryObserver>)
+    pub fn connectOnStaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
-        self.onStagedObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onStagedSenders.push(sender);
+        attach(receiver, handler);
     }
 
-    pub fn connectOnUnstaged(&self, observer: Weak<dyn RepositoryObserver>)
+    pub fn connectOnUnstaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
-        self.onUnstagedObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onUnstagedSenders.push(sender);
+        attach(receiver, handler);
     }
 
-    pub fn connectOnCommitted(&self, observer: Weak<dyn RepositoryObserver>)
+    pub fn connectOnCommitted(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
-        self.onCommittedObservers.borrow_mut().push(observer);
+        let (sender, receiver) = makeChannel();
+        self.onCommittedSenders.push(sender);
+        attach(receiver, handler);
     }
+
 
     // private
 
@@ -205,28 +221,22 @@ impl Repository
 
     fn notifyOnStaged(&self, fileChange: &FileChange)
     {
-        for observer in &*self.onStagedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onStaged(fileChange);
-            }
+        for sender in &self.onStagedSenders {
+            sender.send(fileChange.clone()).unwrap();
         }
     }
 
     fn notifyOnUnstaged(&self, fileChange: &FileChange)
     {
-        for observer in &*self.onUnstagedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onUnstaged(fileChange);
-            }
+        for sender in &self.onUnstagedSenders {
+            sender.send(fileChange.clone()).unwrap();
         }
     }
 
     fn notifyOnCommitted(&self)
     {
-        for observer in &*self.onCommittedObservers.borrow() {
-            if let Some(observer) = observer.upgrade() {
-                observer.onCommitted();
-            }
+        for sender in &self.onCommittedSenders {
+            sender.send(()).unwrap();
         }
     }
 }

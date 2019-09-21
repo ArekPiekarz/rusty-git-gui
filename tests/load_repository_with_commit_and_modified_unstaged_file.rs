@@ -8,14 +8,11 @@ use common::gui_assertions::{
     assertDiffViewContains,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
-use common::setup::{makeCommit, makeNewStagedFile, modifyFile, setupTest};
+use common::gui_interactions::show;
+use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest};
 use common::utils::makeFileChange;
 
-use rusty_git_gui::gui::Gui;
-use rusty_git_gui::repository::Repository;
-
 use std::path::PathBuf;
-use std::rc::Rc;
 
 
 #[test]
@@ -28,8 +25,8 @@ fn loadRepositoryWithCommitAndModifiedUnstagedFile()
     makeCommit("Initial commit", &repositoryDir);
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
 
-    let gui = Gui::new(Rc::new(Repository::new(&repositoryDir)));
-    gui.show();
+    let gui = makeGui(&repositoryDir);
+    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
