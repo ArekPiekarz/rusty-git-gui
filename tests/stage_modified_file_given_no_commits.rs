@@ -8,7 +8,7 @@ use common::gui_assertions::{
     assertStagedChangesViewContains,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange, show};
+use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange};
 use common::setup::{makeGui, makeNewStagedFile, modifyFile, setupTest};
 use common::utils::makeFileChange;
 
@@ -25,7 +25,6 @@ fn stageModifiedFileGivenNoCommits()
     modifyFile(&filePath, "staged file content\nmodified line\n", &repositoryDir);
 
     let gui = makeGui(&repositoryDir);
-    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);

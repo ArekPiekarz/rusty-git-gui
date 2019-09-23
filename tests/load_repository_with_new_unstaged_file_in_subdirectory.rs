@@ -8,7 +8,6 @@ use common::gui_assertions::{
     assertDiffViewContains,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
-use common::gui_interactions::show;
 use common::setup::{makeGui, makeNewUnstagedFile, makeSubdirectory, setupTest};
 use common::utils::makeFileChange;
 
@@ -26,7 +25,6 @@ fn loadRepositoryWithNewUnstagedFileInSubdirectory()
     makeNewUnstagedFile(&newUnstagedFilePath, "unstaged file content\n", &repositoryDir);
 
     let gui = makeGui(&repositoryDir);
-    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &newUnstagedFilePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);

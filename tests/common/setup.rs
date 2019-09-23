@@ -1,3 +1,5 @@
+use crate::common::gui_interactions::show;
+
 use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
 use rusty_git_gui::gui::Gui;
 use rusty_git_gui::repository::Repository;
@@ -21,7 +23,9 @@ pub fn setupTest() -> TempDir
 
 pub fn makeGui(repositoryDir: &Path) -> Gui
 {
-    Gui::new(Rc::new(RefCell::new(Repository::new(&repositoryDir))))
+    let gui = Gui::new(Rc::new(RefCell::new(Repository::new(&repositoryDir))));
+    show(&gui);
+    gui
 }
 
 fn makeTemporaryDirectory() -> TempDir

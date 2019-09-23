@@ -9,7 +9,7 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange, show};
+use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange};
 use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
 use common::utils::makeFileChange;
 
@@ -25,7 +25,6 @@ fn stageNewFile()
     makeNewUnstagedFile(&filePath, "file content\n", &repositoryDir);
 
     let gui = makeGui(&repositoryDir);
-    show(&gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
