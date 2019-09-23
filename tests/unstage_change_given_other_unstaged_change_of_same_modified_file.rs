@@ -7,9 +7,8 @@ use common::gui_assertions::{
     assertDiffViewIsEmpty,
     assertStagedChangesViewContains,
     assertStagedChangesViewIsEmpty,
-    assertUnstagedChangesViewContains,
-    assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateStagedChangeToUnstageIt, selectUnstagedChange};
+    assertUnstagedChangesViewContains};
+use common::gui_interactions::{activateStagedChangeToUnstageIt, selectUnstagedChange, show};
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
 use common::utils::makeFileChange;
 
@@ -17,7 +16,7 @@ use std::path::PathBuf;
 
 
 #[test]
-fn unstageModifiedFile()
+fn unstageChangeGivenOtherUnstagedChangeOfSameModifiedFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
@@ -26,12 +25,14 @@ fn unstageModifiedFile()
     makeCommit("Initial commit", &repositoryDir);
     modifyFile(&filePath, "some file content\nmodified second line\n", &repositoryDir);
     stageFile(&filePath, &repositoryDir);
+    modifyFile(&filePath, "some modified file content\nmodified second line\n", &repositoryDir);
 
     let gui = makeGui(&repositoryDir);
+    show(&gui);
 
-    assertUnstagedChangesViewIsEmpty(&gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
-    assertDiffViewIsEmpty(&gui);
+    assertDiffViewContains(DIFF_OF_UNSTAGED_CHANGE_BEFORE_UNSTAGING, &gui);
 
     activateStagedChangeToUnstageIt(&filePath, &gui);
 
@@ -40,5 +41,20 @@ fn unstageModifiedFile()
     assertDiffViewIsEmpty(&gui);
 
     selectUnstagedChange(&filePath, &gui);
-    assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
+    assertDiffViewContains(DIFF_OF_UNSTAGED_CHANGE_AFTER_UNSTAGING, &gui);
 }
+
+const DIFF_OF_UNSTAGED_CHANGE_BEFORE_UNSTAGING: &str =
+r#"@@ -1,2 +1,2 @@
+-some file content
++some modified file content
+ modified second line
+"#;
+
+const DIFF_OF_UNSTAGED_CHANGE_AFTER_UNSTAGING: &str =
+    r#"@@ -1,2 +1,2 @@
+-some file content
+-second line
++some modified file content
++modified second line
+"#;

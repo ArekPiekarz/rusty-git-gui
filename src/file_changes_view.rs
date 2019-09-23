@@ -73,6 +73,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     pub fn activate(&self, filePath: &str) -> bool
     {
+        self.select(filePath);
         self.invokeForRowWith(
             filePath,
             |view: &gtk::TreeView, row, _iterator| { view.row_activated(row, &self.getFilePathColumn()); })

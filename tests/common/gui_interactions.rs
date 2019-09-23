@@ -20,13 +20,13 @@ pub fn selectStagedChange(filePath: &Path, gui: &Gui)
     processEvents();
 }
 
-pub fn activateUnstagedChange(filePath: &Path, gui: &Gui)
+pub fn activateUnstagedChangeToStageIt(filePath: &Path, gui: &Gui)
 {
     assert!(gui.unstagedChangesView.borrow().activate(filePath.to_str().unwrap()));
     processEvents();
 }
 
-pub fn activateStagedChange(filePath: &Path, gui: &Gui)
+pub fn activateStagedChangeToUnstageIt(filePath: &Path, gui: &Gui)
 {
     assert!(gui.stagedChangesView.borrow().activate(filePath.to_str().unwrap()));
     processEvents();

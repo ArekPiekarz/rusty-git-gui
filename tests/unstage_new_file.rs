@@ -9,7 +9,7 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateStagedChange, selectUnstagedChange};
+use common::gui_interactions::{activateStagedChangeToUnstageIt, selectUnstagedChange};
 use common::setup::{makeGui, makeNewStagedFile, setupTest};
 use common::utils::makeFileChange;
 
@@ -30,7 +30,7 @@ fn unstageNewFile()
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
-    activateStagedChange(&filePath, &gui);
+    activateStagedChangeToUnstageIt(&filePath, &gui);
 
     assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);

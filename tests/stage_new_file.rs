@@ -9,7 +9,7 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChange, selectStagedChange, show};
+use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange, show};
 use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
 use common::utils::makeFileChange;
 
@@ -31,7 +31,7 @@ fn stageNewFile()
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &gui);
 
-    activateUnstagedChange(&filePath, &gui);
+    activateUnstagedChangeToStageIt(&filePath, &gui);
 
     assertUnstagedChangesViewIsEmpty(&gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);

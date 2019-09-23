@@ -4,22 +4,30 @@ use rusty_git_gui::gui::Gui;
 
 pub fn assertUnstagedChangesViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.unstagedChangesView.borrow().isEmpty());
+    assert!(gui.unstagedChangesView.borrow().isEmpty(),
+            "Expected empty Unstaged changes view, instead got: {:?}",
+            gui.unstagedChangesView.borrow().getData());
 }
 
 pub fn assertStagedChangesViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.stagedChangesView.borrow().isEmpty());
+    assert!(gui.stagedChangesView.borrow().isEmpty(),
+            "Expected empty Staged changes view, instead got: {:?}",
+            gui.stagedChangesView.borrow().getData());
 }
 
 pub fn assertDiffViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.diffView.borrow().isEmpty());
+    assert!(gui.diffView.borrow().isEmpty(),
+            "Expected empty Diff view, instead got: {:?}",
+            gui.diffView.borrow().getText());
 }
 
 pub fn assertCommitMessageViewIsEmpty(gui: &Gui)
 {
-    assert!(gui.commitMessageView.borrow().isEmpty());
+    assert!(gui.commitMessageView.borrow().isEmpty(),
+            "Expected empty Commit message view, instead got: {:?}",
+            gui.commitMessageView.borrow().getText());
 }
 
 pub fn assertCommitButtonIsEnabled(gui: &Gui)
