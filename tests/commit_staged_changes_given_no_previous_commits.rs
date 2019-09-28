@@ -13,6 +13,7 @@ use common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
+use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewStagedFile, setupTest};
 
 use std::path::PathBuf;
@@ -28,31 +29,35 @@ fn commitStagedChangesGivenNoPreviousCommits()
 
     let gui = makeGui(&repositoryDir);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
+        &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertRepositoryStatusIs("A  file\n", &repositoryDir);
 
     setCommitMessage("some commit message", &gui);
     clickCommitButton(&gui);
 
-    assertRepositoryLogIs(
-        "Author: John Smith\n\
-        Email: john.smith@example.com\n\
-        Subject: some commit message\n\
-        ---\n \
-         file | 1 +\n \
-         1 file changed, 1 insertion(+)\n\
-        \n\
-        diff --git a/file b/file\n\
-        new file mode 100644\n\
-        index 0000000..c2e7a8d\n\
-        --- /dev/null\n\
-        +++ b/file\n\
-        @@ -0,0 +1 @@\n\
-        +some file content\n",
-        &repositoryDir);
     assertRepositoryStatusIsEmpty(&repositoryDir);
+    assertRepositoryLogIs(REPOSITORY_LOG_AFTER_COMMIT, &repositoryDir);
     assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
     assertCommitButtonTooltipIs("No changes are staged for commit.", &gui);
 }
+
+const REPOSITORY_LOG_AFTER_COMMIT: &str =
+r#"Author: John Smith
+Email: john.smith@example.com
+Subject: some commit message
+---
+ file | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/file b/file
+new file mode 100644
+index 0000000..c2e7a8d
+--- /dev/null
++++ b/file
+@@ -0,0 +1 @@
++some file content
+"#;

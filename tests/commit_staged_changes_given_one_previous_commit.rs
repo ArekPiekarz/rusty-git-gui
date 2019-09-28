@@ -12,6 +12,7 @@ use common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
+use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
 
 use std::path::PathBuf;
@@ -30,47 +31,52 @@ fn commitStagedChangesGivenOnePreviousCommit()
 
     let gui = makeGui(&repositoryDir);
 
-    let firstCommitLog =
-        "Author: John Smith\n\
-         Email: john.smith@example.com\n\
-         Subject: initial commit\n\
-         ---\n \
-          file | 1 +\n \
-          1 file changed, 1 insertion(+)\n\
-         \n\
-         diff --git a/file b/file\n\
-         new file mode 100644\n\
-         index 0000000..c2e7a8d\n\
-         --- /dev/null\n\
-         +++ b/file\n\
-         @@ -0,0 +1 @@\n\
-         +some file content\n";
-    assertRepositoryLogIs(firstCommitLog, &repositoryDir);
-    assertRepositoryStatusIs("M  file\n", &repositoryDir);
+    assertRepositoryStatusIs(
+        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Modified}],
+        &repositoryDir);
+    assertRepositoryLogIs(FIRST_COMMIT_LOG, &repositoryDir);
 
     setCommitMessage("second commit", &gui);
     clickCommitButton(&gui);
 
-    assertRepositoryLogIs(
-        &("Author: John Smith\n\
-        Email: john.smith@example.com\n\
-        Subject: second commit\n\
-        ---\n \
-         file | 2 +-\n \
-         1 file changed, 1 insertion(+), 1 deletion(-)\n\
-        \n\
-        diff --git a/file b/file\n\
-        index c2e7a8d..5683396 100644\n\
-        --- a/file\n\
-        +++ b/file\n\
-        @@ -1 +1 @@\n\
-        -some file content\n\
-        +modified file content\n".to_string()
-        + firstCommitLog),
-        &repositoryDir);
     assertRepositoryStatusIsEmpty(&repositoryDir);
+    assertRepositoryLogIs(&(SECOND_COMMIT_LOG.to_string() + FIRST_COMMIT_LOG), &repositoryDir);
     assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
     assertCommitButtonTooltipIs("No changes are staged for commit.", &gui);
 }
+
+const FIRST_COMMIT_LOG: &str =
+r#"Author: John Smith
+Email: john.smith@example.com
+Subject: initial commit
+---
+ file | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/file b/file
+new file mode 100644
+index 0000000..c2e7a8d
+--- /dev/null
++++ b/file
+@@ -0,0 +1 @@
++some file content
+"#;
+
+const SECOND_COMMIT_LOG: &str =
+r#"Author: John Smith
+Email: john.smith@example.com
+Subject: second commit
+---
+ file | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/file b/file
+index c2e7a8d..5683396 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-some file content
++modified file content
+"#;

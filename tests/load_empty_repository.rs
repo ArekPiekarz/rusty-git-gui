@@ -8,6 +8,7 @@ use common::gui_assertions::{
     assertDiffViewIsEmpty,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewIsEmpty};
+use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIsEmpty};
 use common::setup::{makeGui, setupTest};
 
 
@@ -15,9 +16,12 @@ use common::setup::{makeGui, setupTest};
 fn loadEmptyRepository()
 {
     let repositoryDir = setupTest();
+    let repositoryDir = repositoryDir.path().to_owned();
 
-    let gui = makeGui(repositoryDir.path());
+    let gui = makeGui(&repositoryDir);
 
+    assertRepositoryStatusIsEmpty(&repositoryDir);
+    assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);

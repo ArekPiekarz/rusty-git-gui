@@ -2,6 +2,7 @@
 
 mod common;
 
+use common::file_change_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
@@ -10,8 +11,9 @@ use common::gui_assertions::{
     assertStagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
 use common::gui_interactions::selectStagedChange;
+use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
+use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewStagedFile, setupTest};
-use common::utils::makeFileChange;
 
 use std::path::PathBuf;
 
@@ -26,6 +28,10 @@ fn loadRepositoryWithNewStagedFile()
 
     let gui = makeGui(&repositoryDir);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: newStagedFilePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
+        &repositoryDir);
+    assertRepositoryHasNoCommits(&repositoryDir);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &newStagedFilePath)], &gui);
     assertDiffViewIsEmpty(&gui);
     assertUnstagedChangesViewIsEmpty(&gui);

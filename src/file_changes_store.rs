@@ -7,6 +7,7 @@ use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL
 use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::TreeModelExt as _;
+use itertools::Itertools;
 
 
 pub struct FileChangesStore
@@ -61,7 +62,7 @@ impl FileChangesStore
     {
         let fileChangesForStore = fileChanges.iter().map(
             |fileChange| [&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue])
-            .collect::<Vec<_>>();
+            .collect_vec();
 
         for fileChange in fileChangesForStore {
             self.store.set(&self.store.append(), &FileChangesColumn::asArrayOfU32(), &fileChange); };

@@ -2,14 +2,16 @@
 
 mod common;
 
+use common::file_change_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
+use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
+use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
-use common::utils::makeFileChange;
 
 use std::path::PathBuf;
 
@@ -24,6 +26,10 @@ fn loadRepositoryWithNewUnstagedFile()
 
     let gui = makeGui(&repositoryDir);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: newUnstagedFilePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &repositoryDir);
+    assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &newUnstagedFilePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);

@@ -1,10 +1,9 @@
+use crate::common::repository_status_utils::{RepositoryStatus, RepositoryStatusEntry};
+
 use pretty_assertions::assert_eq as diffed_eq;
 use std::path::Path;
 use std::process::Command;
 use std::str::from_utf8;
-
-
-const EMPTY_OUTPUT: &str = "";
 
 
 pub fn assertRepositoryHasNoCommits(repositoryDir: &Path)
@@ -23,14 +22,25 @@ pub fn assertRepositoryLogIs(expectedOutput: &str, repositoryDir: &Path)
         repositoryDir);
 }
 
-pub fn assertRepositoryStatusIs(expectedOutput: &str, repositoryDir: &Path)
+pub fn assertRepositoryStatusIs(expectedStatusEntries: &[RepositoryStatusEntry], repositoryDir: &Path)
 {
-    assertCommandOutput(&["git", "status", "--porcelain"], expectedOutput, repositoryDir);
+    let output = String::from_utf8(getCommandOutput(
+        &["git", "status", "--porcelain", "--untracked-files"], repositoryDir).stdout).unwrap();
+    let status = RepositoryStatus::from(&output);
+    diffed_eq!(expectedStatusEntries, &status.data[..],
+              "\nExpected repository status did not match actual.\nRaw output: {}", output);
+}
+
+fn getCommandOutput(commandParts: &[&str], repositoryDir: &Path) -> std::process::Output
+{
+    let mut command = Command::new(commandParts[0]);
+    command.args(&commandParts[1..]).current_dir(&repositoryDir);
+    command.output().unwrap()
 }
 
 pub fn assertRepositoryStatusIsEmpty(repositoryDir: &Path)
 {
-    assertRepositoryStatusIs(EMPTY_OUTPUT, repositoryDir);
+    assertRepositoryStatusIs(&[], repositoryDir);
 }
 
 fn assertCommandOutput(commandParts: &[&str], expectedOutput: &str, repositoryDir: &Path)
@@ -56,9 +66,10 @@ fn assertFailedCommandErrorOutput(commandParts: &[&str], expectedErrorOutput: &s
     command.args(&commandParts[1..]).current_dir(&repositoryDir);
     let output = command.output().unwrap();
 
-    diffed_eq!(expectedErrorOutput, from_utf8(&output.stderr).unwrap(),
-               "\nExpected command error output did not match actual.\nCommand: {:?}",
-               command);
+    diffed_eq!(
+        expectedErrorOutput, from_utf8(&output.stderr).unwrap(),
+        "\nExpected command error output did not match actual.\nCommand: {:?}\nNormal output: {}\nError output diff:",
+        command, from_utf8(&output.stdout).unwrap());
     assert_eq!(false, output.status.success(),
                "Command finished with success instead of failure.\nCommand: {:?}\nExit status: {}",
                command, output.status);

@@ -2,6 +2,7 @@
 
 mod common;
 
+use common::file_change_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
@@ -9,8 +10,9 @@ use common::gui_assertions::{
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
 use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange};
+use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
+use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewStagedFile, modifyFile, setupTest};
-use common::utils::makeFileChange;
 
 use std::path::PathBuf;
 
@@ -26,12 +28,20 @@ fn stageModifiedFileGivenNoCommits()
 
     let gui = makeGui(&repositoryDir);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Added}],
+        &repositoryDir);
+    assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
     assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified line\n", &gui);
 
     activateUnstagedChangeToStageIt(&filePath, &gui);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
+        &repositoryDir);
+    assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);

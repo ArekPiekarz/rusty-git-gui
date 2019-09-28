@@ -52,7 +52,7 @@ pub fn findRepositoryDir() -> Result<PathBuf>
 #[cfg_attr(test, mockable)]
 fn getAppArguments() -> Vec<String>
 {
-    std::env::args().collect::<Vec<String>>()
+    std::env::args().collect()
 }
 
 #[cfg_attr(test, mockable)]

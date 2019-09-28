@@ -2,6 +2,7 @@
 
 mod common;
 
+use common::file_change_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
@@ -9,8 +10,9 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
 use common::gui_interactions::{activateStagedChangeToUnstageIt, selectUnstagedChange};
+use common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
+use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
-use common::utils::makeFileChange;
 
 use std::path::PathBuf;
 
@@ -29,12 +31,20 @@ fn unstageChangeGivenOtherUnstagedChangeOfSameModifiedFile()
 
     let gui = makeGui(&repositoryDir);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Modified}],
+        &repositoryDir);
+    assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
     assertDiffViewContains(DIFF_OF_UNSTAGED_CHANGE_BEFORE_UNSTAGING, &gui);
 
     activateStagedChangeToUnstageIt(&filePath, &gui);
 
+    assertRepositoryStatusIs(
+        &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Unmodified}],
+        &repositoryDir);
+    assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
@@ -42,6 +52,24 @@ fn unstageChangeGivenOtherUnstagedChangeOfSameModifiedFile()
     selectUnstagedChange(&filePath, &gui);
     assertDiffViewContains(DIFF_OF_UNSTAGED_CHANGE_AFTER_UNSTAGING, &gui);
 }
+
+const REPOSITORY_LOG: &str =
+r#"Author: John Smith
+Email: john.smith@example.com
+Subject: Initial commit
+---
+ fileName | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/fileName b/fileName
+new file mode 100644
+index 0000000..1820ab1
+--- /dev/null
++++ b/fileName
+@@ -0,0 +1,2 @@
++some file content
++second line
+"#;
 
 const DIFF_OF_UNSTAGED_CHANGE_BEFORE_UNSTAGING: &str =
 r#"@@ -1,2 +1,2 @@

@@ -6,6 +6,7 @@ use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
 
 use glib::Sender;
+use itertools::Itertools;
 use std::path::Path;
 
 const NO_INDEX : Option<&git2::Index> = None;
@@ -142,7 +143,7 @@ impl Repository
             let tree = self.gitRepo.find_tree(treeId)
                 .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)));
             let parentCommits = self.findParentCommits();
-            let parentCommits = parentCommits.iter().collect::<Vec<&_>>();
+            let parentCommits = parentCommits.iter().collect_vec();
 
             self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
                 .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
