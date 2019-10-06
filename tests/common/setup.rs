@@ -103,3 +103,8 @@ pub fn makeSubdirectory(subdir: &Path, repositoryDir: &Path)
 {
     std::fs::create_dir(repositoryDir.join(subdir)).unwrap()
 }
+
+pub fn removeFile(filePath: &Path, repositoryDir: &Path)
+{
+    std::fs::remove_file(repositoryDir.join(filePath)).unwrap();
+}
