@@ -1,6 +1,7 @@
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
 use crate::file_changes_column::FileChangesColumn;
+use crate::file_path::FilePath;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 
@@ -28,8 +29,7 @@ impl FileChangesStore
     {
         let mut filePathFound = false;
         self.store.foreach(|model, row, iter| {
-            let actualFilePath = model.get_value(iter, FileChangesColumn::Path as i32).get::<String>()
-                .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)));
+            let actualFilePath = getPath(model, row, iter);
             if actualFilePath != filePath {
                 return CONTINUE_ITERATING_MODEL; }
             filePathFound = true;
@@ -45,9 +45,21 @@ impl FileChangesStore
             &[&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue]);
     }
 
-    pub fn remove(&self, iterator: &gtk::TreeIter)
+    pub fn removeWithIterator(&self, iterator: &gtk::TreeIter)
     {
         self.store.remove(iterator);
+    }
+
+    pub fn removeWithPath(&self, filePath: &FilePath)
+    {
+        self.store.foreach(|model, row, iter| {
+            let currentFilePath = getPath(model, row, iter);
+            if &currentFilePath != filePath {
+                return CONTINUE_ITERATING_MODEL;
+            }
+            self.store.remove(iter);
+            STOP_ITERATING_MODEL
+        });
     }
 
     pub fn clear(&self)
@@ -67,4 +79,10 @@ impl FileChangesStore
         for fileChange in fileChangesForStore {
             self.store.set(&self.store.append(), &FileChangesColumn::asArrayOfU32(), &fileChange); };
     }
+}
+
+fn getPath(model: &gtk::TreeModel, row: &gtk::TreePath, iter: &gtk::TreeIter) -> FilePath
+{
+    model.get_value(iter, FileChangesColumn::Path as i32).get::<String>()
+        .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)))
 }

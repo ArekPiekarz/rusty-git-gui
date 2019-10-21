@@ -1,6 +1,7 @@
 use crate::file_change::FileChange;
 use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
+use crate::file_path::FilePath;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 
@@ -30,16 +31,28 @@ impl StagedChangesStore
 
     fn connectSelfToRepository(self: &Rc<Self>, repository: &mut Repository)
     {
-        self.connectSelfToRepositoryOnStaged(repository);
+        self.connectSelfToRepositoryOnAddedToStaged(repository);
+        self.connectSelfToRepositoryOnRemovedFromStaged(repository);
         self.connectSelfToRepositoryOnCommitted(repository);
     }
 
-    fn connectSelfToRepositoryOnStaged(self: &Rc<Self>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnAddedToStaged(self: &Rc<Self>, repository: &mut Repository)
     {
         let weakSelf = Rc::downgrade(&self);
-        repository.connectOnStaged(Box::new(move |fileChange| {
+        repository.connectOnAddedToStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onStaged(&fileChange);
+                rcSelf.onAddedToStaged(&fileChange);
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToRepositoryOnRemovedFromStaged(self: &Rc<Self>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(&self);
+        repository.connectOnRemovedFromStaged(Box::new(move |filePath| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.onRemovedFromStaged(&filePath);
             }
             glib::Continue(true)
         }));
@@ -56,13 +69,18 @@ impl StagedChangesStore
         }));
     }
 
-    fn onStaged(&self, fileChange: &FileChange)
+    fn onAddedToStaged(&self, fileChange: &FileChange)
     {
         if self.store.containsFilePath(&fileChange.path) {
             return; }
 
         let newStatus = convertToStaged(&fileChange.status);
         self.store.append(&FileChange{status: newStatus, path: fileChange.path.clone()});
+    }
+
+    fn onRemovedFromStaged(&self, filePath: &FilePath)
+    {
+        self.store.removeWithPath(filePath);
     }
 
     fn onCommitted(&self)
@@ -75,7 +93,7 @@ impl FileChangesStorable for StagedChangesStore
 {
     fn remove(&self, iterator: &gtk::TreeIter)
     {
-        self.store.remove(iterator);
+        self.store.removeWithIterator(iterator);
     }
 }
 

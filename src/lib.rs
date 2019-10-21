@@ -20,6 +20,7 @@ mod file_changes_column;
 mod file_changes_storable;
 mod file_changes_store;
 mod file_changes_view;
+mod file_path;
 mod grouped_file_changes;
 mod gui_element_provider;
 mod main_context;

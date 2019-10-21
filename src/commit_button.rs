@@ -69,27 +69,27 @@ impl CommitButton
 
     fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        Self::connectSelfToRepositoryOnStaged(rcSelf, repository);
-        Self::connectSelfToRepositoryOnUnstaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnAddedToStaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf, repository);
     }
 
-    fn connectSelfToRepositoryOnStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnAddedToStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
         let weakSelf = Rc::downgrade(&rcSelf);
-        repository.connectOnStaged(Box::new(move |_fileChange| {
+        repository.connectOnAddedToStaged(Box::new(move |_fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onStaged();
+                rcSelf.borrow_mut().onAddedToStaged();
             }
             glib::Continue(true)
         }));
     }
 
-    fn connectSelfToRepositoryOnUnstaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnRemovedFromStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
         let weakSelf = Rc::downgrade(&rcSelf);
-        repository.connectOnUnstaged(Box::new(move |_fileChange| {
+        repository.connectOnRemovedFromStaged(Box::new(move |_fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onUnstaged();
+                rcSelf.borrow_mut().onRemovedFromStaged();
             }
             glib::Continue(true)
         }));
@@ -139,7 +139,7 @@ impl CommitButton
         });
     }
 
-    fn onStaged(&mut self)
+    fn onAddedToStaged(&mut self)
     {
         if self.areChangesStaged {
             return;
@@ -148,7 +148,7 @@ impl CommitButton
         self.update();
     }
 
-    fn onUnstaged(&mut self)
+    fn onRemovedFromStaged(&mut self)
     {
         if self.repository.borrow().hasStagedChanges() {
             return;

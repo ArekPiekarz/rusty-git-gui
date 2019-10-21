@@ -31,7 +31,7 @@ impl UnstagedChangesStore
     fn connectSelfToRepository(self: &Rc<Self>, repository: &mut Repository)
     {
         let weakSelf = Rc::downgrade(&self);
-        repository.connectOnUnstaged(Box::new(move |fileChange| {
+        repository.connectOnAddedToUnstaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onUnstaged(&fileChange);
             }
@@ -53,7 +53,7 @@ impl FileChangesStorable for UnstagedChangesStore
 {
     fn remove(&self, iterator: &gtk::TreeIter)
     {
-        self.store.remove(iterator);
+        self.store.removeWithIterator(iterator);
     }
 }
 
