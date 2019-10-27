@@ -39,6 +39,7 @@ struct Senders
     onAddedToStaged: Vec<Sender<FileChange>>,
     onRemovedFromStaged: Vec<Sender<String>>,
     onAddedToUnstaged: Vec<Sender<FileChange>>,
+    onRemovedFromUnstaged: Vec<Sender<FileChange>>,
     onCommitted: Vec<Sender<()>>
 }
 
@@ -53,6 +54,7 @@ impl Repository
                 onAddedToStaged: vec![],
                 onRemovedFromStaged: vec![],
                 onAddedToUnstaged: vec![],
+                onRemovedFromUnstaged: vec![],
                 onCommitted: vec![]
             },
         };
@@ -177,6 +179,13 @@ impl Repository
         attach(receiver, handler);
     }
 
+    pub fn connectOnRemovedFromUnstaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
+    {
+        let (sender, receiver) = makeChannel();
+        self.senders.onRemovedFromUnstaged.push(sender);
+        attach(receiver, handler);
+    }
+
     pub fn connectOnCommitted(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
@@ -242,6 +251,7 @@ impl Repository
                 "Failed to stage file {} for removal, because writing the index to disk failed: {}", fileChange.path, e)));
 
         self.collectCurrentFileChanges();
+        self.notifyOnRemovedFromUnstaged(fileChange);
         match self.isFileChangeStaged(&FileChange{status: "INDEX_DELETED".into(), path: fileChange.path.clone()}) {
             true => self.notifyOnAddedToStaged(fileChange),
             false => self.notifyOnRemovedFromStaged(&fileChange.path)
@@ -266,6 +276,7 @@ impl Repository
                 "Failed to stage file {} for removal, because writing the index to disk failed: {}", fileChange.path, e)));
 
         self.collectCurrentFileChanges();
+        self.notifyOnRemovedFromUnstaged(fileChange);
         self.notifyOnAddedToStaged(fileChange);
     }
 
@@ -286,6 +297,13 @@ impl Repository
     fn notifyOnAddedToUnstaged(&self, fileChange: &FileChange)
     {
         for sender in &self.senders.onAddedToUnstaged {
+            sender.send(fileChange.clone()).unwrap();
+        }
+    }
+
+    fn notifyOnRemovedFromUnstaged(&self, fileChange: &FileChange)
+    {
+        for sender in &self.senders.onRemovedFromUnstaged {
             sender.send(fileChange.clone()).unwrap();
         }
     }

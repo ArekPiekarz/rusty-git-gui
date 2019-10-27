@@ -174,7 +174,6 @@ impl<StoreType> FileChangesView<StoreType>
             status: model.get_value(&iterator, FileChangesColumn::Status as i32).get::<String>().unwrap() };
 
         (self.onRowActivatedAction)(&fileChange);
-        self.store.remove(&iterator);
     }
 
     fn invokeForRowWith(

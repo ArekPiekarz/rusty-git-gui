@@ -52,14 +52,20 @@ impl FileChangesStore
 
     pub fn removeWithPath(&self, filePath: &FilePath)
     {
+        let mut fileFound = false;
         self.store.foreach(|model, row, iter| {
             let currentFilePath = getPath(model, row, iter);
             if &currentFilePath != filePath {
                 return CONTINUE_ITERATING_MODEL;
             }
             self.store.remove(iter);
+            fileFound = true;
             STOP_ITERATING_MODEL
         });
+
+        if !fileFound {
+            exit(&format!("Failed to find file path for removal from store: {}", filePath));
+        }
     }
 
     pub fn clear(&self)
