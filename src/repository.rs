@@ -1,5 +1,5 @@
 use crate::error_handling::exit;
-use crate::file_change::FileChange;
+use crate::file_change::{FileChange, UpdatedFileChange};
 use crate::grouped_file_changes::GroupedFileChanges;
 use crate::main_context::{attach, makeChannel};
 use crate::staged_changes::StagedChanges;
@@ -36,6 +36,7 @@ pub struct Repository
 struct Senders
 {
     onAddedToStaged: Vec<Sender<FileChange>>,
+    onUpdatedInStaged: Vec<Sender<UpdatedFileChange>>,
     onRemovedFromStaged: Vec<Sender<FileChange>>,
     onAddedToUnstaged: Vec<Sender<FileChange>>,
     onRemovedFromUnstaged: Vec<Sender<FileChange>>,
@@ -51,6 +52,7 @@ impl Repository
             fileChanges: GroupedFileChanges::new(),
             senders: Senders{
                 onAddedToStaged: vec![],
+                onUpdatedInStaged: vec![],
                 onRemovedFromStaged: vec![],
                 onAddedToUnstaged: vec![],
                 onRemovedFromUnstaged: vec![],
@@ -177,6 +179,13 @@ impl Repository
         attach(receiver, handler);
     }
 
+    pub fn connectOnUpdatedInStaged(&mut self, handler: Box<dyn Fn(UpdatedFileChange) -> glib::Continue>)
+    {
+        let (sender, receiver) = makeChannel();
+        self.senders.onUpdatedInStaged.push(sender);
+        attach(receiver, handler);
+    }
+
     pub fn connectOnRemovedFromStaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
@@ -279,7 +288,12 @@ impl Repository
     fn finishStagingWhenFileWasAlreadyStaged(&self, oldFileChange: &FileChange, newFileChange: &Option<&FileChange>)
     {
         match newFileChange {
-            Some(_) => (),
+            Some(newFileChange) => {
+                if oldFileChange.status != newFileChange.status {
+                    self.notifyOnUpdatedInStaged(
+                        &UpdatedFileChange{old: oldFileChange.clone(), new: (*newFileChange).clone()})
+                }
+            }
             None => self.notifyOnRemovedFromStaged(oldFileChange)
         }
     }
@@ -298,7 +312,12 @@ impl Repository
         }
     }
 
-
+    fn notifyOnUpdatedInStaged(&self, updatedFileChange: &UpdatedFileChange)
+    {
+        for sender in &self.senders.onUpdatedInStaged {
+            sender.send(updatedFileChange.clone()).unwrap();
+        }
+    }
 
     fn notifyOnRemovedFromStaged(&self, fileChange: &FileChange)
     {

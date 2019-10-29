@@ -1,5 +1,5 @@
 use crate::error_handling::exit;
-use crate::file_change::FileChange;
+use crate::file_change::{FileChange, UpdatedFileChange};
 use crate::file_changes_column::FileChangesColumn;
 use crate::file_path::FilePath;
 use crate::gui_element_provider::GuiElementProvider;
@@ -43,6 +43,24 @@ impl FileChangesStore
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
             &[&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue]);
+    }
+
+    pub fn update(&self, updatedFileChange: &UpdatedFileChange)
+    {
+        let mut fileFound = false;
+        self.store.foreach(|model, row, iter| {
+            if updatedFileChange.old.path != getPath(model, row, iter) {
+                return CONTINUE_ITERATING_MODEL;
+            }
+            self.store.set_value(
+                iter, FileChangesColumn::Status as u32, &gtk::Value::from(&updatedFileChange.new.status));
+            fileFound = true;
+            STOP_ITERATING_MODEL
+        });
+
+        if !fileFound {
+            exit(&format!("Failed to find file path for updating in store: {}", updatedFileChange.old.path));
+        }
     }
 
     pub fn removeWithIterator(&self, iterator: &gtk::TreeIter)

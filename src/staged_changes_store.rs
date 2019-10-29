@@ -1,4 +1,4 @@
-use crate::file_change::FileChange;
+use crate::file_change::{FileChange, UpdatedFileChange};
 use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
@@ -31,6 +31,7 @@ impl StagedChangesStore
     fn connectSelfToRepository(self: &Rc<Self>, repository: &mut Repository)
     {
         self.connectSelfToRepositoryOnAddedToStaged(repository);
+        self.connectSelfToRepositoryOnUpdatedInStaged(repository);
         self.connectSelfToRepositoryOnRemovedFromStaged(repository);
         self.connectSelfToRepositoryOnCommitted(repository);
     }
@@ -41,6 +42,17 @@ impl StagedChangesStore
         repository.connectOnAddedToStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onAddedToStaged(&fileChange);
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToRepositoryOnUpdatedInStaged(self: &Rc<Self>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(&self);
+        repository.connectOnUpdatedInStaged(Box::new(move |updatedFileChange| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.onUpdatedInStaged(&updatedFileChange);
             }
             glib::Continue(true)
         }));
@@ -70,11 +82,12 @@ impl StagedChangesStore
 
     fn onAddedToStaged(&self, fileChange: &FileChange)
     {
-        if self.store.containsFilePath(&fileChange.path) {
-            return; }
+        self.store.append(fileChange);
+    }
 
-        let newStatus = convertToStaged(&fileChange.status);
-        self.store.append(&FileChange{status: newStatus, path: fileChange.path.clone()});
+    fn onUpdatedInStaged(&self, updatedFileChange: &UpdatedFileChange)
+    {
+        self.store.update(updatedFileChange);
     }
 
     fn onRemovedFromStaged(&self, fileChange: &FileChange)
@@ -94,9 +107,4 @@ impl FileChangesStorable for StagedChangesStore
     {
         self.store.removeWithIterator(iterator);
     }
-}
-
-fn convertToStaged(fileChangeStatus: &str) -> String
-{
-    fileChangeStatus.replace("WT", "INDEX")
 }
