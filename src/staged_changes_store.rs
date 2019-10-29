@@ -1,7 +1,6 @@
 use crate::file_change::FileChange;
 use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
-use crate::file_path::FilePath;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 
@@ -50,9 +49,9 @@ impl StagedChangesStore
     fn connectSelfToRepositoryOnRemovedFromStaged(self: &Rc<Self>, repository: &mut Repository)
     {
         let weakSelf = Rc::downgrade(&self);
-        repository.connectOnRemovedFromStaged(Box::new(move |filePath| {
+        repository.connectOnRemovedFromStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onRemovedFromStaged(&filePath);
+                rcSelf.onRemovedFromStaged(&fileChange);
             }
             glib::Continue(true)
         }));
@@ -78,9 +77,9 @@ impl StagedChangesStore
         self.store.append(&FileChange{status: newStatus, path: fileChange.path.clone()});
     }
 
-    fn onRemovedFromStaged(&self, filePath: &FilePath)
+    fn onRemovedFromStaged(&self, fileChange: &FileChange)
     {
-        self.store.removeWithPath(filePath);
+        self.store.removeWithPath(&fileChange.path);
     }
 
     fn onCommitted(&self)

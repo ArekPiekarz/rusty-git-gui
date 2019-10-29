@@ -42,7 +42,8 @@ pub fn assertCommitButtonIsDisabled(gui: &Gui)
 
 pub fn assertCommitButtonTooltipIs(tooltip: &str, gui: &Gui)
 {
-    assert_eq!(tooltip, gui.commitButton.borrow().getTooltip(), "\nExpected commit button tooltip does not match actual.");
+    assert_eq!(tooltip, gui.commitButton.borrow().getTooltip(),
+               "\nExpected commit button tooltip does not match actual.");
 }
 pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
 {
@@ -51,16 +52,18 @@ pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
 
 pub fn assertUnstagedChangesViewContains(changes: &[FileChange], gui: &Gui)
 {
-    assert_eq!(changes, &gui.unstagedChangesView.borrow().getData()[..]);
+    assert_eq!(changes, &gui.unstagedChangesView.borrow().getData()[..],
+               "\nExpected unstaged changes view content differs from actual.");
 }
 
 pub fn assertStagedChangesViewContains(changes: &[FileChange], gui: &Gui)
 {
-    assert_eq!(changes, &gui.stagedChangesView.borrow().getData()[..]);
+    assert_eq!(changes, &gui.stagedChangesView.borrow().getData()[..],
+               "\nExpected staged changes view content differs from actual.");
 }
 
 pub fn assertDiffViewContains(content: &str, gui: &Gui)
 {
     assert_eq!(content, gui.diffView.borrow().getText(),
-           "\nExpected diff view content differs from actual.");
+               "\nExpected diff view content differs from actual.");
 }

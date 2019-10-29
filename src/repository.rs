@@ -1,6 +1,5 @@
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
-use crate::file_path::FilePath;
 use crate::grouped_file_changes::GroupedFileChanges;
 use crate::main_context::{attach, makeChannel};
 use crate::staged_changes::StagedChanges;
@@ -37,7 +36,7 @@ pub struct Repository
 struct Senders
 {
     onAddedToStaged: Vec<Sender<FileChange>>,
-    onRemovedFromStaged: Vec<Sender<String>>,
+    onRemovedFromStaged: Vec<Sender<FileChange>>,
     onAddedToUnstaged: Vec<Sender<FileChange>>,
     onRemovedFromUnstaged: Vec<Sender<FileChange>>,
     onCommitted: Vec<Sender<()>>
@@ -114,8 +113,21 @@ impl Repository
     pub fn stageFileChange(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
-            "WT_DELETED" => self.stageFileChangeForRemoval(fileChange),
-            _ => self.stageFileChangeForOtherThanRemoval(fileChange)
+            "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
+            _ => self.addPathToIndex(&fileChange.path)
+        }
+        self.notifyOnRemovedFromUnstaged(fileChange);
+
+        let oldStagedFileChange = self.fileChanges.staged.iter().find(
+            |stagedFileChange| stagedFileChange.path == fileChange.path).cloned();
+        self.collectCurrentFileChanges();
+        let newStagedFileChange = self.fileChanges.staged.0.iter().find(
+            |stagedFileChange| stagedFileChange.path == fileChange.path);
+
+        match oldStagedFileChange {
+            Some(oldStagedFileChange) => self.finishStagingWhenFileWasAlreadyStaged(
+                &oldStagedFileChange, &newStagedFileChange),
+            None => self.finishStagingWhenFileWasNotYetStaged(&newStagedFileChange)
         }
     }
 
@@ -130,7 +142,7 @@ impl Repository
         }
 
         self.collectCurrentFileChanges();
-        self.notifyOnRemovedFromStaged(&fileChange.path);
+        self.notifyOnRemovedFromStaged(fileChange);
         self.notifyOnAddedToUnstaged(fileChange);
     }
 
@@ -165,7 +177,7 @@ impl Repository
         attach(receiver, handler);
     }
 
-    pub fn connectOnRemovedFromStaged(&mut self, handler: Box<dyn Fn(FilePath) -> glib::Continue>)
+    pub fn connectOnRemovedFromStaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
         self.senders.onRemovedFromStaged.push(sender);
@@ -200,6 +212,31 @@ impl Repository
     {
         self.gitRepo.statuses(Some(&mut makeStatusOptions()))
             .unwrap_or_else(|e| exit(&format!("Failed to get statuses: {}", e)))
+    }
+
+    fn addPathToIndex(&self, filePath: &str)
+    {
+        let mut index = self.gitRepo.index()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {}, because index could not be acquired: {}", filePath, e)));
+        index.add_path(Path::new(filePath))
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {}, because adding path to index failed: {}", filePath, e)));
+        index.write()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {}, because writing the index to disk failed: {}", filePath, e)));
+    }
+
+    fn removePathFromIndex(&self, filePath: &str)
+    {
+        let mut index = self.gitRepo.index()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {} for removal, because index could not be acquired: {}", filePath, e)));
+        index.remove_path(Path::new(filePath))
+            .unwrap_or_else(|e| exit(&format!("Failed to staged file {} for removal: {}", filePath, e)));
+        index.write()
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to stage file {} for removal, because writing the index to disk failed: {}", filePath, e)));
     }
 
     fn findHeadCommit(&self) -> Option<git2::Commit>
@@ -239,45 +276,19 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
     }
 
-    fn stageFileChangeForRemoval(&mut self, fileChange: &FileChange)
+    fn finishStagingWhenFileWasAlreadyStaged(&self, oldFileChange: &FileChange, newFileChange: &Option<&FileChange>)
     {
-        let mut index = self.gitRepo.index()
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {} for removal, because index could not be acquired: {}", fileChange.path, e)));
-        index.remove_path(Path::new(&fileChange.path))
-            .unwrap_or_else(|e| exit(&format!("Failed to staged file {} for removal: {}", fileChange.path, e)));
-        index.write()
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {} for removal, because writing the index to disk failed: {}", fileChange.path, e)));
-
-        self.collectCurrentFileChanges();
-        self.notifyOnRemovedFromUnstaged(fileChange);
-        match self.isFileChangeStaged(&FileChange{status: "INDEX_DELETED".into(), path: fileChange.path.clone()}) {
-            true => self.notifyOnAddedToStaged(fileChange),
-            false => self.notifyOnRemovedFromStaged(&fileChange.path)
+        match newFileChange {
+            Some(_) => (),
+            None => self.notifyOnRemovedFromStaged(oldFileChange)
         }
     }
 
-    fn isFileChangeStaged(&self, searchedFileChange: &FileChange) -> bool
+    fn finishStagingWhenFileWasNotYetStaged(&self, fileChange: &Option<&FileChange>)
     {
-        self.fileChanges.staged.0.iter().find(|fileChange| fileChange == &searchedFileChange).is_some()
-    }
-
-    fn stageFileChangeForOtherThanRemoval(&mut self, fileChange: &FileChange)
-    {
-        let mut index = self.gitRepo.index()
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {} for removal, because index could not be acquired: {}", fileChange.path, e)));
-        index.add_path(Path::new(&fileChange.path))
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {}, because adding path to index failed: {}", fileChange.path, e)));
-        index.write()
-            .unwrap_or_else(|e| exit(&format!(
-                "Failed to stage file {} for removal, because writing the index to disk failed: {}", fileChange.path, e)));
-
-        self.collectCurrentFileChanges();
-        self.notifyOnRemovedFromUnstaged(fileChange);
-        self.notifyOnAddedToStaged(fileChange);
+        if let Some(fileChange) = fileChange {
+            self.notifyOnAddedToStaged(fileChange)
+        }
     }
 
     fn notifyOnAddedToStaged(&self, fileChange: &FileChange)
@@ -287,10 +298,12 @@ impl Repository
         }
     }
 
-    fn notifyOnRemovedFromStaged(&self, filePath: &FilePath)
+
+
+    fn notifyOnRemovedFromStaged(&self, fileChange: &FileChange)
     {
         for sender in &self.senders.onRemovedFromStaged {
-            sender.send(filePath.into()).unwrap();
+            sender.send(fileChange.clone()).unwrap();
         }
     }
 
