@@ -37,7 +37,7 @@ impl StagedChangesStore
 
     fn connectSelfToRepositoryOnAddedToStaged(self: &Rc<Self>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(&self);
+        let weakSelf = Rc::downgrade(self);
         repository.connectOnAddedToStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onAddedToStaged(&fileChange);
@@ -48,7 +48,7 @@ impl StagedChangesStore
 
     fn connectSelfToRepositoryOnUpdatedInStaged(self: &Rc<Self>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(&self);
+        let weakSelf = Rc::downgrade(self);
         repository.connectOnUpdatedInStaged(Box::new(move |updatedFileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onUpdatedInStaged(&updatedFileChange);
@@ -59,7 +59,7 @@ impl StagedChangesStore
 
     fn connectSelfToRepositoryOnRemovedFromStaged(self: &Rc<Self>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(&self);
+        let weakSelf = Rc::downgrade(self);
         repository.connectOnRemovedFromStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onRemovedFromStaged(&fileChange);
@@ -70,7 +70,7 @@ impl StagedChangesStore
 
     fn connectSelfToRepositoryOnCommitted(self: &Rc<Self>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(&self);
+        let weakSelf = Rc::downgrade(self);
         repository.connectOnCommitted(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onCommitted();

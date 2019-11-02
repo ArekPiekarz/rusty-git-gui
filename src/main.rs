@@ -1,4 +1,8 @@
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::enum_glob_use)]
+#![allow(clippy::implicit_return)]
+#![allow(clippy::missing_docs_in_private_items)]
+#![allow(clippy::multiple_crate_versions)]
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
 #![feature(try_blocks)]
@@ -37,7 +41,7 @@ fn main()
         setupPanicHandler();
         setupGtk();
         let repository = makeRepository()?;
-        let gui = Gui::new(repository);
+        let gui = Gui::new(&repository);
         gui.show();
         gtk::main(); };
     result.unwrap_or_else(|e| printFail(&e));

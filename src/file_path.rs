@@ -1,1 +1,2 @@
-pub type FilePath = String;
+pub type FilePathStr = str;
+pub type FilePathString = String;

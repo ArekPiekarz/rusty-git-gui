@@ -25,11 +25,11 @@ pub struct Gui
 
 impl Gui
 {
-    pub fn new(repository: Rc<RefCell<Repository>>) -> Self
+    pub fn new(repository: &Rc<RefCell<Repository>>) -> Self
     {
         let guiElementProvider = GuiElementProvider::new(include_str!("main_window.glade"));
-        let unstagedChangesView = makeUnstagedChangesView(&guiElementProvider, Rc::clone(&repository));
-        let stagedChangesView = makeStagedChangesView(&guiElementProvider, Rc::clone(&repository));
+        let unstagedChangesView = makeUnstagedChangesView(&guiElementProvider, Rc::clone(repository));
+        let stagedChangesView = makeStagedChangesView(&guiElementProvider, Rc::clone(repository));
 
         unstagedChangesView.borrow_mut().connectOnSelected(makeOnOtherViewSelectedReaction(&stagedChangesView));
         stagedChangesView.borrow_mut().connectOnSelected(makeOnOtherViewSelectedReaction(&unstagedChangesView));
@@ -38,11 +38,11 @@ impl Gui
             &guiElementProvider,
             &mut unstagedChangesView.borrow_mut(),
             &mut stagedChangesView.borrow_mut(),
-            Rc::clone(&repository));
+            Rc::clone(repository));
 
         let commitMessageView = CommitMessageView::new(&guiElementProvider, &mut repository.borrow_mut());
         let commitButton = CommitButton::new(
-            &guiElementProvider, Rc::clone(&commitMessageView), Rc::clone(&repository));
+            &guiElementProvider, Rc::clone(&commitMessageView), Rc::clone(repository));
 
         Self{
             unstagedChangesView: Rc::clone(&unstagedChangesView),

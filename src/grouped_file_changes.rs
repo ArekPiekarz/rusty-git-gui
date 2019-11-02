@@ -1,6 +1,7 @@
+#![allow(clippy::new_without_default)]
+
 use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
-
 
 pub struct GroupedFileChanges
 {

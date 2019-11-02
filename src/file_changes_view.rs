@@ -116,7 +116,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn connectSelfToWidgetSelection(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().widget.get_selection().connect_changed(
             move |selection| {
                 if let Some(rcSelf) = weakSelf.upgrade() {
@@ -126,15 +126,15 @@ impl<StoreType> FileChangesView<StoreType>
         );
     }
 
+    #[allow(clippy::panic)]
     fn notifyBasedOnSelectionChanged(&self, selection: &gtk::TreeSelection)
     {
         let (rows, model) = selection.get_selected_rows();
         debug_assert!(rows.len() <= 1);
-        if rows.is_empty() {
-            return self.notifyOnUnselected();
+        match rows.get(0) {
+            Some(row) => self.notifyOnSelected(&findSelectedFileChange(row, &model)),
+            None => self.notifyOnUnselected()
         }
-
-        self.notifyOnSelected(&findSelectedFileChange(&rows[0], &model));
     }
 
     fn notifyOnSelected(&self, fileChange: &FileChange)
@@ -153,7 +153,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn connectSelfToWidget(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().widget.connect_row_activated(
             move |_view, row, _column| {
                 if let Some(rcSelf) = weakSelf.upgrade() {
@@ -186,7 +186,7 @@ impl<StoreType> FileChangesView<StoreType>
             if Self::getCell(model, iter, FileChangesColumn::Path) != filePath {
                 return CONTINUE_ITERATING_MODEL; }
             rowFound = true;
-            action(&self.widget, &row, &iter);
+            action(&self.widget, row, iter);
             STOP_ITERATING_MODEL
         });
         rowFound

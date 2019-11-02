@@ -1,3 +1,5 @@
+#![allow(clippy::new_without_default)]
+
 use crate::file_change::FileChange;
 
 use shrinkwraprs::Shrinkwrap;

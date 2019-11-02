@@ -45,6 +45,7 @@ struct Senders
 
 impl Repository
 {
+    #[must_use]
     pub fn new(path: &Path) -> Self
     {
         let mut newSelf = Self{
@@ -81,21 +82,25 @@ impl Repository
         &self.fileChanges
     }
 
-    pub fn getUnstagedChanges(&self) -> &UnstagedChanges
+    #[must_use]
+    pub const fn getUnstagedChanges(&self) -> &UnstagedChanges
     {
         &self.fileChanges.unstaged
     }
 
-    pub fn getStagedChanges(&self) -> &StagedChanges
+    #[must_use]
+    pub const fn getStagedChanges(&self) -> &StagedChanges
     {
         &self.fileChanges.staged
     }
 
+    #[must_use]
     pub fn hasStagedChanges(&self) -> bool
     {
         !self.fileChanges.staged.is_empty()
     }
 
+    #[must_use]
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
     {
         let mut diffOptions = makeDiffOptions(path);
@@ -104,6 +109,7 @@ impl Repository
                 &format!("Failed to get index-to-workdir diff for path {}: {}", path, e)))
     }
 
+    #[must_use]
     pub fn makeDiffOfTreeToIndex(&self, path: &str) -> git2::Diff
     {
         let mut diffOptions = makeDiffOptions(path);
@@ -128,8 +134,8 @@ impl Repository
 
         match oldStagedFileChange {
             Some(oldStagedFileChange) => self.finishStagingWhenFileWasAlreadyStaged(
-                &oldStagedFileChange, &newStagedFileChange),
-            None => self.finishStagingWhenFileWasNotYetStaged(&newStagedFileChange)
+                &oldStagedFileChange, newStagedFileChange),
+            None => self.finishStagingWhenFileWasNotYetStaged(newStagedFileChange)
         }
     }
 
@@ -164,7 +170,7 @@ impl Repository
             let parentCommits = self.findParentCommits();
             let parentCommits = parentCommits.iter().collect_vec();
 
-            self.gitRepo.commit(Some("HEAD"), &author, &commiter, message, &tree, &parentCommits)
+            self.gitRepo.commit(Some("HEAD"), &author, commiter, message, &tree, &parentCommits)
                 .unwrap_or_else(|e| exit(&format!("Failed to commit changes: {}", e)));
         }
 
@@ -285,7 +291,7 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
     }
 
-    fn finishStagingWhenFileWasAlreadyStaged(&self, oldFileChange: &FileChange, newFileChange: &Option<&FileChange>)
+    fn finishStagingWhenFileWasAlreadyStaged(&self, oldFileChange: &FileChange, newFileChange: Option<&FileChange>)
     {
         match newFileChange {
             Some(newFileChange) => {
@@ -298,7 +304,7 @@ impl Repository
         }
     }
 
-    fn finishStagingWhenFileWasNotYetStaged(&self, fileChange: &Option<&FileChange>)
+    fn finishStagingWhenFileWasNotYetStaged(&self, fileChange: Option<&FileChange>)
     {
         if let Some(fileChange) = fileChange {
             self.notifyOnAddedToStaged(fileChange)
@@ -379,7 +385,7 @@ fn maybeAddToFileChanges(
     let statusFlag = fileStatusEntry.status();
     for statusType in statusTypes {
         if statusFlag.intersects(*statusType) {
-            fileChanges.push(makeFileChange(&fileStatusEntry, *statusType));
+            fileChanges.push(makeFileChange(fileStatusEntry, *statusType));
             return STATUS_FOUND;
         }
     }

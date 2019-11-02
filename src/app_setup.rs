@@ -1,3 +1,5 @@
+#![allow(clippy::enum_glob_use)]
+
 use failchain::ResultExt as _;
 use std::path::PathBuf;
 #[cfg(test)] use mocktopus::macros::mockable;
@@ -36,14 +38,16 @@ pub fn setupGtk()
         .unwrap_or_else(|e| panic!("Failed to initialize GTK. Cause: {}", e));
 }
 
+#[allow(clippy::indexing_slicing)]
+#[allow(clippy::integer_arithmetic)]
 pub fn findRepositoryDir() -> Result<PathBuf>
 {
     (|| -> Result<PathBuf> {
         let args = getAppArguments();
         match args.len() {
-            1 => Ok(getCurrentDir()?),
+            0 | 1 => Ok(getCurrentDir()?),
             2 => Ok(PathBuf::from(&args[1])),
-            size => Err(TooManyArgumentsToApp(size-1, args.clone()).into())
+            size => Err(TooManyArgumentsToApp(size-1, args).into())
         }
     })().chain_err(|| FindRepositoryDirFailed)
 }

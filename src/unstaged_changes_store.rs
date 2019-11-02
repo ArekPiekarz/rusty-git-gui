@@ -35,7 +35,7 @@ impl UnstagedChangesStore
 
     fn connectSelfToRepositoryOnAddedToUnstaged(self: &Rc<Self>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(&self);
+        let weakSelf = Rc::downgrade(self);
         repository.connectOnAddedToUnstaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onAddedToUnstaged(&fileChange);
@@ -46,7 +46,7 @@ impl UnstagedChangesStore
 
     fn connectSelfToRepositoryOnRemovedFromUnstaged(self: &Rc<Self>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(&self);
+        let weakSelf = Rc::downgrade(self);
         repository.connectOnRemovedFromUnstaged(Box::new(move |filePath| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onRemovedFromUnstaged(&filePath);

@@ -1,7 +1,7 @@
 use crate::error_handling::exit;
 use crate::file_change::{FileChange, UpdatedFileChange};
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_path::FilePath;
+use crate::file_path::{FilePathStr, FilePathString};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 
@@ -21,7 +21,7 @@ impl FileChangesStore
     pub fn new(guiElementProvider: &GuiElementProvider, name: &str, changes: &[FileChange]) -> Self
     {
         let newSelf = Self{store: guiElementProvider.get::<gtk::ListStore>(name)};
-        newSelf.fillFileChangesStore(&changes);
+        newSelf.fillFileChangesStore(changes);
         newSelf
     }
 
@@ -63,12 +63,12 @@ impl FileChangesStore
         }
     }
 
-    pub fn removeWithPath(&self, filePath: &FilePath)
+    pub fn removeWithPath(&self, filePath: &FilePathStr)
     {
         let mut fileFound = false;
         self.store.foreach(|model, row, iter| {
             let currentFilePath = getPath(model, row, iter);
-            if &currentFilePath != filePath {
+            if currentFilePath != filePath {
                 return CONTINUE_ITERATING_MODEL;
             }
             self.store.remove(iter);
@@ -100,7 +100,7 @@ impl FileChangesStore
     }
 }
 
-fn getPath(model: &gtk::TreeModel, row: &gtk::TreePath, iter: &gtk::TreeIter) -> FilePath
+fn getPath(model: &gtk::TreeModel, row: &gtk::TreePath, iter: &gtk::TreeIter) -> FilePathString
 {
     model.get_value(iter, FileChangesColumn::Path as i32).get::<String>()
         .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)))

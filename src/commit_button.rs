@@ -27,14 +27,15 @@ impl CommitButton
         -> Rc<RefCell<Self>>
     {
         let isCommitMessageWritten = commitMessageView.borrow().hasText();
+        let areChangesStaged = repository.borrow().hasStagedChanges();
         let newSelf = Rc::new(RefCell::new(Self {
             widget: guiElementProvider.get::<gtk::Button>("Commit button"),
-            repository: Rc::clone(&repository),
+            repository,
             commitMessageView,
-            areChangesStaged: repository.borrow().hasStagedChanges(),
+            areChangesStaged,
             isCommitMessageWritten
         }));
-        Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
+        Self::connectSelfToRepository(&newSelf);
         Self::connectSelfToCommitMessageView(&newSelf);
         Self::connectSelfToWidget(&newSelf);
         newSelf.borrow().update();
@@ -67,16 +68,16 @@ impl CommitButton
 
     // private
 
-    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>)
     {
-        Self::connectSelfToRepositoryOnAddedToStaged(rcSelf, repository);
-        Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnAddedToStaged(rcSelf);
+        Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf);
     }
 
-    fn connectSelfToRepositoryOnAddedToStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnAddedToStaged(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
-        repository.connectOnAddedToStaged(Box::new(move |_fileChange| {
+        let weakSelf = Rc::downgrade(rcSelf);
+        rcSelf.borrow().repository.borrow_mut().connectOnAddedToStaged(Box::new(move |_fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onAddedToStaged();
             }
@@ -84,10 +85,10 @@ impl CommitButton
         }));
     }
 
-    fn connectSelfToRepositoryOnRemovedFromStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnRemovedFromStaged(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
-        repository.connectOnRemovedFromStaged(Box::new(move |_fileChange| {
+        let weakSelf = Rc::downgrade(rcSelf);
+        rcSelf.borrow().repository.borrow_mut().connectOnRemovedFromStaged(Box::new(move |_fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onRemovedFromStaged();
             }
@@ -103,7 +104,7 @@ impl CommitButton
 
     fn connectSelfToCommitMessageViewOnFilled(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().commitMessageView.borrow_mut().connectOnFilled(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onCommitMessageFilled();
@@ -114,7 +115,7 @@ impl CommitButton
 
     fn connectSelfToCommitMessageViewOnEmptied(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().commitMessageView.borrow_mut().connectOnEmptied(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onCommitMessageEmptied();
@@ -130,7 +131,7 @@ impl CommitButton
             sender.send(()).unwrap();
         });
 
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         attach(receiver, move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().commit();
@@ -187,12 +188,12 @@ impl CommitButton
         self.clearTooltip();
     }
 
-    fn noChangesAreStaged(&self) -> bool
+    const fn noChangesAreStaged(&self) -> bool
     {
         !self.areChangesStaged
     }
 
-    fn commitMessageIsEmpty(&self) -> bool
+    const fn commitMessageIsEmpty(&self) -> bool
     {
         !self.isCommitMessageWritten
     }

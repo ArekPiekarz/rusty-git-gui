@@ -15,15 +15,15 @@ pub struct DiffView
 {
     widget: Rc<RefCell<TextView>>,
     repository: Rc<RefCell<Repository>>,
-    displayState: DisplayState
+    displayState: DisplayedFileChange
 }
 
 #[derive(PartialEq)]
-enum DisplayState
+enum DisplayedFileChange
 {
-    NoFileChange,
-    UnstagedFileChange,
-    StagedFileChange
+    None,
+    Unstaged,
+    Staged
 }
 
 impl DiffView
@@ -38,7 +38,7 @@ impl DiffView
         let newSelf = Rc::new(RefCell::new(Self{
             widget: TextView::new(guiElementProvider, "Diff view"),
             repository,
-            displayState: DisplayState::NoFileChange
+            displayState: DisplayedFileChange::None
         }));
         Self::connectSelfToUnstagedChangesView(&newSelf, unstagedChangesView);
         Self::connectSelfToStagedChangesView(&newSelf, stagedChangesView);
@@ -72,7 +72,7 @@ impl DiffView
 
     fn connectSelfToUnstagedChangeSelected(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         view.connectOnSelected(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onUnstagedChangeSelected(&fileChange);
@@ -83,7 +83,7 @@ impl DiffView
 
     fn connectSelfToStagedChangeSelected(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         view.connectOnSelected(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onStagedChangeSelected(&fileChange);
@@ -94,7 +94,7 @@ impl DiffView
 
     fn connectSelfToUnstagedChangeUnselected(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         view.connectOnUnselected(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onUnstagedChangeUnselected();
@@ -105,7 +105,7 @@ impl DiffView
 
     fn connectSelfToStagedChangeUnselected(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         view.connectOnUnselected(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onStagedChangeUnselected();
@@ -116,24 +116,24 @@ impl DiffView
 
     fn onUnstagedChangeSelected(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeSelected(fileChange, Self::makeDiffForUnstagedChange, DisplayState::UnstagedFileChange);
+        self.onFileChangeSelected(fileChange, Self::makeDiffForUnstagedChange, DisplayedFileChange::Unstaged);
     }
 
     fn onStagedChangeSelected(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeSelected(fileChange, Self::makeDiffForStagedChange, DisplayState::StagedFileChange);
+        self.onFileChangeSelected(fileChange, Self::makeDiffForStagedChange, DisplayedFileChange::Staged);
     }
 
     fn onFileChangeSelected(
         &mut self,
         fileChange: &FileChange,
-        diffMaker: for <'a> fn(&Self, &str, &'a Repository) -> git2::Diff<'a>,
-        newDisplayState: DisplayState)
+        diffMaker: for <'a> fn(&str, &'a Repository) -> git2::Diff<'a>,
+        newDisplayState: DisplayedFileChange)
     {
         let widget = self.widget.borrow();
         let diffLinePrinter = DiffLinePrinter::new(&widget);
         let repository = self.repository.borrow();
-        let diff = (diffMaker)(self, &fileChange.path, &repository);
+        let diff = (diffMaker)(&fileChange.path, &repository);
         diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffLinePrinter.printDiff(&line))
             .unwrap_or_else(|e| exit(&format!("Failed to print diff: {}", e)));
         self.displayState = newDisplayState;
@@ -141,26 +141,26 @@ impl DiffView
 
     fn onUnstagedChangeUnselected(&mut self)
     {
-        if self.displayState == DisplayState::UnstagedFileChange {
+        if self.displayState == DisplayedFileChange::Unstaged {
             self.widget.borrow().clear();
-            self.displayState = DisplayState::NoFileChange;
+            self.displayState = DisplayedFileChange::None;
         }
     }
 
     fn onStagedChangeUnselected(&mut self)
     {
-        if self.displayState == DisplayState::StagedFileChange {
+        if self.displayState == DisplayedFileChange::Staged {
             self.widget.borrow().clear();
-            self.displayState = DisplayState::NoFileChange;
+            self.displayState = DisplayedFileChange::None;
         }
     }
 
-    fn makeDiffForUnstagedChange<'a>(&self, path: &str, repository: &'a Repository) -> git2::Diff<'a>
+    fn makeDiffForUnstagedChange<'a>(path: &str, repository: &'a Repository) -> git2::Diff<'a>
     {
         repository.makeDiffOfIndexToWorkdir(path)
     }
 
-    fn makeDiffForStagedChange<'a>(&self, path: &str, repository: &'a Repository) -> git2::Diff<'a>
+    fn makeDiffForStagedChange<'a>(path: &str, repository: &'a Repository) -> git2::Diff<'a>
     {
         repository.makeDiffOfTreeToIndex(path)
     }

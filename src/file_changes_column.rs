@@ -10,12 +10,12 @@ pub enum FileChangesColumn
 
 impl FileChangesColumn
 {
-    pub fn asArrayOfI32() -> [i32; FILECHANGESCOLUMN_COUNT]
+    pub const fn asArrayOfI32() -> [i32; FILECHANGESCOLUMN_COUNT]
     {
         [0, 1]
     }
 
-    pub fn asArrayOfU32() -> [u32; FILECHANGESCOLUMN_COUNT]
+    pub const fn asArrayOfU32() -> [u32; FILECHANGESCOLUMN_COUNT]
     {
         [0, 1]
     }

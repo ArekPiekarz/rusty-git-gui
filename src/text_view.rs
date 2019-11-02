@@ -64,7 +64,7 @@ impl TextView
     {
         self.buffer.insert_markup(
             &mut self.buffer.get_end_iter(),
-            &format!("<span color='{}'>{}</span>", *color, glib::markup_escape_text(text)));
+            &format!("<span color='{}'>{}</span>", color, glib::markup_escape_text(text)));
     }
 
     pub fn clear(&self)
@@ -91,7 +91,7 @@ impl TextView
 
     fn connectSelfToBuffer(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().buffer.connect_changed(move |_buffer| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow().onBufferChanged();

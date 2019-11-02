@@ -23,7 +23,7 @@ pub fn setupTest() -> TempDir
 
 pub fn makeGui(repositoryDir: &Path) -> Gui
 {
-    let gui = Gui::new(Rc::new(RefCell::new(Repository::new(&repositoryDir))));
+    let gui = Gui::new(&Rc::new(RefCell::new(Repository::new(&repositoryDir))));
     show(&gui);
     gui
 }

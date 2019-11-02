@@ -1,3 +1,5 @@
+#![allow(clippy::panic)]
+
 use gtk::Cast as _;
 use gtk::ContainerExt as _;
 use gtk::DialogExt as _;
@@ -6,7 +8,7 @@ use gtk::MessageDialogExt as _;
 
 const NO_WINDOW_PARENT: Option<&gtk::Window> = None;
 
-
+#[allow(clippy::print_stdout)]
 pub fn printFail(fail: &dyn failure::Fail)
 {
     println!("{}", formatFail(fail));
@@ -26,7 +28,7 @@ pub fn formatFail(fail: &dyn failure::Fail) -> String
 
 pub fn exit(errorMessage: &str) -> !
 {
-    let dialog = makeDialog(&errorMessage);
+    let dialog = makeDialog(errorMessage);
     dialog.run();
     panic!("{}", errorMessage);
 }
