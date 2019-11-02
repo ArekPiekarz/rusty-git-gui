@@ -1,5 +1,4 @@
 use crate::file_change::FileChange;
-use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
@@ -68,14 +67,6 @@ impl UnstagedChangesStore
     fn onRemovedFromUnstaged(&self, fileChange: &FileChange)
     {
         self.store.removeWithPath(&fileChange.path);
-    }
-}
-
-impl FileChangesStorable for UnstagedChangesStore
-{
-    fn remove(&self, iterator: &gtk::TreeIter)
-    {
-        self.store.removeWithIterator(iterator);
     }
 }
 

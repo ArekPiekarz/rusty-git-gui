@@ -63,11 +63,6 @@ impl FileChangesStore
         }
     }
 
-    pub fn removeWithIterator(&self, iterator: &gtk::TreeIter)
-    {
-        self.store.remove(iterator);
-    }
-
     pub fn removeWithPath(&self, filePath: &FilePath)
     {
         let mut fileFound = false;

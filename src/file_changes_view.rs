@@ -1,6 +1,5 @@
 use crate::file_change::FileChange;
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_changes_storable::FileChangesStorable;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_context::{attach, makeChannel};
 use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
@@ -17,17 +16,16 @@ pub type OnRowActivatedAction = Box<dyn Fn(&FileChange)>;
 
 
 pub struct FileChangesView<StoreType>
-    where StoreType: FileChangesStorable
 {
     widget: gtk::TreeView,
-    store: Rc<StoreType>,
+    _store: Rc<StoreType>,
     onRowActivatedAction: OnRowActivatedAction,
     onSelectedSenders: Vec<Sender<FileChange>>,
     onUnselectedSenders: Vec<Sender<()>>
 }
 
 impl<StoreType> FileChangesView<StoreType>
-    where StoreType: FileChangesStorable + 'static
+    where StoreType: 'static
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
@@ -37,7 +35,7 @@ impl<StoreType> FileChangesView<StoreType>
         -> Rc<RefCell<Self>>
     {
         let newSelf = Rc::new(RefCell::new(Self {
-            store,
+            _store: store,
             widget: makeView(guiElementProvider, widgetName),
             onRowActivatedAction,
             onSelectedSenders: vec![],

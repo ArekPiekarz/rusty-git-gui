@@ -1,5 +1,4 @@
 use crate::file_change::{FileChange, UpdatedFileChange};
-use crate::file_changes_storable::FileChangesStorable;
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
@@ -98,13 +97,5 @@ impl StagedChangesStore
     fn onCommitted(&self)
     {
         self.store.clear();
-    }
-}
-
-impl FileChangesStorable for StagedChangesStore
-{
-    fn remove(&self, iterator: &gtk::TreeIter)
-    {
-        self.store.removeWithIterator(iterator);
     }
 }

@@ -17,7 +17,6 @@ mod commit_message_view;
 mod diff_line_printer;
 mod diff_view;
 mod file_changes_column;
-mod file_changes_storable;
 mod file_changes_store;
 mod file_changes_view;
 mod file_path;
