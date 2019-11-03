@@ -1,4 +1,4 @@
-use crate::file_change::FileChange;
+use crate::file_change::{FileChange, UpdatedFileChange};
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
@@ -30,6 +30,7 @@ impl UnstagedChangesStore
     fn connectSelfToRepository(self: &Rc<Self>, repository: &mut Repository)
     {
         self.connectSelfToRepositoryOnAddedToUnstaged(repository);
+        self.connectSelfToRepositoryOnUpdatedInUnstaged(repository);
         self.connectSelfToRepositoryOnRemovedFromUnstaged(repository);
     }
 
@@ -39,6 +40,17 @@ impl UnstagedChangesStore
         repository.connectOnAddedToUnstaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.onAddedToUnstaged(&fileChange);
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToRepositoryOnUpdatedInUnstaged(self: &Rc<Self>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(self);
+        repository.connectOnUpdatedInUnstaged(Box::new(move |updatedFileChange| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.onUpdatedInUnstaged(&updatedFileChange);
             }
             glib::Continue(true)
         }));
@@ -58,6 +70,11 @@ impl UnstagedChangesStore
     fn onAddedToUnstaged(&self, fileChange: &FileChange)
     {
         self.store.append(fileChange);
+    }
+
+    fn onUpdatedInUnstaged(&self, updatedFileChange: &UpdatedFileChange)
+    {
+        self.store.update(updatedFileChange);
     }
 
     fn onRemovedFromUnstaged(&self, fileChange: &FileChange)

@@ -18,7 +18,7 @@ use std::path::PathBuf;
 
 
 #[test]
-fn unstageChangeGivenOtherUnstagedChangeOfSameModifiedFile()
+fn unstageModifiedChangeGivenUnstagedModifiedChangeOfSameFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();

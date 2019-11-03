@@ -217,6 +217,13 @@ impl Repository
         attach(receiver, handler);
     }
 
+    pub fn connectOnUpdatedInUnstaged(&mut self, handler: Box<dyn Fn(UpdatedFileChange) -> glib::Continue>)
+    {
+        let (sender, receiver) = makeChannel();
+        self.senders.onUpdatedInUnstaged.push(sender);
+        attach(receiver, handler);
+    }
+
     pub fn connectOnRemovedFromUnstaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
