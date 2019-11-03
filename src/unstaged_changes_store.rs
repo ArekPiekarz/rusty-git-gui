@@ -57,20 +57,11 @@ impl UnstagedChangesStore
 
     fn onAddedToUnstaged(&self, fileChange: &FileChange)
     {
-        if self.store.containsFilePath(&fileChange.path) {
-            return; }
-
-        let newStatus = convertToUnstaged(&fileChange.status);
-        self.store.append(&FileChange{status: newStatus, path: fileChange.path.clone()});
+        self.store.append(fileChange);
     }
 
     fn onRemovedFromUnstaged(&self, fileChange: &FileChange)
     {
         self.store.removeWithPath(&fileChange.path);
     }
-}
-
-fn convertToUnstaged(fileChangeStatus: &str) -> String
-{
-    fileChangeStatus.replace("INDEX", "WT")
 }

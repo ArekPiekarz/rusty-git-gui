@@ -39,6 +39,7 @@ struct Senders
     onUpdatedInStaged: Vec<Sender<UpdatedFileChange>>,
     onRemovedFromStaged: Vec<Sender<FileChange>>,
     onAddedToUnstaged: Vec<Sender<FileChange>>,
+    onUpdatedInUnstaged: Vec<Sender<UpdatedFileChange>>,
     onRemovedFromUnstaged: Vec<Sender<FileChange>>,
     onCommitted: Vec<Sender<()>>
 }
@@ -56,6 +57,7 @@ impl Repository
                 onUpdatedInStaged: vec![],
                 onRemovedFromStaged: vec![],
                 onAddedToUnstaged: vec![],
+                onUpdatedInUnstaged: vec![],
                 onRemovedFromUnstaged: vec![],
                 onCommitted: vec![]
             },
@@ -129,7 +131,7 @@ impl Repository
         let oldStagedFileChange = self.fileChanges.staged.iter().find(
             |stagedFileChange| stagedFileChange.path == fileChange.path).cloned();
         self.collectCurrentFileChanges();
-        let newStagedFileChange = self.fileChanges.staged.0.iter().find(
+        let newStagedFileChange = self.fileChanges.staged.iter().find(
             |stagedFileChange| stagedFileChange.path == fileChange.path);
 
         match oldStagedFileChange {
@@ -149,9 +151,18 @@ impl Repository
                 .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
         }
 
-        self.collectCurrentFileChanges();
         self.notifyOnRemovedFromStaged(fileChange);
-        self.notifyOnAddedToUnstaged(fileChange);
+        let oldUnstagedFileChange = self.fileChanges.unstaged.iter().find(
+            |unstagedFileChange| unstagedFileChange.path == fileChange.path).cloned();
+        self.collectCurrentFileChanges();
+        let newUnstagedFileChange = self.fileChanges.unstaged.iter().find(
+            |unstagedFileChange| unstagedFileChange.path == fileChange.path);
+
+        match oldUnstagedFileChange {
+            Some(oldUnstagedFileChange) => self.finishUnstagingWhenFileWasAlreadyUnstaged(
+                &oldUnstagedFileChange, newUnstagedFileChange),
+            None => self.finishUnstagingWhenFileWasNotYetUnstaged(newUnstagedFileChange)
+        }
     }
 
     pub fn commit(&mut self, message: &str)
@@ -311,6 +322,26 @@ impl Repository
         }
     }
 
+    fn finishUnstagingWhenFileWasAlreadyUnstaged(&self, oldFileChange: &FileChange, newFileChange: Option<&FileChange>)
+    {
+        match newFileChange {
+            Some(newFileChange) => {
+                if oldFileChange.status != newFileChange.status {
+                    self.notifyOnUpdatedInUnstaged(
+                        &UpdatedFileChange{old: oldFileChange.clone(), new: (*newFileChange).clone()})
+                }
+            }
+            None => self.notifyOnRemovedFromUnstaged(oldFileChange)
+        }
+    }
+
+    fn finishUnstagingWhenFileWasNotYetUnstaged(&self, fileChange: Option<&FileChange>)
+    {
+        if let Some(fileChange) = fileChange {
+            self.notifyOnAddedToUnstaged(fileChange)
+        }
+    }
+
     fn notifyOnAddedToStaged(&self, fileChange: &FileChange)
     {
         for sender in &self.senders.onAddedToStaged {
@@ -321,6 +352,13 @@ impl Repository
     fn notifyOnUpdatedInStaged(&self, updatedFileChange: &UpdatedFileChange)
     {
         for sender in &self.senders.onUpdatedInStaged {
+            sender.send(updatedFileChange.clone()).unwrap();
+        }
+    }
+
+    fn notifyOnUpdatedInUnstaged(&self, updatedFileChange: &UpdatedFileChange)
+    {
+        for sender in &self.senders.onUpdatedInUnstaged {
             sender.send(updatedFileChange.clone()).unwrap();
         }
     }

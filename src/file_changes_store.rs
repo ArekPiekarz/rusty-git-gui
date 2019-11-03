@@ -25,18 +25,6 @@ impl FileChangesStore
         newSelf
     }
 
-    pub fn containsFilePath(&self, filePath: &str) -> bool
-    {
-        let mut filePathFound = false;
-        self.store.foreach(|model, row, iter| {
-            let actualFilePath = getPath(model, row, iter);
-            if actualFilePath != filePath {
-                return CONTINUE_ITERATING_MODEL; }
-            filePathFound = true;
-            STOP_ITERATING_MODEL });
-        filePathFound
-    }
-
     pub fn append(&self, fileChange: &FileChange)
     {
         self.store.set(
