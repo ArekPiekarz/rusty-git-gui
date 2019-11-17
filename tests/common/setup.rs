@@ -108,3 +108,8 @@ pub fn removeFile(filePath: &Path, repositoryDir: &Path)
 {
     std::fs::remove_file(repositoryDir.join(filePath)).unwrap();
 }
+
+pub fn renameFile(oldFilePath: &Path, newFilePath: &Path, repositoryDir: &Path)
+{
+    std::fs::rename(repositoryDir.join(oldFilePath), repositoryDir.join(newFilePath)).unwrap();
+}

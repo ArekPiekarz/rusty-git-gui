@@ -116,7 +116,12 @@ impl DiffView
 
     fn onUnstagedChangeSelected(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeSelected(fileChange, Self::makeDiffForUnstagedChange, DisplayedFileChange::Unstaged);
+        match fileChange.status.as_str() {
+            "WT_RENAMED" => self.onFileChangeSelected(
+                fileChange, Self::makeDiffForUnstagedRenamedFile, DisplayedFileChange::Unstaged),
+            _ => self.onFileChangeSelected(
+                fileChange, Self::makeDiffForUnstagedChange, DisplayedFileChange::Unstaged)
+        }
     }
 
     fn onStagedChangeSelected(&mut self, fileChange: &FileChange)
@@ -127,13 +132,13 @@ impl DiffView
     fn onFileChangeSelected(
         &mut self,
         fileChange: &FileChange,
-        diffMaker: for <'a> fn(&str, &'a Repository) -> git2::Diff<'a>,
+        diffMaker: for <'a> fn(&FileChange, &'a Repository) -> git2::Diff<'a>,
         newDisplayState: DisplayedFileChange)
     {
         let widget = self.widget.borrow();
         let diffLinePrinter = DiffLinePrinter::new(&widget);
         let repository = self.repository.borrow();
-        let diff = (diffMaker)(&fileChange.path, &repository);
+        let diff = (diffMaker)(&fileChange, &repository);
         diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffLinePrinter.printDiff(&line))
             .unwrap_or_else(|e| exit(&format!("Failed to print diff: {}", e)));
         self.displayState = newDisplayState;
@@ -155,13 +160,18 @@ impl DiffView
         }
     }
 
-    fn makeDiffForUnstagedChange<'a>(path: &str, repository: &'a Repository) -> git2::Diff<'a>
+    fn makeDiffForUnstagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
     {
-        repository.makeDiffOfIndexToWorkdir(path)
+        repository.makeDiffOfIndexToWorkdir(&fileChange.path)
     }
 
-    fn makeDiffForStagedChange<'a>(path: &str, repository: &'a Repository) -> git2::Diff<'a>
+    fn makeDiffForStagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
     {
-        repository.makeDiffOfTreeToIndex(path)
+        repository.makeDiffOfTreeToIndex(&fileChange.path)
+    }
+
+    fn makeDiffForUnstagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+    {
+        repository.makeDiffOfIndexToWorkdirForRenamedFile(&fileChange.oldPath.as_ref().unwrap(), &fileChange.path)
     }
 }

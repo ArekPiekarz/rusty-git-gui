@@ -2,11 +2,12 @@
 pub struct FileChange
 {
     pub status: String,
-    pub path: String
+    pub path: String,
+    pub oldPath: Option<String>
 }
 
 #[derive(Clone)]
-pub struct UpdatedFileChange
+pub struct FileChangeUpdate
 {
     pub old: FileChange,
     pub new: FileChange

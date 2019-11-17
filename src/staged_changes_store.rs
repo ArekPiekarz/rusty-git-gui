@@ -1,10 +1,11 @@
-use crate::file_change::{FileChange, UpdatedFileChange};
+use crate::file_change::{FileChange, FileChangeUpdate};
+use crate::file_changes_getter::FileChangesGetter;
 use crate::file_changes_store::FileChangesStore;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 
+use std::cell::RefCell;
 use std::rc::Rc;
-
 
 pub struct StagedChangesStore
 {
@@ -13,89 +14,96 @@ pub struct StagedChangesStore
 
 impl StagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository)
-        -> Rc<Self>
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository) -> Rc<RefCell<Self>>
     {
-        let newSelf = Rc::new(Self{store: FileChangesStore::new(
+        let newSelf = Rc::new(RefCell::new(Self{store: FileChangesStore::new(
             guiElementProvider,
             "Staged changes store",
-            repository.getStagedChanges())});
-        newSelf.connectSelfToRepository(repository);
+            repository.getStagedChanges())}));
+        Self::connectSelfToRepository(&newSelf, repository);
         newSelf
     }
 
 
     // private
 
-    fn connectSelfToRepository(self: &Rc<Self>, repository: &mut Repository)
+    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        self.connectSelfToRepositoryOnAddedToStaged(repository);
-        self.connectSelfToRepositoryOnUpdatedInStaged(repository);
-        self.connectSelfToRepositoryOnRemovedFromStaged(repository);
-        self.connectSelfToRepositoryOnCommitted(repository);
+        Self::connectSelfToRepositoryOnAddedToStaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnUpdatedInStaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnCommitted(rcSelf, repository);
     }
 
-    fn connectSelfToRepositoryOnAddedToStaged(self: &Rc<Self>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnAddedToStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(self);
+        let weakSelf = Rc::downgrade(rcSelf);
         repository.connectOnAddedToStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onAddedToStaged(&fileChange);
+                rcSelf.borrow_mut().onAddedToStaged(&fileChange);
             }
             glib::Continue(true)
         }));
     }
 
-    fn connectSelfToRepositoryOnUpdatedInStaged(self: &Rc<Self>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnUpdatedInStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(self);
+        let weakSelf = Rc::downgrade(rcSelf);
         repository.connectOnUpdatedInStaged(Box::new(move |updatedFileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onUpdatedInStaged(&updatedFileChange);
+                rcSelf.borrow_mut().onUpdatedInStaged(&updatedFileChange);
             }
             glib::Continue(true)
         }));
     }
 
-    fn connectSelfToRepositoryOnRemovedFromStaged(self: &Rc<Self>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnRemovedFromStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(self);
+        let weakSelf = Rc::downgrade(rcSelf);
         repository.connectOnRemovedFromStaged(Box::new(move |fileChange| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onRemovedFromStaged(&fileChange);
+                rcSelf.borrow_mut().onRemovedFromStaged(&fileChange);
             }
             glib::Continue(true)
         }));
     }
 
-    fn connectSelfToRepositoryOnCommitted(self: &Rc<Self>, repository: &mut Repository)
+    fn connectSelfToRepositoryOnCommitted(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
-        let weakSelf = Rc::downgrade(self);
+        let weakSelf = Rc::downgrade(rcSelf);
         repository.connectOnCommitted(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.onCommitted();
+                rcSelf.borrow_mut().onCommitted();
             }
             glib::Continue(true)
         }));
     }
 
-    fn onAddedToStaged(&self, fileChange: &FileChange)
+    fn onAddedToStaged(&mut self, fileChange: &FileChange)
     {
         self.store.append(fileChange);
     }
 
-    fn onUpdatedInStaged(&self, updatedFileChange: &UpdatedFileChange)
+    fn onUpdatedInStaged(&mut self, updatedFileChange: &FileChangeUpdate)
     {
         self.store.update(updatedFileChange);
     }
 
-    fn onRemovedFromStaged(&self, fileChange: &FileChange)
+    fn onRemovedFromStaged(&mut self, fileChange: &FileChange)
     {
-        self.store.removeWithPath(&fileChange.path);
+        self.store.remove(&fileChange.path);
     }
 
-    fn onCommitted(&self)
+    fn onCommitted(&mut self)
     {
         self.store.clear();
+    }
+}
+
+impl FileChangesGetter for StagedChangesStore
+{
+    fn getFileChange(&self, row: &gtk::TreePath) -> &FileChange
+    {
+        self.store.getFileChange(row)
     }
 }

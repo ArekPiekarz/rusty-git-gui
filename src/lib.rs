@@ -14,7 +14,7 @@
 
 pub mod app_setup;
 pub mod error_handling;
-pub mod file_change;
+pub mod file_changes_view_entry;
 pub mod gui;
 pub mod repository;
 
@@ -24,8 +24,11 @@ mod commit_button;
 mod commit_message_view;
 mod diff_line_printer;
 mod diff_view;
+mod file_change;
 mod file_changes_column;
+mod file_changes_getter;
 mod file_changes_store;
+mod file_changes_store_entry;
 mod file_changes_view;
 mod file_path;
 mod grouped_file_changes;
@@ -36,7 +39,8 @@ mod staged_changes_store;
 mod staged_changes_view;
 mod text_view;
 mod tree_model_constants;
-mod tree_view_column_setup;
+mod tree_selection;
+mod tree_view;
 mod unstaged_changes;
 mod unstaged_changes_store;
 mod unstaged_changes_view;

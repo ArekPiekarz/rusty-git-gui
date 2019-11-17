@@ -1,4 +1,4 @@
-use rusty_git_gui::file_change::FileChange;
+use rusty_git_gui::file_changes_view_entry::FileChangesViewEntry;
 use rusty_git_gui::gui::Gui;
 
 
@@ -50,13 +50,13 @@ pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
     assert_eq!("", gui.commitButton.borrow().getTooltip());
 }
 
-pub fn assertUnstagedChangesViewContains(changes: &[FileChange], gui: &Gui)
+pub fn assertUnstagedChangesViewContains(changes: &[FileChangesViewEntry], gui: &Gui)
 {
     assert_eq!(changes, &gui.unstagedChangesView.borrow().getData()[..],
                "\nExpected unstaged changes view content differs from actual.");
 }
 
-pub fn assertStagedChangesViewContains(changes: &[FileChange], gui: &Gui)
+pub fn assertStagedChangesViewContains(changes: &[FileChangesViewEntry], gui: &Gui)
 {
     assert_eq!(changes, &gui.stagedChangesView.borrow().getData()[..],
                "\nExpected staged changes view content differs from actual.");

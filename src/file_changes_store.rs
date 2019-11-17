@@ -1,95 +1,103 @@
-use crate::error_handling::exit;
-use crate::file_change::{FileChange, UpdatedFileChange};
+use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_path::{FilePathStr, FilePathString};
+use crate::file_changes_getter::FileChangesGetter;
+use crate::file_changes_store_entry::FileChangesStoreEntry;
+use crate::file_path::FilePathStr;
 use crate::gui_element_provider::GuiElementProvider;
-use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 
 use gtk::GtkListStoreExt as _;
 use gtk::GtkListStoreExtManual as _;
 use gtk::TreeModelExt as _;
 use itertools::Itertools;
 
+const NO_PARENT: Option<&gtk::TreeIter> = None;
+
 
 pub struct FileChangesStore
 {
-    store: gtk::ListStore
+    store: gtk::ListStore,
+    fileChanges: Vec<FileChange>
 }
 
 impl FileChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, changes: &[FileChange]) -> Self
+    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, fileChanges: &[FileChange]) -> Self
     {
-        let newSelf = Self{store: guiElementProvider.get::<gtk::ListStore>(name)};
-        newSelf.fillFileChangesStore(changes);
+        let newSelf = Self {
+            store: guiElementProvider.get::<gtk::ListStore>(name),
+            fileChanges: fileChanges.into()
+        };
+        newSelf.fillFileChangesStore();
         newSelf
     }
 
-    pub fn append(&self, fileChange: &FileChange)
+    pub fn append(&mut self, fileChange: &FileChange)
     {
+        self.fileChanges.push(fileChange.clone());
         self.store.set(
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
             &[&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue]);
     }
 
-    pub fn update(&self, updatedFileChange: &UpdatedFileChange)
+    pub fn update(&mut self, fileChangeUpdate: &FileChangeUpdate)
     {
-        let mut fileFound = false;
-        self.store.foreach(|model, row, iter| {
-            if updatedFileChange.old.path != getPath(model, row, iter) {
-                return CONTINUE_ITERATING_MODEL;
-            }
-            self.store.set_value(
-                iter, FileChangesColumn::Status as u32, &gtk::Value::from(&updatedFileChange.new.status));
-            fileFound = true;
-            STOP_ITERATING_MODEL
-        });
+        let indexAndFileChange =
+            self.fileChanges.iter_mut().enumerate().find(|(_index, fileChange)| fileChange.path == fileChangeUpdate.old.path);
+        let (index, currentFileChange) = indexAndFileChange.unwrap();
+        currentFileChange.status = fileChangeUpdate.new.status.clone();
 
-        if !fileFound {
-            exit(&format!("Failed to find file path for updating in store: {}", updatedFileChange.old.path));
-        }
+        self.store.set_value(
+            &self.store.iter_nth_child(NO_PARENT, index as i32).unwrap(),
+            FileChangesColumn::Status as u32,
+            &gtk::Value::from(&fileChangeUpdate.new.status));
     }
 
-    pub fn removeWithPath(&self, filePath: &FilePathStr)
+    pub fn remove(&mut self, filePath: &FilePathStr)
     {
-        let mut fileFound = false;
-        self.store.foreach(|model, row, iter| {
-            let currentFilePath = getPath(model, row, iter);
-            if currentFilePath != filePath {
-                return CONTINUE_ITERATING_MODEL;
-            }
-            self.store.remove(iter);
-            fileFound = true;
-            STOP_ITERATING_MODEL
-        });
-
-        if !fileFound {
-            exit(&format!("Failed to find file path for removal from store: {}", filePath));
-        }
+        let index = self.fileChanges.iter().position(|fileChange| fileChange.path == filePath).unwrap();
+        self.fileChanges.remove(index);
+        self.store.remove(&self.store.iter_nth_child(NO_PARENT, index as i32).unwrap());
     }
 
-    pub fn clear(&self)
+    pub fn clear(&mut self)
     {
+        self.fileChanges.clear();
         self.store.clear()
     }
 
 
     // private
 
-    fn fillFileChangesStore(&self, fileChanges: &[FileChange])
+    fn fillFileChangesStore(&self)
     {
-        let fileChangesForStore = fileChanges.iter().map(
+        let fileChangesStoreEntries = self.fileChanges.iter().map(|fileChange| FileChangesStoreEntry {
+            status: fileChange.status.clone(),
+            path: Self::formatFilePath(fileChange)})
+            .collect_vec();
+
+        let internalStoreEntries = fileChangesStoreEntries.iter().map(
             |fileChange| [&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue])
             .collect_vec();
 
-        for fileChange in fileChangesForStore {
-            self.store.set(&self.store.append(), &FileChangesColumn::asArrayOfU32(), &fileChange); };
+        for fileChange in internalStoreEntries {
+            self.store.set(&self.store.append(), &FileChangesColumn::asArrayOfU32(), &fileChange);
+        };
+    }
+
+    fn formatFilePath(fileChange: &FileChange) -> String
+    {
+        match fileChange.status.as_str() {
+            "WT_RENAMED" => format!("{} -> {}", fileChange.oldPath.as_ref().unwrap(), fileChange.path),
+            _ => fileChange.path.clone()
+        }
     }
 }
 
-fn getPath(model: &gtk::TreeModel, row: &gtk::TreePath, iter: &gtk::TreeIter) -> FilePathString
+impl FileChangesGetter for FileChangesStore
 {
-    model.get_value(iter, FileChangesColumn::Path as i32).get::<String>()
-        .unwrap_or_else(|| exit(&format!("Failed to convert value in model to String in row {}", row)))
+    fn getFileChange(&self, row: &gtk::TreePath) -> &FileChange
+    {
+        self.fileChanges.get(*row.get_indices().get(0).unwrap() as usize).unwrap()
+    }
 }

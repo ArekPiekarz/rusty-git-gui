@@ -1,5 +1,5 @@
 use crate::error_handling::exit;
-use crate::file_change::{FileChange, UpdatedFileChange};
+use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::grouped_file_changes::GroupedFileChanges;
 use crate::main_context::{attach, makeChannel};
 use crate::staged_changes::StagedChanges;
@@ -36,10 +36,10 @@ pub struct Repository
 struct Senders
 {
     onAddedToStaged: Vec<Sender<FileChange>>,
-    onUpdatedInStaged: Vec<Sender<UpdatedFileChange>>,
+    onUpdatedInStaged: Vec<Sender<FileChangeUpdate>>,
     onRemovedFromStaged: Vec<Sender<FileChange>>,
     onAddedToUnstaged: Vec<Sender<FileChange>>,
-    onUpdatedInUnstaged: Vec<Sender<UpdatedFileChange>>,
+    onUpdatedInUnstaged: Vec<Sender<FileChangeUpdate>>,
     onRemovedFromUnstaged: Vec<Sender<FileChange>>,
     onCommitted: Vec<Sender<()>>
 }
@@ -120,19 +120,34 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
     }
 
+    #[must_use]
+    pub fn makeDiffOfIndexToWorkdirForRenamedFile(&self, oldPath: &str, newPath: &str) -> git2::Diff
+    {
+        let mut diffOptions = makeDiffOptions(oldPath);
+        diffOptions.pathspec(newPath);
+        let mut diff = self.gitRepo.diff_index_to_workdir(NO_INDEX, Some(&mut diffOptions))
+            .unwrap_or_else(|e| exit(
+                &format!("Failed to get index-to-workdir diff for path {}: {}", oldPath, e)));
+        let mut diffFindOptions = git2::DiffFindOptions::new();
+        diffFindOptions.for_untracked(true);
+        diff.find_similar(Some(&mut diffFindOptions)).unwrap();
+        diff
+    }
+
     pub fn stageFileChange(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
             "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
             _ => self.addPathToIndex(&fileChange.path)
         }
-        self.notifyOnRemovedFromUnstaged(fileChange);
 
         let oldStagedFileChange = self.fileChanges.staged.iter().find(
             |stagedFileChange| stagedFileChange.path == fileChange.path).cloned();
         self.collectCurrentFileChanges();
         let newStagedFileChange = self.fileChanges.staged.iter().find(
             |stagedFileChange| stagedFileChange.path == fileChange.path);
+
+        self.notifyOnRemovedFromUnstaged(fileChange);
 
         match oldStagedFileChange {
             Some(oldStagedFileChange) => self.finishStagingWhenFileWasAlreadyStaged(
@@ -196,7 +211,7 @@ impl Repository
         attach(receiver, handler);
     }
 
-    pub fn connectOnUpdatedInStaged(&mut self, handler: Box<dyn Fn(UpdatedFileChange) -> glib::Continue>)
+    pub fn connectOnUpdatedInStaged(&mut self, handler: Box<dyn Fn(FileChangeUpdate) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
         self.senders.onUpdatedInStaged.push(sender);
@@ -217,7 +232,7 @@ impl Repository
         attach(receiver, handler);
     }
 
-    pub fn connectOnUpdatedInUnstaged(&mut self, handler: Box<dyn Fn(UpdatedFileChange) -> glib::Continue>)
+    pub fn connectOnUpdatedInUnstaged(&mut self, handler: Box<dyn Fn(FileChangeUpdate) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
         self.senders.onUpdatedInUnstaged.push(sender);
@@ -315,7 +330,7 @@ impl Repository
             Some(newFileChange) => {
                 if oldFileChange.status != newFileChange.status {
                     self.notifyOnUpdatedInStaged(
-                        &UpdatedFileChange{old: oldFileChange.clone(), new: (*newFileChange).clone()})
+                        &FileChangeUpdate {old: oldFileChange.clone(), new: (*newFileChange).clone()})
                 }
             }
             None => self.notifyOnRemovedFromStaged(oldFileChange)
@@ -335,7 +350,7 @@ impl Repository
             Some(newFileChange) => {
                 if oldFileChange.status != newFileChange.status {
                     self.notifyOnUpdatedInUnstaged(
-                        &UpdatedFileChange{old: oldFileChange.clone(), new: (*newFileChange).clone()})
+                        &FileChangeUpdate {old: oldFileChange.clone(), new: (*newFileChange).clone()})
                 }
             }
             None => self.notifyOnRemovedFromUnstaged(oldFileChange)
@@ -356,14 +371,14 @@ impl Repository
         }
     }
 
-    fn notifyOnUpdatedInStaged(&self, updatedFileChange: &UpdatedFileChange)
+    fn notifyOnUpdatedInStaged(&self, updatedFileChange: &FileChangeUpdate)
     {
         for sender in &self.senders.onUpdatedInStaged {
             sender.send(updatedFileChange.clone()).unwrap();
         }
     }
 
-    fn notifyOnUpdatedInUnstaged(&self, updatedFileChange: &UpdatedFileChange)
+    fn notifyOnUpdatedInUnstaged(&self, updatedFileChange: &FileChangeUpdate)
     {
         for sender in &self.senders.onUpdatedInUnstaged {
             sender.send(updatedFileChange.clone()).unwrap();
@@ -408,7 +423,11 @@ fn openRepository(repositoryDir: &Path) -> git2::Repository
 fn makeStatusOptions() -> git2::StatusOptions
 {
     let mut options = git2::StatusOptions::new();
-    options.include_ignored(false).include_untracked(true).recurse_untracked_dirs(true);
+    options
+        .include_ignored(false)
+        .include_untracked(true)
+        .recurse_untracked_dirs(true)
+        .renames_index_to_workdir(true);
     options
 }
 
@@ -427,10 +446,13 @@ fn maybeAddToFileChanges(
     fileChanges: &mut Vec<FileChange>,
     statusTypes: &[git2::Status]) -> bool
 {
-    let statusFlag = fileStatusEntry.status();
+    let statusFlags = fileStatusEntry.status();
     for statusType in statusTypes {
-        if statusFlag.intersects(*statusType) {
-            fileChanges.push(makeFileChange(fileStatusEntry, *statusType));
+        if statusFlags.intersects(*statusType) {
+            match *statusType {
+                git2::Status::WT_RENAMED => fileChanges.push(makeRenamedFileChange(fileStatusEntry, *statusType)),
+                _ => fileChanges.push(makeFileChange(fileStatusEntry, *statusType))
+            }
             return STATUS_FOUND;
         }
     }
@@ -439,7 +461,17 @@ fn maybeAddToFileChanges(
 
 fn makeFileChange(statusEntry: &git2::StatusEntry, status: git2::Status) -> FileChange
 {
-    FileChange { path: getFilePath(statusEntry), status: format!("{:?}", status) }
+    FileChange{status: format!("{:?}", status), path: getFilePath(statusEntry), oldPath: None}
+}
+
+fn makeRenamedFileChange(statusEntry: &git2::StatusEntry, status: git2::Status) -> FileChange
+{
+    let fileChange = makeFileChange(statusEntry, status);
+    FileChange{
+        status: fileChange.status,
+        path: statusEntry.index_to_workdir().unwrap().new_file().path().unwrap().to_str().unwrap().into(),
+        oldPath: Some(fileChange.path)
+    }
 }
 
 fn getFilePath(statusEntry: &git2::StatusEntry) -> String
