@@ -8,11 +8,11 @@ edition = "2018"
 color-backtrace = { version = "0.3.0", features = ["failure-bt"] }
 failchain = "0.1015.2"
 failure = "0.1.6"
-git2 = "0.10.2"
+git2 = { version = "0.10.2", default-features = false }
 glib = "0.8.2"
-gtk = { version = "0.7.0", features = ["v3_24"] }
-itertools = "0.8.1"
-shrinkwraprs = "0.2.3"
+gtk = { version = "0.7.0", features = ["v3_16"] }
+itertools = { version = "0.8.1", default-features = false }
+shrinkwraprs = { version = "0.2.3", default-features = false }
 strum = "0.16.0"
 strum_macros = "0.16.0"
 
