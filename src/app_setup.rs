@@ -29,6 +29,7 @@ use ErrorKind::*;
 
 pub fn setupPanicHandler()
 {
+    #[cfg(feature = "use_color_backtrace")]
     color_backtrace::install();
 }
 

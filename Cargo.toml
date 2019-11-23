@@ -5,7 +5,7 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-color-backtrace = { version = "0.3.0", features = ["failure-bt"] }
+color-backtrace = { version = "0.3.0", optional = true, features = ["failure-bt"] }
 failchain = "0.1015.2"
 failure = "0.1.6"
 git2 = { version = "0.10.2", default-features = false }
@@ -21,3 +21,6 @@ mocktopus = "0.7.5"
 more-asserts = "0.2.1"
 pretty_assertions = "0.6.1"
 tempfile = "3.1.0"
+
+[features]
+use_color_backtrace = ["color-backtrace"]
