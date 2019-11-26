@@ -29,14 +29,14 @@
       <placeholder/>
     </child>
     <child>
-      <object class="GtkPaned">
+      <object class="GtkPaned" id="Main paned">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="position">200</property>
         <property name="position_set">True</property>
         <property name="wide_handle">True</property>
         <child>
-          <object class="GtkPaned">
+          <object class="GtkPaned" id="File changes paned">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="orientation">vertical</property>
@@ -160,7 +160,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkPaned">
+          <object class="GtkPaned" id="Diff and commit paned">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="orientation">vertical</property>

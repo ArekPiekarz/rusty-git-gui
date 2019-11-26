@@ -12,6 +12,7 @@ git2 = { version = "0.10.2", default-features = false }
 glib = "0.8.2"
 gtk = { version = "0.7.0", features = ["v3_16"] }
 itertools = { version = "0.8.2", default-features = false }
+rust-ini = "0.13.0"
 shrinkwraprs = { version = "0.2.3", default-features = false }
 strum = "0.16.0"
 strum_macros = "0.16.0"

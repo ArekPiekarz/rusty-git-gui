@@ -431,14 +431,14 @@ fn makeStatusOptions() -> git2::StatusOptions
     options
 }
 
-fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, mut unstaged: &mut UnstagedChanges) -> bool
+fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, unstaged: &mut UnstagedChanges) -> bool
 {
-    maybeAddToFileChanges(fileStatusEntry, &mut unstaged, &UNSTAGED_STATUSES)
+    maybeAddToFileChanges(fileStatusEntry, unstaged, &UNSTAGED_STATUSES)
 }
 
-fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, mut staged: &mut StagedChanges) -> bool
+fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, staged: &mut StagedChanges) -> bool
 {
-    maybeAddToFileChanges(fileStatusEntry, &mut staged, &STAGED_STATUSES)
+    maybeAddToFileChanges(fileStatusEntry, staged, &STAGED_STATUSES)
 }
 
 fn maybeAddToFileChanges(

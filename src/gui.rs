@@ -1,12 +1,16 @@
 use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
 use crate::commit_message_view::CommitMessageView;
+use crate::diff_and_commit_paned::setupDiffAndCommitPaned;
 use crate::diff_view::DiffView;
 use crate::file_change::FileChange;
 use crate::file_changes_getter::FileChangesGetter;
+use crate::file_changes_paned::setupFileChangesPaned;
 use crate::file_changes_view::FileChangesView;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::main_paned::setupMainPaned;
 use crate::repository::Repository;
+use crate::settings::Settings;
 use crate::staged_changes_view::{makeStagedChangesView, StagedChangesView};
 use crate::unstaged_changes_view::{makeUnstagedChangesView, UnstagedChangesView};
 
@@ -45,13 +49,16 @@ impl Gui
         let commitButton = CommitButton::new(
             &guiElementProvider, Rc::clone(&commitMessageView), Rc::clone(repository));
 
+        let mut settings = Settings::new();
+        setupPanes(&guiElementProvider, &mut settings);
+
         Self{
             unstagedChangesView: Rc::clone(&unstagedChangesView),
             stagedChangesView: Rc::clone(&stagedChangesView),
             diffView,
             commitMessageView,
             commitButton,
-            applicationWindow: ApplicationWindow::new(&guiElementProvider)
+            applicationWindow: ApplicationWindow::new(&guiElementProvider, settings),
         }
     }
 
@@ -72,4 +79,11 @@ fn makeOnOtherViewSelectedReaction<StoreType>(stagedChangesView: &Rc<RefCell<Fil
         }
         glib::Continue(true)
     })
+}
+
+fn setupPanes(guiElementProvider: &GuiElementProvider, settings: &mut Settings)
+{
+    setupMainPaned(guiElementProvider, settings);
+    setupFileChangesPaned(guiElementProvider, settings);
+    setupDiffAndCommitPaned(guiElementProvider, settings);
 }

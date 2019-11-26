@@ -1,4 +1,5 @@
 use crate::gui_element_provider::GuiElementProvider;
+use crate::settings::Settings;
 
 use gtk::WidgetExt as _;
 
@@ -12,22 +13,26 @@ pub struct ApplicationWindow
 
 impl ApplicationWindow
 {
-    pub fn new(guiElementProvider: &GuiElementProvider) -> Self
+    pub fn new(guiElementProvider: &GuiElementProvider, settings: Settings) -> Self
     {
-        let window = guiElementProvider.get::<gtk::ApplicationWindow>("Main window");
-        quitOnDelete(&window);
-        Self{window}
+        let newSelf = Self{window: guiElementProvider.get::<gtk::ApplicationWindow>("Main window")};
+        newSelf.connectToWindowDeletion(settings);
+        newSelf
     }
 
     pub fn show(&self)
     {
         self.window.show_all();
     }
-}
 
-fn quitOnDelete(appWindow: &gtk::ApplicationWindow)
-{
-    appWindow.connect_delete_event(|_window, _event| {
-        gtk::main_quit();
-        PROPAGATE_SIGNAL_TO_DEFAULT_HANDLER });
+
+    // private
+
+    fn connectToWindowDeletion(&self, settings: Settings)
+    {
+        self.window.connect_delete_event(move |_window, _event| {
+            settings.save();
+            gtk::main_quit();
+            PROPAGATE_SIGNAL_TO_DEFAULT_HANDLER });
+    }
 }
