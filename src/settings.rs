@@ -1,11 +1,11 @@
 use std::cell::RefCell;
-
-const CONFIG_FILE_NAME: &str = "config.ini";
+use std::path::PathBuf;
 
 
 pub struct Settings
 {
     config: RefCell<ini::Ini>,
+    configFilePath: PathBuf,
     savers: Vec<SettingsSaver>
 }
 
@@ -15,8 +15,10 @@ impl Settings
 {
     pub fn new() -> Self
     {
+        let configFilePath = dirs::config_dir().unwrap().join("rusty-git-gui/config.ini");
         Self{
-            config: RefCell::new(ini::Ini::load_from_file(CONFIG_FILE_NAME).unwrap_or_default()),
+            config: RefCell::new(ini::Ini::load_from_file(&configFilePath).unwrap_or_default()),
+            configFilePath,
             savers: vec![]
         }
     }
@@ -44,6 +46,18 @@ impl Settings
         for saver in &self.savers {
             saver(&self);
         }
-        self.config.borrow_mut().write_to_file(CONFIG_FILE_NAME).unwrap();
+        self.ensureConfigDirExists();
+        self.config.borrow_mut().write_to_file(&self.configFilePath).unwrap();
+    }
+
+
+    // private
+
+    fn ensureConfigDirExists(&self)
+    {
+        let configDir = self.configFilePath.parent().unwrap();
+        if !configDir.exists() {
+            std::fs::create_dir_all(configDir).unwrap();
+        }
     }
 }
