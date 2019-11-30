@@ -21,7 +21,7 @@ impl Paned
         defaultPosition: i32)
     {
         let widget = guiElementProvider.get::<gtk::Paned>(name);
-        widget.set_position(settings.getI32(name, POSITION_KEY, defaultPosition));
+        widget.set_position(settings.get(name, POSITION_KEY, defaultPosition));
         let newSelf = Self{widget, name};
         newSelf.setupSavingSettings(settings);
     }
@@ -40,6 +40,6 @@ impl Paned
 
     fn save(&self, settings: &Settings)
     {
-        settings.setI32(self.name, POSITION_KEY, self.widget.get_position());
+        settings.set(self.name, POSITION_KEY, self.widget.get_position());
     }
 }

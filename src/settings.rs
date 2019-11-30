@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
+use std::str::FromStr;
+use std::string::ToString;
 
 
 pub struct Settings
@@ -23,22 +25,24 @@ impl Settings
         }
     }
 
-    pub fn addSaver(&mut self, saver: SettingsSaver)
-    {
-        self.savers.push(saver);
-    }
-
-    pub fn getI32(&self, section: &str, key: &str, default: i32) -> i32
+    pub fn get<T>(&self, section: &str, key: &str, default: T) -> T
+        where T: FromStr
     {
         match self.config.borrow().get_from(Some(section), key) {
-            Some(value) => value.parse::<i32>().unwrap_or(default),
+            Some(value) => value.parse::<T>().unwrap_or(default),
             None => default
         }
     }
 
-    pub fn setI32(&self, section: &str, key: &str, value: i32)
+    pub fn set<T>(&self, section: &str, key: &str, value: T)
+        where T: ToString
     {
         self.config.borrow_mut().set_to(Some(section), key.into(), value.to_string());
+    }
+
+    pub fn addSaver(&mut self, saver: SettingsSaver)
+    {
+        self.savers.push(saver);
     }
 
     pub fn save(&self)

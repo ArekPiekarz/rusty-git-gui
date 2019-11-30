@@ -25,7 +25,7 @@ pub struct Gui
     pub diffView: Rc<RefCell<DiffView>>,
     pub commitMessageView: Rc<RefCell<CommitMessageView>>,
     pub commitButton: Rc<RefCell<CommitButton>>,
-    applicationWindow: ApplicationWindow
+    applicationWindow: Rc<ApplicationWindow>
 }
 
 impl Gui
