@@ -5,11 +5,15 @@ use crate::tree_selection::TreeSelection;
 
 use glib::Sender;
 use gtk::CellLayoutExt as _;
+use gtk::TreeModelExt as _;
 use gtk::TreeViewExt as _;
+use gtk::WidgetExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 const EXPAND_IN_LAYOUT : bool = true;
+const NO_COLUMN_FOCUS: Option<&gtk::TreeViewColumn> = None;
+const NO_EDITING: bool = false;
 
 
 pub struct TreeView
@@ -58,6 +62,15 @@ impl TreeView
     pub fn rowActivated(&self, path: &gtk::TreePath, column: &gtk::TreeViewColumn)
     {
         self.widget.row_activated(path, column);
+    }
+
+    pub fn focusFirstRow(&self)
+    {
+        let model = self.getModel();
+        let iter = model.get_iter_first().unwrap();
+        let rowPath = model.get_path(&iter).unwrap();
+        self.widget.set_cursor(&rowPath, NO_COLUMN_FOCUS, NO_EDITING);
+        self.widget.grab_focus();
     }
 
 

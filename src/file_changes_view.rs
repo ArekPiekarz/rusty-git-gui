@@ -52,6 +52,11 @@ impl<StoreType> FileChangesView<StoreType>
         self.getModel().get_iter_first().is_none()
     }
 
+    pub fn isFilled(&self) -> bool
+    {
+        !self.isEmpty()
+    }
+
     pub fn getData(&self) -> Vec<FileChangesViewEntry>
     {
         let mut content = vec![];
@@ -95,6 +100,15 @@ impl<StoreType> FileChangesView<StoreType>
     pub fn unselectAll(&self)
     {
         self.view.borrow().getSelection().borrow().unselectAll();
+    }
+
+    pub fn trySelectFirst(&self)
+    {
+        if let Some(iter) = self.getModel().get_iter_first() {
+            let view = self.view.borrow();
+            view.getSelection().borrow().selectByIterator(&iter);
+            view.focusFirstRow();
+        }
     }
 
 

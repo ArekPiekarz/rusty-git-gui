@@ -51,6 +51,7 @@ impl Gui
 
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);
+        showFirstFileChange(&unstagedChangesView);
 
         Self{
             unstagedChangesView: Rc::clone(&unstagedChangesView),
@@ -68,11 +69,11 @@ impl Gui
     }
 }
 
-fn makeOnOtherViewSelectedReaction<StoreType>(stagedChangesView: &Rc<RefCell<FileChangesView<StoreType>>>)
+fn makeOnOtherViewSelectedReaction<StoreType>(fileChangesView: &Rc<RefCell<FileChangesView<StoreType>>>)
     -> Box<dyn Fn(FileChange) -> glib::Continue>
     where StoreType: FileChangesGetter + 'static
 {
-    let weakView = Rc::downgrade(stagedChangesView);
+    let weakView = Rc::downgrade(fileChangesView);
     Box::new(move |_fileChange| {
         if let Some(rcView) = weakView.upgrade() {
             rcView.borrow().unselectAll();
@@ -86,4 +87,12 @@ fn setupPanes(guiElementProvider: &GuiElementProvider, settings: &mut Settings)
     setupMainPaned(guiElementProvider, settings);
     setupFileChangesPaned(guiElementProvider, settings);
     setupDiffAndCommitPaned(guiElementProvider, settings);
+}
+
+fn showFirstFileChange(unstagedChangesView: &Rc<RefCell<UnstagedChangesView>>)
+{
+    let view = unstagedChangesView.borrow();
+    if view.isFilled() {
+        view.trySelectFirst();
+    }
 }
