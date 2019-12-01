@@ -44,6 +44,12 @@ pub fn clickCommitButton(gui: &Gui)
     processEvents();
 }
 
+pub fn clickRefreshButton(gui: &Gui)
+{
+    gui.refreshButton.click();
+    processEvents();
+}
+
 
 // private
 

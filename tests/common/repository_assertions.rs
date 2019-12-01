@@ -6,6 +6,12 @@ use std::process::Command;
 use std::str::from_utf8;
 
 
+pub fn assertRepositoryIsEmpty(repositoryDir: &Path)
+{
+    assertRepositoryStatusIsEmpty(&repositoryDir);
+    assertRepositoryHasNoCommits(&repositoryDir);
+}
+
 pub fn assertRepositoryHasNoCommits(repositoryDir: &Path)
 {
     assertFailedCommandErrorOutput(

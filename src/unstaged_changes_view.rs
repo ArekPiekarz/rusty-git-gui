@@ -18,10 +18,9 @@ pub fn makeUnstagedChangesView(
     let onRowActivatedAction : OnRowActivatedAction =
         Box::new(move |fileChange| repository.borrow_mut().stageFileChange(fileChange));
 
-    let mut repository2 = repository2.borrow_mut();
     FileChangesView::new(
         guiElementProvider,
         "Unstaged changes view",
-        UnstagedChangesStore::new(guiElementProvider, &mut repository2),
+        UnstagedChangesStore::new(guiElementProvider, repository2),
         onRowActivatedAction)
 }

@@ -38,6 +38,7 @@ mod gui_element_provider;
 mod main_context;
 mod main_paned;
 mod paned;
+mod refresh_button;
 mod settings;
 mod staged_changes;
 mod staged_changes_store;

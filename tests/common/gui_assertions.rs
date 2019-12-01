@@ -2,6 +2,15 @@ use rusty_git_gui::file_changes_view_entry::FileChangesViewEntry;
 use rusty_git_gui::gui::Gui;
 
 
+pub fn assertGuiIsEmpty(gui: &Gui)
+{
+    assertUnstagedChangesViewIsEmpty(&gui);
+    assertStagedChangesViewIsEmpty(&gui);
+    assertDiffViewIsEmpty(&gui);
+    assertCommitMessageViewIsEmpty(&gui);
+    assertCommitButtonIsDisabled(&gui);
+}
+
 pub fn assertUnstagedChangesViewIsEmpty(gui: &Gui)
 {
     assert!(gui.unstagedChangesView.borrow().isEmpty(),

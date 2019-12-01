@@ -60,10 +60,17 @@ impl FileChangesStore
         self.store.remove(&self.store.iter_nth_child(NO_PARENT, index as i32).unwrap());
     }
 
+    pub fn replace(&mut self, fileChanges: Vec<FileChange>)
+    {
+        self.store.clear();
+        self.fileChanges = fileChanges;
+        self.fillFileChangesStore();
+    }
+
     pub fn clear(&mut self)
     {
         self.fileChanges.clear();
-        self.store.clear()
+        self.store.clear();
     }
 
 

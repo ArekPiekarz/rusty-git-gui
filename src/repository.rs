@@ -41,7 +41,8 @@ struct Senders
     onAddedToUnstaged: Vec<Sender<FileChange>>,
     onUpdatedInUnstaged: Vec<Sender<FileChangeUpdate>>,
     onRemovedFromUnstaged: Vec<Sender<FileChange>>,
-    onCommitted: Vec<Sender<()>>
+    onCommitted: Vec<Sender<()>>,
+    onRefreshed: Vec<Sender<()>>
 }
 
 impl Repository
@@ -59,7 +60,8 @@ impl Repository
                 onAddedToUnstaged: vec![],
                 onUpdatedInUnstaged: vec![],
                 onRemovedFromUnstaged: vec![],
-                onCommitted: vec![]
+                onCommitted: vec![],
+                onRefreshed: vec![]
             },
         };
         newSelf.collectCurrentFileChanges();
@@ -204,6 +206,12 @@ impl Repository
         self.notifyOnCommitted();
     }
 
+    pub fn refresh(&mut self)
+    {
+        self.collectCurrentFileChanges();
+        self.notifyOnRefreshed();
+    }
+
     pub fn connectOnAddedToStaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
@@ -250,6 +258,13 @@ impl Repository
     {
         let (sender, receiver) = makeChannel();
         self.senders.onCommitted.push(sender);
+        attach(receiver, handler);
+    }
+
+    pub fn connectOnRefreshed(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
+    {
+        let (sender, receiver) = makeChannel();
+        self.senders.onRefreshed.push(sender);
         attach(receiver, handler);
     }
 
@@ -409,6 +424,13 @@ impl Repository
     fn notifyOnCommitted(&self)
     {
         for sender in &self.senders.onCommitted {
+            sender.send(()).unwrap();
+        }
+    }
+
+    fn notifyOnRefreshed(&self)
+    {
+        for sender in &self.senders.onRefreshed {
             sender.send(()).unwrap();
         }
     }

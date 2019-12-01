@@ -10,18 +10,22 @@ use std::rc::Rc;
 
 pub struct UnstagedChangesStore
 {
-    store: FileChangesStore
+    store: FileChangesStore,
+    repository: Rc<RefCell<Repository>>
 }
 
 impl UnstagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository) -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: Rc<RefCell<Repository>>) -> Rc<RefCell<Self>>
     {
-        let newSelf = Rc::new(RefCell::new(Self{store: FileChangesStore::new(
-            guiElementProvider,
-            "Unstaged changes store",
-            repository.getUnstagedChanges())}));
-        Self::connectSelfToRepository(&newSelf, repository);
+        let newSelf = Rc::new(RefCell::new(Self{
+            store: FileChangesStore::new(
+                guiElementProvider,
+                "Unstaged changes store",
+                repository.borrow().getUnstagedChanges()),
+            repository: Rc::clone(&repository)
+        }));
+        Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
         newSelf
     }
 
@@ -33,6 +37,7 @@ impl UnstagedChangesStore
         Self::connectSelfToRepositoryOnAddedToUnstaged(rcSelf, repository);
         Self::connectSelfToRepositoryOnUpdatedInUnstaged(rcSelf, repository);
         Self::connectSelfToRepositoryOnRemovedFromUnstaged(rcSelf, repository);
+        Self::connectSelfToRepositoryOnRefreshed(rcSelf, repository);
     }
 
     fn connectSelfToRepositoryOnAddedToUnstaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
@@ -68,6 +73,17 @@ impl UnstagedChangesStore
         }));
     }
 
+    fn connectSelfToRepositoryOnRefreshed(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        repository.connectOnRefreshed(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onRefreshed();
+            }
+            glib::Continue(true)
+        }));
+    }
+
     fn onAddedToUnstaged(&mut self, fileChange: &FileChange)
     {
         self.store.append(fileChange);
@@ -81,6 +97,11 @@ impl UnstagedChangesStore
     fn onRemovedFromUnstaged(&mut self, fileChange: &FileChange)
     {
         self.store.remove(&fileChange.path);
+    }
+
+    fn onRefreshed(&mut self)
+    {
+        self.store.replace(self.repository.borrow().getUnstagedChanges().to_vec());
     }
 }
 

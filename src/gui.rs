@@ -9,6 +9,7 @@ use crate::file_changes_paned::setupFileChangesPaned;
 use crate::file_changes_view::FileChangesView;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_paned::setupMainPaned;
+use crate::refresh_button::RefreshButton;
 use crate::repository::Repository;
 use crate::settings::Settings;
 use crate::staged_changes_view::{makeStagedChangesView, StagedChangesView};
@@ -25,6 +26,7 @@ pub struct Gui
     pub diffView: Rc<RefCell<DiffView>>,
     pub commitMessageView: Rc<RefCell<CommitMessageView>>,
     pub commitButton: Rc<RefCell<CommitButton>>,
+    pub refreshButton: Rc<RefreshButton>,
     applicationWindow: Rc<ApplicationWindow>
 }
 
@@ -49,6 +51,8 @@ impl Gui
         let commitButton = CommitButton::new(
             &guiElementProvider, Rc::clone(&commitMessageView), Rc::clone(repository));
 
+        let refreshButton = RefreshButton::new(&guiElementProvider, Rc::clone(repository));
+
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);
         showFirstFileChange(&unstagedChangesView);
@@ -59,6 +63,7 @@ impl Gui
             diffView,
             commitMessageView,
             commitButton,
+            refreshButton,
             applicationWindow: ApplicationWindow::new(&guiElementProvider, settings),
         }
     }
