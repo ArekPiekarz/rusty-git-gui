@@ -9,12 +9,12 @@ color-backtrace = { version = "0.3.0", optional = true, features = ["failure-bt"
 dirs = "2.0.2"
 failchain = "0.1015.2"
 failure = "0.1.6"
-git2 = { version = "0.10.2", default-features = false }
-glib = "0.8.2"
-gtk = { version = "0.7.0", features = ["v3_16"] }
+git2 = { version = "0.11.0", default-features = false }
+glib = "0.9.0"
+gtk = { version = "0.8.0", features = ["v3_16"] }
 itertools = { version = "0.8.2", default-features = false }
 rust-ini = "0.13.0"
-shrinkwraprs = { version = "0.2.3", default-features = false }
+shrinkwraprs = { version = "0.3.0", default-features = false }
 strum = "0.16.0"
 strum_macros = "0.16.0"
 

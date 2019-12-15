@@ -6,7 +6,7 @@ use crate::file_path::FilePathStr;
 use crate::gui_element_provider::GuiElementProvider;
 
 use gtk::GtkListStoreExt as _;
-use gtk::GtkListStoreExtManual as _;
+use gtk::prelude::GtkListStoreExtManual as _;
 use gtk::TreeModelExt as _;
 use itertools::Itertools;
 
@@ -37,7 +37,7 @@ impl FileChangesStore
         self.store.set(
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
-            &[&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue]);
+            &[&fileChange.status as &dyn glib::ToValue, &fileChange.path as &dyn glib::ToValue]);
     }
 
     pub fn update(&mut self, fileChangeUpdate: &FileChangeUpdate)
@@ -50,7 +50,7 @@ impl FileChangesStore
         self.store.set_value(
             &self.store.iter_nth_child(NO_PARENT, index as i32).unwrap(),
             FileChangesColumn::Status as u32,
-            &gtk::Value::from(&fileChangeUpdate.new.status));
+            &glib::Value::from(&fileChangeUpdate.new.status));
     }
 
     pub fn remove(&mut self, filePath: &FilePathStr)
@@ -84,7 +84,7 @@ impl FileChangesStore
             .collect_vec();
 
         let internalStoreEntries = fileChangesStoreEntries.iter().map(
-            |fileChange| [&fileChange.status as &dyn gtk::ToValue, &fileChange.path as &dyn gtk::ToValue])
+            |fileChange| [&fileChange.status as &dyn glib::ToValue, &fileChange.path as &dyn glib::ToValue])
             .collect_vec();
 
         for fileChange in internalStoreEntries {

@@ -119,9 +119,19 @@ impl<StoreType> FileChangesView<StoreType>
         self.view.borrow().getModel()
     }
 
+    fn getStatusCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
+    {
+        Self::getCell(model, iter, FileChangesColumn::Status)
+    }
+
+    fn getPathCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
+    {
+        Self::getCell(model, iter, FileChangesColumn::Path)
+    }
+
     fn getCell(model: &gtk::TreeModel, iter: &gtk::TreeIter, column: FileChangesColumn) -> String
     {
-        model.get_value(iter, column as i32).get::<String>().unwrap()
+        model.get_value(iter, column as i32).get::<String>().unwrap().unwrap()
     }
 
     fn getFilePathColumn(&self) -> gtk::TreeViewColumn
@@ -183,8 +193,8 @@ impl<StoreType> FileChangesView<StoreType>
         let model = self.getModel();
         let iterator = model.get_iter(row).unwrap();
         let fileChange = FileChange{
-            status: model.get_value(&iterator, FileChangesColumn::Status as i32).get::<String>().unwrap(),
-            path: model.get_value(&iterator, FileChangesColumn::Path as i32).get::<String>().unwrap(),
+            status: Self::getStatusCell(&model, &iterator),
+            path: Self::getPathCell(&model, &iterator),
             oldPath: None};
 
         (self.onRowActivatedAction)(&fileChange);

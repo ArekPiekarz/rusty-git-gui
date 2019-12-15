@@ -1,6 +1,6 @@
 use crate::error_handling::exit;
 
-use gtk::BuilderExtManual;
+use gtk::prelude::BuilderExtManual as _;
 
 
 pub struct GuiElementProvider
@@ -15,7 +15,7 @@ impl GuiElementProvider
         Self{provider: gtk::Builder::new_from_string(guiDescription)}
     }
 
-    pub fn get<T: gtk::IsA<gtk::Object>>(&self, name: &str) -> T
+    pub fn get<T: glib::IsA<glib::Object>>(&self, name: &str) -> T
     {
         self.provider.get_object::<T>(name)
             .unwrap_or_else(|| exit(&format!(r#"Failed to get object named "{}" from gtk::Builder."#, name)))
