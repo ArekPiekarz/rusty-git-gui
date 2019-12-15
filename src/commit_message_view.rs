@@ -1,6 +1,6 @@
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
-use crate::text_view::TextView;
+use crate::text_view::{Notifications, TextView};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,7 +16,7 @@ impl CommitMessageView
     pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository) -> Rc<RefCell<Self>>
     {
         let newSelf = Rc::new(RefCell::new(Self{
-            widget: TextView::new(guiElementProvider, "Commit message view"),
+            widget: TextView::new(guiElementProvider, "Commit message view", Notifications::Enabled),
         }));
         Self::connectSelfToRepository(&newSelf, repository);
         newSelf

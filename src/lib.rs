@@ -23,7 +23,7 @@ mod color;
 mod commit_button;
 mod commit_message_view;
 mod diff_and_commit_paned;
-mod diff_line_printer;
+mod diff_formatter;
 mod diff_view;
 mod file_change;
 mod file_changes_column;

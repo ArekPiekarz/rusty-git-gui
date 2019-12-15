@@ -1,10 +1,10 @@
-use crate::diff_line_printer::DiffLinePrinter;
+use crate::diff_formatter::DiffFormatter;
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 use crate::staged_changes_view::StagedChangesView;
-use crate::text_view::TextView;
+use crate::text_view::{Notifications, TextView};
 use crate::unstaged_changes_view::UnstagedChangesView;
 
 use std::cell::RefCell;
@@ -36,7 +36,7 @@ impl DiffView
         -> Rc<RefCell<Self>>
     {
         let newSelf = Rc::new(RefCell::new(Self{
-            widget: TextView::new(guiElementProvider, "Diff view"),
+            widget: TextView::new(guiElementProvider, "Diff view", Notifications::Disabled),
             repository,
             displayState: DisplayedFileChange::None
         }));
@@ -135,12 +135,12 @@ impl DiffView
         diffMaker: for <'a> fn(&FileChange, &'a Repository) -> git2::Diff<'a>,
         newDisplayState: DisplayedFileChange)
     {
-        let widget = self.widget.borrow();
-        let diffLinePrinter = DiffLinePrinter::new(&widget);
+        let mut diffFormatter = DiffFormatter::new();
         let repository = self.repository.borrow();
         let diff = (diffMaker)(&fileChange, &repository);
-        diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffLinePrinter.printDiff(&line))
-            .unwrap_or_else(|e| exit(&format!("Failed to print diff: {}", e)));
+        diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))
+            .unwrap_or_else(|e| exit(&format!("Failed to format diff: {}", e)));
+        self.widget.borrow().setRichText(diffFormatter.getText());
         self.displayState = newDisplayState;
     }
 

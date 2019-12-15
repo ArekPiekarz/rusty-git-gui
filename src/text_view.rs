@@ -1,4 +1,3 @@
-use crate::color::Color;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_context::{attach, makeChannel};
 
@@ -19,9 +18,17 @@ pub struct TextView
     shouldNotifyOnFilled: bool
 }
 
+#[derive(Eq, PartialEq)]
+pub enum Notifications
+{
+    Enabled,
+    Disabled
+}
+
 impl TextView
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, name: &str) -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, notifications: Notifications)
+        -> Rc<RefCell<Self>>
     {
         let widget = guiElementProvider.get::<gtk::TextView>(name);
         let newSelf = Rc::new(RefCell::new(Self{
@@ -30,7 +37,9 @@ impl TextView
             onEmptiedSenders: vec![],
             shouldNotifyOnFilled: true
         }));
-        Self::connectSelfToBuffer(&newSelf);
+        if notifications == Notifications::Enabled {
+            Self::connectSelfToBuffer(&newSelf);
+        }
         newSelf
     }
 
@@ -55,21 +64,15 @@ impl TextView
         !self.isFilled()
     }
 
-    pub fn append(&self, text: &str)
+    pub fn setRichText(&self, text: &str)
     {
-        self.buffer.insert(&mut self.buffer.get_end_iter(), text);
-    }
-
-    pub fn appendColored(&self, color: Color, text: &str)
-    {
-        self.buffer.insert_markup(
-            &mut self.buffer.get_end_iter(),
-            &format!("<span color='{}'>{}</span>", color, glib::markup_escape_text(text)));
+        self.clear();
+        self.buffer.insert_markup(&mut self.buffer.get_start_iter(), text);
     }
 
     pub fn clear(&self)
     {
-        self.buffer.delete(&mut self.buffer.get_start_iter(), &mut self.buffer.get_end_iter());
+        self.setText("");
     }
 
     pub fn connectOnFilled(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
