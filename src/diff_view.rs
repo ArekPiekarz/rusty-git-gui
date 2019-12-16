@@ -140,6 +140,7 @@ impl DiffView
         let diff = (diffMaker)(&fileChange, &repository);
         diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))
             .unwrap_or_else(|e| exit(&format!("Failed to format diff: {}", e)));
+        diffFormatter.finish();
         self.widget.borrow().setRichText(diffFormatter.getText());
         self.displayState = newDisplayState;
     }

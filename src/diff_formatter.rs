@@ -12,14 +12,22 @@ const NO_PREFIX: &str = "";
 
 pub struct DiffFormatter
 {
-    text: String
+    text: String,
+    state: State
+}
+
+enum State
+{
+    Normal,
+    Added,
+    Removed
 }
 
 impl DiffFormatter
 {
     pub fn new() -> Self
     {
-        Self{text: "".into()}
+        Self{text: "<span>".into(), state: State::Normal}
     }
 
     pub fn format(&mut self, line: &git2::DiffLine) -> bool
@@ -35,6 +43,14 @@ impl DiffFormatter
         FORMATTING_SUCCEEDED
     }
 
+    pub fn finish(&mut self)
+    {
+        match self.state {
+            State::Normal => self.text.push_str("</span>"),
+            State::Added | State::Removed => self.text.push_str("</span></span>")
+        }
+    }
+
     pub fn getText(&self) -> &str
     {
         &self.text
@@ -45,31 +61,82 @@ impl DiffFormatter
 
     fn appendAddedLine(&mut self, line : &str)
     {
-        self.appendColoredLine(GREEN, ADDED_PREFIX, line);
+        match self.state {
+            State::Normal => {
+                self.appendColoredLineStart(GREEN, ADDED_PREFIX, line);
+                self.state = State::Added;
+            },
+            State::Added => {
+                self.appendNormalLine(ADDED_PREFIX, line)
+            },
+            State::Removed => {
+                self.appendColoredLineEndAndStart(GREEN, ADDED_PREFIX, line);
+                self.state = State::Added;
+            }
+        }
     }
 
     fn appendRemovedLine(&mut self, line : &str)
     {
-        self.appendColoredLine(RED, REMOVED_PREFIX, line);
+        match self.state {
+            State::Normal => {
+                self.appendColoredLineStart(RED, REMOVED_PREFIX, line);
+                self.state = State::Removed;
+            },
+            State::Added => {
+                self.appendColoredLineEndAndStart(RED, REMOVED_PREFIX, line);
+                self.state = State::Removed;
+            },
+            State::Removed => {
+                self.appendNormalLine(REMOVED_PREFIX, line)
+            }
+        }
     }
 
     fn appendKeptLine(&mut self, line : &str)
     {
-        self.appendNormalLine(KEPT_PREFIX, line);
+        self.appendLine(KEPT_PREFIX, line);
     }
 
     fn appendContextLine(&mut self, line : &str)
     {
-        self.appendNormalLine(NO_PREFIX, line);
+        self.appendLine(NO_PREFIX, line);
+    }
+
+    fn appendLine(&mut self, prefix: &str, line : &str)
+    {
+        match self.state {
+            State::Normal => {
+                self.appendNormalLine(prefix, line)
+            },
+            State::Added => {
+                self.appendColoredLineEndAndNormalStart(prefix, line);
+                self.state = State::Normal;
+            },
+            State::Removed => {
+                self.appendColoredLineEndAndNormalStart(prefix, line);
+                self.state = State::Normal;
+            }
+        }
     }
 
     fn appendNormalLine(&mut self, prefix: &str, line : &str)
     {
-        self.text.push_str(&format!("<span>{}{}</span>", prefix, glib::markup_escape_text(line)));
+        self.text.push_str(&format!("{}{}", prefix, glib::markup_escape_text(line)));
     }
 
-    fn appendColoredLine(&mut self, color: Color, prefix: &str, line: &str)
+    fn appendColoredLineStart(&mut self, color: Color, prefix: &str, line: &str)
     {
-        self.text.push_str(&format!("<span color='{}'>{}{}</span>", color, prefix, glib::markup_escape_text(line)));
+        self.text.push_str(&format!("<span color='{}'>{}{}", color, prefix, glib::markup_escape_text(line)));
+    }
+
+    fn appendColoredLineEndAndStart(&mut self, color: Color, prefix: &str, line: &str)
+    {
+        self.text.push_str(&format!("</span><span color='{}'>{}{}", color, prefix, glib::markup_escape_text(line)));
+    }
+
+    fn appendColoredLineEndAndNormalStart(&mut self, prefix: &str, line: &str)
+    {
+        self.text.push_str(&format!("</span>{}{}", prefix, glib::markup_escape_text(line)));
     }
 }
