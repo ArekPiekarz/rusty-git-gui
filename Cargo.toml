@@ -26,3 +26,6 @@ tempfile = "3.1.0"
 
 [features]
 use_color_backtrace = ["color-backtrace"]
+
+[profile.release]
+lto = true
