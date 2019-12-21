@@ -15,8 +15,8 @@ gtk = { version = "0.8.0", features = ["v3_16"] }
 itertools = { version = "0.8.2", default-features = false }
 rust-ini = "0.13.0"
 shrinkwraprs = { version = "0.3.0", default-features = false }
-strum = "0.16.0"
-strum_macros = "0.16.0"
+strum = "0.17.1"
+strum_macros = "0.17.1"
 
 [dev-dependencies]
 mocktopus = "0.7.5"
