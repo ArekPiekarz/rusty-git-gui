@@ -1,8 +1,8 @@
 use crate::file_change::FileChange;
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_changes_getter::FileChangesGetter;
 use crate::file_changes_view_entry::FileChangesViewEntry;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::ifile_changes_store::IFileChangesStore;
 use crate::main_context::{attach, makeChannel};
 use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
 use crate::tree_view::TreeView;
@@ -21,12 +21,30 @@ pub struct FileChangesView<StoreType>
     view: Rc<RefCell<TreeView>>,
     store: Rc<RefCell<StoreType>>,
     onRowActivatedAction: OnRowActivatedAction,
-    onSelectedSenders: Vec<Sender<FileChange>>,
-    onUnselectedSenders: Vec<Sender<()>>
+    senders: Senders
+}
+
+struct Senders
+{
+    onSelected: Vec<Sender<FileChange>>,
+    onUnselected: Vec<Sender<()>>,
+    onRefreshed: Vec<Sender<Option<FileChange>>>
+}
+
+impl Senders
+{
+    fn new() -> Self
+    {
+        Self{
+            onSelected: vec![],
+            onUnselected: vec![],
+            onRefreshed: vec![]
+        }
+    }
 }
 
 impl<StoreType> FileChangesView<StoreType>
-    where StoreType: FileChangesGetter + 'static
+    where StoreType: IFileChangesStore + 'static
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
@@ -39,11 +57,12 @@ impl<StoreType> FileChangesView<StoreType>
             store,
             view: TreeView::new(guiElementProvider, widgetName, &FileChangesColumn::asArrayOfI32()),
             onRowActivatedAction,
-            onSelectedSenders: vec![],
-            onUnselectedSenders: vec![]
+            senders: Senders::new()
         }));
         Self::connectSelfToViewSelection(&newSelf);
         Self::connectSelfToView(&newSelf);
+        Self::connectSelfToStore(&newSelf);
+
         newSelf
     }
 
@@ -86,14 +105,21 @@ impl<StoreType> FileChangesView<StoreType>
     pub fn connectOnSelected(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
-        self.onSelectedSenders.push(sender);
+        self.senders.onSelected.push(sender);
         attach(receiver, handler);
     }
 
     pub fn connectOnUnselected(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
-        self.onUnselectedSenders.push(sender);
+        self.senders.onUnselected.push(sender);
+        attach(receiver, handler);
+    }
+
+    pub fn connectOnRefreshed(&mut self, handler: Box<dyn Fn(Option<FileChange>) -> glib::Continue>)
+    {
+        let (sender, receiver) = makeChannel();
+        self.senders.onRefreshed.push(sender);
         attach(receiver, handler);
     }
 
@@ -151,28 +177,36 @@ impl<StoreType> FileChangesView<StoreType>
         }));
     }
 
-    #[allow(clippy::panic)]
     fn notifyBasedOnSelectionChanged(&self, selection: &gtk::TreeSelection)
     {
         let (rows, _model) = selection.get_selected_rows();
-        debug_assert!(rows.len() <= 1);
         match rows.get(0) {
-            Some(row) => self.notifyOnSelected(self.store.borrow().getFileChange(row)),
+            Some(rowPath) => {
+                let row = *rowPath.get_indices().get(0).unwrap() as usize;
+                self.notifyOnSelected(self.store.borrow().getFileChange(row))
+            },
             None => self.notifyOnUnselected()
         }
     }
 
     fn notifyOnSelected(&self, fileChange: &FileChange)
     {
-        for sender in &self.onSelectedSenders {
+        for sender in &self.senders.onSelected {
             sender.send(fileChange.clone()).unwrap();
         }
     }
 
     fn notifyOnUnselected(&self)
     {
-        for sender in &self.onUnselectedSenders {
+        for sender in &self.senders.onUnselected {
             sender.send(()).unwrap();
+        }
+    }
+
+    fn notifyOnRefreshed(&self, fileChangeOpt: &Option<FileChange>)
+    {
+        for sender in &self.senders.onRefreshed {
+            sender.send(fileChangeOpt.clone()).unwrap();
         }
     }
 
@@ -188,6 +222,18 @@ impl<StoreType> FileChangesView<StoreType>
         }));
     }
 
+    fn connectSelfToStore(rcSelf: &Rc<RefCell<Self>>)
+    {
+        let weakSelf = Rc::downgrade(&rcSelf);
+        rcSelf.borrow().store.borrow_mut().connectOnRefreshed(Box::new(
+            move |_| {
+                if let Some(rcSelf) = weakSelf.upgrade() {
+                    rcSelf.borrow().onRefreshed();
+                }
+                glib::Continue(true)
+            }));
+    }
+
     fn onRowActivated(&self, row: &gtk::TreePath)
     {
         let model = self.getModel();
@@ -198,6 +244,15 @@ impl<StoreType> FileChangesView<StoreType>
             oldPath: None};
 
         (self.onRowActivatedAction)(&fileChange);
+    }
+
+    fn onRefreshed(&self)
+    {
+        let fileChangeOpt = match self.view.borrow().getSelection().borrow().getSelectedRow() {
+            Some(row) => Some(self.store.borrow().getFileChange(row).clone()),
+            None => None
+        };
+        self.notifyOnRefreshed(&fileChangeOpt);
     }
 
     fn invokeForRowWith(

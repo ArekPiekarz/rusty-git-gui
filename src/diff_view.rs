@@ -62,12 +62,14 @@ impl DiffView
     {
         Self::connectSelfToUnstagedChangeSelected(rcSelf, view);
         Self::connectSelfToUnstagedChangeUnselected(rcSelf, view);
+        Self::connectSelfToUnstagedChangeRefreshed(rcSelf, view);
     }
 
     fn connectSelfToStagedChangesView(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
     {
         Self::connectSelfToStagedChangeSelected(rcSelf, view);
         Self::connectSelfToStagedChangeUnselected(rcSelf, view);
+        Self::connectSelfToStagedChangeRefreshed(rcSelf, view);
     }
 
     fn connectSelfToUnstagedChangeSelected(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
@@ -109,6 +111,28 @@ impl DiffView
         view.connectOnUnselected(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onStagedChangeUnselected();
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToUnstagedChangeRefreshed(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        view.connectOnRefreshed(Box::new(move |fileChangeOpt| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onUnstagedChangeRefreshed(&fileChangeOpt);
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToStagedChangeRefreshed(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        view.connectOnRefreshed(Box::new(move |fileChangeOpt| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onStagedChangeRefreshed(&fileChangeOpt);
             }
             glib::Continue(true)
         }));
@@ -158,6 +182,22 @@ impl DiffView
         if self.displayState == DisplayedFileChange::Staged {
             self.widget.borrow().clear();
             self.displayState = DisplayedFileChange::None;
+        }
+    }
+
+    fn onUnstagedChangeRefreshed(&mut self, fileChangeOpt: &Option<FileChange>)
+    {
+        match fileChangeOpt {
+            Some(fileChange) => self.onUnstagedChangeSelected(fileChange),
+            None => self.onUnstagedChangeUnselected()
+        }
+    }
+
+    fn onStagedChangeRefreshed(&mut self, fileChangeOpt: &Option<FileChange>)
+    {
+        match fileChangeOpt {
+            Some(fileChange) => self.onStagedChangeSelected(fileChange),
+            None => self.onStagedChangeUnselected()
         }
     }
 

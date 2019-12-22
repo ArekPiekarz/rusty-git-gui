@@ -4,10 +4,10 @@ use crate::commit_message_view::CommitMessageView;
 use crate::diff_and_commit_paned::setupDiffAndCommitPaned;
 use crate::diff_view::DiffView;
 use crate::file_change::FileChange;
-use crate::file_changes_getter::FileChangesGetter;
 use crate::file_changes_paned::setupFileChangesPaned;
 use crate::file_changes_view::FileChangesView;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::ifile_changes_store::IFileChangesStore;
 use crate::main_paned::setupMainPaned;
 use crate::refresh_button::RefreshButton;
 use crate::repository::Repository;
@@ -76,7 +76,7 @@ impl Gui
 
 fn makeOnOtherViewSelectedReaction<StoreType>(fileChangesView: &Rc<RefCell<FileChangesView<StoreType>>>)
     -> Box<dyn Fn(FileChange) -> glib::Continue>
-    where StoreType: FileChangesGetter + 'static
+    where StoreType: IFileChangesStore + 'static
 {
     let weakView = Rc::downgrade(fileChangesView);
     Box::new(move |_fileChange| {

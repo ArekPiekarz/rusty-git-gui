@@ -5,6 +5,7 @@ use gtk::TreeSelectionExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+
 pub struct TreeSelection
 {
     selection: gtk::TreeSelection,
@@ -18,6 +19,15 @@ impl TreeSelection
         let newSelf = Rc::new(RefCell::new(Self{selection, onChangedSenders: vec![]}));
         Self::connectSelfToChanged(&newSelf);
         newSelf
+    }
+
+    pub fn getSelectedRow(&self) -> Option<usize>
+    {
+        let (rowPaths, _model) = self.selection.get_selected_rows();
+        match rowPaths.get(0) {
+            Some(rowPath) => Some(*rowPath.get_indices().get(0).unwrap() as usize),
+            None => None
+        }
     }
 
     pub fn connectOnChanged(&mut self, handler: Box<dyn Fn(gtk::TreeSelection) -> glib::Continue>)

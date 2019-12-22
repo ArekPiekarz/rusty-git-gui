@@ -1,7 +1,8 @@
 use crate::file_change::{FileChange, FileChangeUpdate};
-use crate::file_changes_getter::FileChangesGetter;
 use crate::file_changes_store::FileChangesStore;
+use crate::file_path::FilePathStr;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::ifile_changes_store::{IFileChangesStore, OnRefreshedHandler};
 use crate::repository::Repository;
 
 use std::cell::RefCell;
@@ -101,14 +102,29 @@ impl UnstagedChangesStore
 
     fn onRefreshed(&mut self)
     {
-        self.store.replace(self.repository.borrow().getUnstagedChanges().to_vec());
+        self.store.refresh(self.repository.borrow().getUnstagedChanges().to_vec());
     }
 }
 
-impl FileChangesGetter for UnstagedChangesStore
+impl IFileChangesStore for UnstagedChangesStore
 {
-    fn getFileChange(&self, row: &gtk::TreePath) -> &FileChange
+    fn getFileChange(&self, row: usize) -> &FileChange
     {
         self.store.getFileChange(row)
+    }
+
+    fn getFilePath(&self, row: usize) -> &FilePathStr
+    {
+        self.store.getFilePath(row)
+    }
+
+    fn findFilePath(&self, path: &FilePathStr) -> Option<usize>
+    {
+        self.store.findFilePath(path)
+    }
+
+    fn connectOnRefreshed(&mut self, observer: OnRefreshedHandler)
+    {
+        self.store.connectOnRefreshed(observer);
     }
 }

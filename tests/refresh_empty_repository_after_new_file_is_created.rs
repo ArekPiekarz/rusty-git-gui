@@ -18,7 +18,7 @@ use std::path::PathBuf;
 
 
 #[test]
-fn refreshEmptyRepositoryAfterNewFileWasCreated()
+fn refreshEmptyRepositoryAfterNewFileIsCreated()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();

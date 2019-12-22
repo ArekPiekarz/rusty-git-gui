@@ -1,8 +1,11 @@
-#[derive(Clone, Debug, PartialEq)]
+use crate::file_path::FilePathString;
+
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct FileChange
 {
     pub status: String,
-    pub path: String,
+    pub path: FilePathString,
     pub oldPath: Option<String>
 }
 
