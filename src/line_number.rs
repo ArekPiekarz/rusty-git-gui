@@ -14,7 +14,7 @@ impl Add::<LineCount> for LineNumber
 
     fn add(self, rhs: LineCount) -> Self
     {
-        LineNumber(self.0 + rhs.0)
+        Self(self.0 + rhs.0)
     }
 }
 
@@ -28,9 +28,9 @@ impl AddAssign::<usize> for LineNumber
 
 impl From<usize> for LineNumber
 {
-    fn from(value: usize) -> LineNumber
+    fn from(value: usize) -> Self
     {
-        LineNumber(value)
+        Self(value)
     }
 }
 
