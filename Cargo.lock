@@ -235,17 +235,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "0.99.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2159be042979966de68315bce7034bb000c775f22e3e834e1c52ff78f041cae8"
-dependencies = [
- "proc-macro2 1.0.6",
- "quote 1.0.2",
- "syn 1.0.11",
-]
-
-[[package]]
 name = "difference"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -621,15 +610,6 @@ dependencies = [
  "libc",
  "pango-sys",
  "pkg-config",
-]
-
-[[package]]
-name = "heck"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20564e78d53d2bb135c343b3f47714a56af2061f1c928fdb541dc7b9fdd94205"
-dependencies = [
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -1070,7 +1050,6 @@ name = "rusty-git-gui"
 version = "0.1.0"
 dependencies = [
  "color-backtrace",
- "derive_more",
  "difference",
  "dirs",
  "failchain",
@@ -1083,9 +1062,6 @@ dependencies = [
  "more-asserts",
  "pretty_assertions",
  "rust-ini",
- "shrinkwraprs",
- "strum",
- "strum_macros",
  "tempfile",
 ]
 
@@ -1126,19 +1102,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
-name = "shrinkwraprs"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63e6744142336dfb606fe2b068afa2e1cca1ee6a5d8377277a92945d81fa331"
-dependencies = [
- "bitflags",
- "itertools",
- "proc-macro2 1.0.6",
- "quote 1.0.2",
- "syn 1.0.11",
-]
-
-[[package]]
 name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1164,24 +1127,6 @@ name = "stable_deref_trait"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
-
-[[package]]
-name = "strum"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "530efb820d53b712f4e347916c5e7ed20deb76a4f0457943b3182fb889b06d2c"
-
-[[package]]
-name = "strum_macros"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e6e163a520367c465f59e0a61a23cfae3b10b6546d78b6f672a382be79f7110"
-dependencies = [
- "heck",
- "proc-macro2 1.0.6",
- "quote 1.0.2",
- "syn 1.0.11",
-]
 
 [[package]]
 name = "syn"
@@ -1257,12 +1202,6 @@ checksum = "b561e267b2326bb4cebfc0ef9e68355c7abe6c6f522aeac2f5bf95d56c59bdcf"
 dependencies = [
  "smallvec 1.1.0",
 ]
-
-[[package]]
-name = "unicode-segmentation"
-version = "1.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e83e153d1053cbb5a118eeff7fd5be06ed99153f00dbcd8ae310c5fb2b22edc0"
 
 [[package]]
 name = "unicode-xid"

@@ -1,12 +1,11 @@
 use crate::line_count::LineCount;
 
-use derive_more::From;
 use std::convert::TryInto;
 use std::ops::Add;
 use std::ops::AddAssign;
 
 
-#[derive(Clone, Copy, From)]
+#[derive(Clone, Copy)]
 pub struct LineNumber(pub usize);
 
 impl Add::<LineCount> for LineNumber
@@ -27,10 +26,18 @@ impl AddAssign::<usize> for LineNumber
     }
 }
 
-impl Into::<i32> for LineNumber
+impl From<usize> for LineNumber
 {
-    fn into(self) -> i32
+    fn from(value: usize) -> LineNumber
     {
-        self.0.try_into().unwrap()
+        LineNumber(value)
+    }
+}
+
+impl From::<LineNumber> for i32
+{
+    fn from(value: LineNumber) -> i32
+    {
+        value.0.try_into().unwrap()
     }
 }
