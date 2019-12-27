@@ -1,3 +1,4 @@
+use crate::diff_colorizer::DiffColorizer;
 use crate::diff_formatter::DiffFormatter;
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
@@ -7,6 +8,7 @@ use crate::staged_changes_view::StagedChangesView;
 use crate::text_view::{Notifications, TextView};
 use crate::unstaged_changes_view::UnstagedChangesView;
 
+use difference::Changeset;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -15,16 +17,19 @@ pub struct DiffView
 {
     widget: Rc<RefCell<TextView>>,
     repository: Rc<RefCell<Repository>>,
+    diffColorizer: DiffColorizer,
     displayState: DisplayedFileChange
 }
 
-#[derive(PartialEq)]
+#[derive(Eq, PartialEq)]
 enum DisplayedFileChange
 {
     None,
     Unstaged,
     Staged
 }
+
+type DiffMaker = for <'a> fn(&FileChange, &'a Repository) -> git2::Diff<'a>;
 
 impl DiffView
 {
@@ -35,9 +40,12 @@ impl DiffView
         repository: Rc<RefCell<Repository>>)
         -> Rc<RefCell<Self>>
     {
+        let widget = TextView::new(guiElementProvider, "Diff view", Notifications::Disabled);
+        let diffColorizer = DiffColorizer::new(Rc::clone(&widget));
         let newSelf = Rc::new(RefCell::new(Self{
-            widget: TextView::new(guiElementProvider, "Diff view", Notifications::Disabled),
+            widget,
             repository,
+            diffColorizer,
             displayState: DisplayedFileChange::None
         }));
         Self::connectSelfToUnstagedChangesView(&newSelf, unstagedChangesView);
@@ -121,7 +129,7 @@ impl DiffView
         let weakSelf = Rc::downgrade(rcSelf);
         view.connectOnRefreshed(Box::new(move |fileChangeOpt| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onUnstagedChangeRefreshed(&fileChangeOpt);
+                rcSelf.borrow_mut().onUnstagedOptionalChangeRefreshed(&fileChangeOpt);
             }
             glib::Continue(true)
         }));
@@ -132,7 +140,7 @@ impl DiffView
         let weakSelf = Rc::downgrade(rcSelf);
         view.connectOnRefreshed(Box::new(move |fileChangeOpt| {
             if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onStagedChangeRefreshed(&fileChangeOpt);
+                rcSelf.borrow_mut().onStagedOptionalChangeRefreshed(&fileChangeOpt);
             }
             glib::Continue(true)
         }));
@@ -142,77 +150,122 @@ impl DiffView
     {
         match fileChange.status.as_str() {
             "WT_RENAMED" => self.onFileChangeSelected(
-                fileChange, Self::makeDiffForUnstagedRenamedFile, DisplayedFileChange::Unstaged),
+                fileChange, makeDiffForUnstagedRenamedFile, DisplayedFileChange::Unstaged),
             _ => self.onFileChangeSelected(
-                fileChange, Self::makeDiffForUnstagedChange, DisplayedFileChange::Unstaged)
+                fileChange, makeDiffForUnstagedChange, DisplayedFileChange::Unstaged)
         }
     }
 
     fn onStagedChangeSelected(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeSelected(fileChange, Self::makeDiffForStagedChange, DisplayedFileChange::Staged);
+        self.onFileChangeSelected(fileChange, makeDiffForStagedChange, DisplayedFileChange::Staged);
     }
 
     fn onFileChangeSelected(
         &mut self,
         fileChange: &FileChange,
-        diffMaker: for <'a> fn(&FileChange, &'a Repository) -> git2::Diff<'a>,
+        diffMaker: DiffMaker,
         newDisplayState: DisplayedFileChange)
     {
-        let mut diffFormatter = DiffFormatter::new();
-        let repository = self.repository.borrow();
-        let diff = (diffMaker)(&fileChange, &repository);
-        diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))
-            .unwrap_or_else(|e| exit(&format!("Failed to format diff: {}", e)));
-        diffFormatter.finish();
-        self.widget.borrow().setRichText(diffFormatter.getText());
+        let diff = self.makeFormattedDiff(fileChange, diffMaker);
+        self.diffColorizer.colorize(&diff);
+        self.displayState = newDisplayState;
+    }
+
+    fn onFileChangeRefreshed(
+        &mut self,
+        fileChange: &FileChange,
+        diffMaker: DiffMaker,
+        newDisplayState: DisplayedFileChange)
+    {
+        let oldDiff = self.widget.borrow().getText();
+        let newDiff = self.makeFormattedDiff(fileChange, diffMaker);
+        let changeset = Changeset::new(&oldDiff, &newDiff, "\n");
+        self.diffColorizer.update(changeset.diffs);
         self.displayState = newDisplayState;
     }
 
     fn onUnstagedChangeUnselected(&mut self)
     {
         if self.displayState == DisplayedFileChange::Unstaged {
-            self.widget.borrow().clear();
-            self.displayState = DisplayedFileChange::None;
+            self.clear();
         }
     }
 
     fn onStagedChangeUnselected(&mut self)
     {
         if self.displayState == DisplayedFileChange::Staged {
-            self.widget.borrow().clear();
-            self.displayState = DisplayedFileChange::None;
+            self.clear();
         }
     }
 
-    fn onUnstagedChangeRefreshed(&mut self, fileChangeOpt: &Option<FileChange>)
+    fn onUnstagedOptionalChangeRefreshed(&mut self, fileChangeOpt: &Option<FileChange>)
     {
+        if self.displayState != DisplayedFileChange::Unstaged {
+            return;
+        }
+
         match fileChangeOpt {
-            Some(fileChange) => self.onUnstagedChangeSelected(fileChange),
-            None => self.onUnstagedChangeUnselected()
+            Some(fileChange) => self.onUnstagedChangeRefreshed(fileChange),
+            None => self.clear()
         }
     }
 
-    fn onStagedChangeRefreshed(&mut self, fileChangeOpt: &Option<FileChange>)
+    fn onStagedOptionalChangeRefreshed(&mut self, fileChangeOpt: &Option<FileChange>)
     {
+        if self.displayState != DisplayedFileChange::Staged {
+            return;
+        }
+
         match fileChangeOpt {
-            Some(fileChange) => self.onStagedChangeSelected(fileChange),
-            None => self.onStagedChangeUnselected()
+            Some(fileChange) => self.onStagedChangeRefreshed(fileChange),
+            None => self.clear()
         }
     }
 
-    fn makeDiffForUnstagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+    fn onUnstagedChangeRefreshed(&mut self, fileChange: &FileChange)
     {
-        repository.makeDiffOfIndexToWorkdir(&fileChange.path)
+        match fileChange.status.as_str() {
+            "WT_RENAMED" => self.onFileChangeRefreshed(
+                fileChange, makeDiffForUnstagedRenamedFile, DisplayedFileChange::Unstaged),
+            _ => self.onFileChangeRefreshed(
+                fileChange, makeDiffForUnstagedChange, DisplayedFileChange::Unstaged)
+        }
     }
 
-    fn makeDiffForStagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+    fn onStagedChangeRefreshed(&mut self, fileChange: &FileChange)
     {
-        repository.makeDiffOfTreeToIndex(&fileChange.path)
+        self.onFileChangeRefreshed(fileChange, makeDiffForStagedChange, DisplayedFileChange::Staged);
     }
 
-    fn makeDiffForUnstagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+    fn clear(&mut self)
     {
-        repository.makeDiffOfIndexToWorkdirForRenamedFile(&fileChange.oldPath.as_ref().unwrap(), &fileChange.path)
+        self.widget.borrow().clear();
+        self.displayState = DisplayedFileChange::None;
     }
+
+    fn makeFormattedDiff(&self, fileChange: &FileChange, diffMaker: DiffMaker) -> String
+    {
+        let mut diffFormatter = DiffFormatter::new();
+        let repository = self.repository.borrow();
+        let diff = (diffMaker)(&fileChange, &repository);
+        diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))
+            .unwrap_or_else(|e| exit(&format!("Failed to format diff: {}", e)));
+        diffFormatter.takeText()
+    }
+}
+
+fn makeDiffForUnstagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+{
+    repository.makeDiffOfIndexToWorkdir(&fileChange.path)
+}
+
+fn makeDiffForStagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+{
+    repository.makeDiffOfTreeToIndex(&fileChange.path)
+}
+
+fn makeDiffForUnstagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+{
+    repository.makeDiffOfIndexToWorkdirForRenamedFile(&fileChange.oldPath.as_ref().unwrap(), &fileChange.path)
 }

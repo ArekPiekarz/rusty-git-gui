@@ -1,8 +1,11 @@
 use crate::gui_element_provider::GuiElementProvider;
+use crate::line_count::LineCount;
+use crate::line_number::LineNumber;
 use crate::main_context::{attach, makeChannel};
 
 use glib::Sender;
 use gtk::TextBufferExt as _;
+use gtk::TextTagTableExt as _;
 use gtk::TextViewExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -27,8 +30,7 @@ pub enum Notifications
 
 impl TextView
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, notifications: Notifications)
-        -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, notifications: Notifications) -> Rc<RefCell<Self>>
     {
         let widget = guiElementProvider.get::<gtk::TextView>(name);
         let newSelf = Rc::new(RefCell::new(Self{
@@ -54,6 +56,18 @@ impl TextView
         self.buffer.set_text(text);
     }
 
+    pub fn insertTextAt(&self, text: &str, line: LineNumber)
+    {
+        self.buffer.insert(&mut self.buffer.get_iter_at_line(line.into()), text);
+    }
+
+    pub fn removeTextAt(&self, startLine: LineNumber, lineCount: LineCount)
+    {
+        self.buffer.delete(
+            &mut self.buffer.get_iter_at_line(startLine.into()),
+            &mut self.buffer.get_iter_at_line((startLine + lineCount).into()));
+    }
+
     pub fn isFilled(&self) -> bool
     {
         !self.getText().is_empty()
@@ -64,15 +78,35 @@ impl TextView
         !self.isFilled()
     }
 
-    pub fn setRichText(&self, text: &str)
-    {
-        self.clear();
-        self.buffer.insert_markup(&mut self.buffer.get_start_iter(), text);
-    }
-
     pub fn clear(&self)
     {
         self.setText("");
+    }
+
+    pub fn registerTags(&self, tags: &[&gtk::TextTag])
+    {
+        let tagTable = self.buffer.get_tag_table().unwrap();
+        for tag in tags {
+            assert!(tagTable.add(*tag));
+        }
+    }
+
+    pub fn applyTag(&self, tag: &gtk::TextTag, startLine: LineNumber, endLine: LineNumber)
+    {
+        self.buffer.apply_tag(
+            tag,
+            &self.buffer.get_iter_at_line(startLine.into()),
+            &self.buffer.get_iter_at_line(endLine.into()));
+    }
+
+    pub fn applyTagUntilEnd(&self, tag: &gtk::TextTag, startLine: LineNumber)
+    {
+        self.buffer.apply_tag(tag, &self.buffer.get_iter_at_line(startLine.into()), &self.buffer.get_end_iter());
+    }
+
+    pub fn removeTags(&self)
+    {
+        self.buffer.remove_all_tags(&self.buffer.get_start_iter(), &self.buffer.get_end_iter());
     }
 
     pub fn connectOnFilled(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
@@ -108,8 +142,7 @@ impl TextView
             if self.shouldNotifyOnFilled {
                 self.notifyOnFilled();
             }
-        }
-        else {
+        } else {
             self.notifyOnEmptied();
         }
     }
