@@ -1,4 +1,5 @@
 use crate::main_context::{attach, makeChannel};
+use crate::tree_model_utils::toRow;
 
 use glib::Sender;
 use gtk::TreeSelectionExt as _;
@@ -25,7 +26,7 @@ impl TreeSelection
     {
         let (rowPaths, _model) = self.selection.get_selected_rows();
         match rowPaths.get(0) {
-            Some(rowPath) => Some(*rowPath.get_indices().get(0).unwrap() as usize),
+            Some(rowPath) => Some(toRow(rowPath)),
             None => None
         }
     }

@@ -4,16 +4,24 @@ use crate::file_changes_view_entry::FileChangesViewEntry;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::ifile_changes_store::IFileChangesStore;
 use crate::main_context::{attach, makeChannel};
-use crate::tree_model_constants::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL};
+use crate::tree_model_utils::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL, toRow};
 use crate::tree_view::TreeView;
 
 use glib::Sender;
+use gtk::GtkMenuExt as _;
+use gtk::GtkMenuItemExt as _;
 use gtk::TreeModelExt as _;
 use gtk::TreeSelectionExt as _;
+use gtk::WidgetExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub type OnRowActivatedAction = Box<dyn Fn(&FileChange)>;
+
+const LEFT_MENU_ITEM_ATTACH: u32 = 0;
+const RIGHT_MENU_ITEM_ATTACH: u32 = 1;
+const TOP_MENU_ITEM_ATTACH: u32 = 0;
+const BOTTOM_MENU_ITEM_ATTACH: u32 = 1;
 
 
 pub struct FileChangesView<StoreType>
@@ -181,10 +189,7 @@ impl<StoreType> FileChangesView<StoreType>
     {
         let (rows, _model) = selection.get_selected_rows();
         match rows.get(0) {
-            Some(rowPath) => {
-                let row = *rowPath.get_indices().get(0).unwrap() as usize;
-                self.notifyOnSelected(self.store.borrow().getFileChange(row))
-            },
+            Some(rowPath) => self.notifyOnSelected(self.store.borrow().getFileChange(toRow(rowPath))),
             None => self.notifyOnUnselected()
         }
     }
@@ -212,11 +217,29 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn connectSelfToView(rcSelf: &Rc<RefCell<Self>>)
     {
+        Self::connectSelfToRowActivated(rcSelf);
+        Self::connectSelfToRightClicked(rcSelf);
+    }
+
+    fn connectSelfToRowActivated(rcSelf: &Rc<RefCell<Self>>)
+    {
         let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().view.borrow_mut().connectOnRowActivated(Box::new(
             move |(_view, row, _column)| {
                 if let Some(rcSelf) = weakSelf.upgrade() {
                     rcSelf.borrow().onRowActivated(&row);
+                }
+                glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToRightClicked(rcSelf: &Rc<RefCell<Self>>)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        rcSelf.borrow().view.borrow_mut().connectOnRightClicked(Box::new(
+            move |event| {
+                if let Some(rcSelf) = weakSelf.upgrade() {
+                    rcSelf.borrow().onRightClicked(&event);
                 }
                 glib::Continue(true)
         }));
@@ -231,7 +254,7 @@ impl<StoreType> FileChangesView<StoreType>
                     rcSelf.borrow().onRefreshed();
                 }
                 glib::Continue(true)
-            }));
+        }));
     }
 
     fn onRowActivated(&self, row: &gtk::TreePath)
@@ -244,6 +267,33 @@ impl<StoreType> FileChangesView<StoreType>
             oldPath: None};
 
         (self.onRowActivatedAction)(&fileChange);
+    }
+
+    fn onRightClicked(&self, event: &gdk::EventButton)
+    {
+        let (x, y) = event.get_position();
+        if let Some(row) = self.view.borrow().getRowAtPosition(x, y) {
+            self.onRightClickedRow(row, event);
+        }
+    }
+
+    fn onRightClickedRow(&self, row: usize, event: &gdk::EventButton)
+    {
+        let filePath = self.store.borrow().getFilePath(row).to_owned();
+        let menu = gtk::Menu::new();
+        let menuItem = gtk::MenuItem::new_with_label("Copy path");
+        menuItem.connect_activate(move |_item| {
+            let clipboard = gtk::Clipboard::get(&gdk::SELECTION_CLIPBOARD);
+            clipboard.set_text(&filePath);
+        });
+        menu.attach(
+            &menuItem,
+            LEFT_MENU_ITEM_ATTACH,
+            RIGHT_MENU_ITEM_ATTACH,
+            TOP_MENU_ITEM_ATTACH,
+            BOTTOM_MENU_ITEM_ATTACH);
+        menu.show_all();
+        menu.popup_at_pointer(Some(event));
     }
 
     fn onRefreshed(&self)

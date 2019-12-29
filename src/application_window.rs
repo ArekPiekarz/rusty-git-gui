@@ -1,3 +1,4 @@
+use crate::event_constants::KEEP_FORWARDING_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::settings::Settings;
 
@@ -8,7 +9,6 @@ use std::rc::Rc;
 const SECTION: &str = "Application window";
 const IS_MAXIMIZED_KEY: &str = "isMaximized";
 const MAXIMIZE_BY_DEFAULT: bool = true;
-const PROPAGATE_SIGNAL_TO_DEFAULT_HANDLER : gtk::Inhibit = gtk::Inhibit(true);
 
 
 pub struct ApplicationWindow
@@ -66,6 +66,7 @@ impl ApplicationWindow
         self.window.connect_delete_event(move |_window, _event| {
             settings.save();
             gtk::main_quit();
-            PROPAGATE_SIGNAL_TO_DEFAULT_HANDLER });
+            KEEP_FORWARDING_EVENT
+        });
     }
 }

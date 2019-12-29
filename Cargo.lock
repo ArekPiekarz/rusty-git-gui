@@ -1054,6 +1054,7 @@ dependencies = [
  "dirs",
  "failchain",
  "failure",
+ "gdk",
  "git2",
  "glib",
  "gtk",

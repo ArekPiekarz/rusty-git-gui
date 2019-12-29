@@ -1,6 +1,8 @@
 use crate::error_handling::exit;
+use crate::event_constants::KEEP_FORWARDING_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_context::{attach, makeChannel};
+use crate::tree_model_utils::toRow;
 use crate::tree_selection::TreeSelection;
 
 use glib::Sender;
@@ -14,14 +16,18 @@ use std::rc::Rc;
 const EXPAND_IN_LAYOUT : bool = true;
 const NO_COLUMN_FOCUS: Option<&gtk::TreeViewColumn> = None;
 const NO_EDITING: bool = false;
+const MOUSE_RIGHT_BUTTON: u32 = 3;
 
 
 pub struct TreeView
 {
     widget: gtk::TreeView,
     selection: Rc<RefCell<TreeSelection>>,
-    onRowActivatedSenders: Vec<Sender<(gtk::TreeView, gtk::TreePath, gtk::TreeViewColumn)>>
+    onRowActivatedSenders: Vec<Sender<(gtk::TreeView, gtk::TreePath, gtk::TreeViewColumn)>>,
+    onRightClickedSenders: Vec<Sender<gdk::EventButton>>
 }
+
+type OnRightClickedHandler = Box<dyn Fn(gdk::EventButton) -> glib::Continue>;
 
 impl TreeView
 {
@@ -29,9 +35,15 @@ impl TreeView
     {
         let widget = guiElementProvider.get::<gtk::TreeView>(widgetName);
         let selection = TreeSelection::new(widget.get_selection());
-        let newSelf = Rc::new(RefCell::new(Self{widget, selection, onRowActivatedSenders: vec![]}));
+        let newSelf = Rc::new(RefCell::new(Self{
+            widget,
+            selection,
+            onRowActivatedSenders: vec![],
+            onRightClickedSenders: vec![]
+        }));
         newSelf.borrow().setupColumns(columns);
         Self::connectSelfToRowActivated(&newSelf);
+        Self::connectSelfToButtonPressEvent(&newSelf);
         newSelf
     }
 
@@ -50,12 +62,27 @@ impl TreeView
         &self.selection
     }
 
+    pub fn getRowAtPosition(&self, x: f64, y: f64) -> Option<usize>
+    {
+        match self.widget.get_path_at_pos(x as i32, y as i32) {
+            Some(result) => Some(toRow(&result.0.unwrap())),
+            None => None
+        }
+    }
+
     pub fn connectOnRowActivated(
         &mut self,
         handler: Box<dyn Fn((gtk::TreeView, gtk::TreePath, gtk::TreeViewColumn)) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
         self.onRowActivatedSenders.push(sender);
+        attach(receiver, handler);
+    }
+
+    pub fn connectOnRightClicked(&mut self, handler: OnRightClickedHandler)
+    {
+        let (sender, receiver) = makeChannel();
+        self.onRightClickedSenders.push(sender);
         attach(receiver, handler);
     }
 
@@ -102,10 +129,37 @@ impl TreeView
         );
     }
 
+    fn connectSelfToButtonPressEvent(rcSelf: &Rc<RefCell<Self>>)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        rcSelf.borrow().widget.connect_button_press_event(
+            move |_view, button| {
+                if let Some(rcSelf) = weakSelf.upgrade() {
+                    rcSelf.borrow().onButtonPressEvent(button);
+                }
+                KEEP_FORWARDING_EVENT
+            }
+        );
+    }
+
     fn notifyOnRowActivated(&self, view: &gtk::TreeView, row: &gtk::TreePath, column: &gtk::TreeViewColumn)
     {
         for sender in &self.onRowActivatedSenders {
             sender.send((view.clone(), row.clone(), column.clone())).unwrap();
+        }
+    }
+
+    fn onButtonPressEvent(&self, event: &gdk::EventButton)
+    {
+        if event.get_button() == MOUSE_RIGHT_BUTTON {
+            self.notifyOnRightClicked(event);
+        }
+    }
+
+    fn notifyOnRightClicked(&self, event: &gdk::EventButton)
+    {
+        for sender in &self.onRightClickedSenders {
+            sender.send(event.clone()).unwrap();
         }
     }
 }

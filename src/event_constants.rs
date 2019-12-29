@@ -1,0 +1,1 @@
+pub const KEEP_FORWARDING_EVENT: gtk::Inhibit = gtk::Inhibit(false);
