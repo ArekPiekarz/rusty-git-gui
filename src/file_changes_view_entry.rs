@@ -1,3 +1,6 @@
-use crate::file_changes_store_entry::FileChangesStoreEntry;
-
-pub type FileChangesViewEntry = FileChangesStoreEntry;
+#[derive(Debug, Eq, PartialEq)]
+pub struct FileChangesViewEntry
+{
+    pub status: String,
+    pub path: String,
+}

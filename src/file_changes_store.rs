@@ -1,16 +1,15 @@
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_changes_store_entry::FileChangesStoreEntry;
 use crate::file_path::FilePathStr;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::ifile_changes_store::{IFileChangesStore, OnRefreshedHandler};
 use crate::main_context::{attach, makeChannel};
+use crate::number_casts::ToI32 as _;
 
 use glib::Sender;
 use gtk::GtkListStoreExt as _;
 use gtk::prelude::GtkListStoreExtManual as _;
 use gtk::TreeModelExt as _;
-use itertools::Itertools;
 use std::cmp::{Ord, Ordering::Less, Ordering::Equal, Ordering::Greater};
 
 const NO_PARENT: Option<&gtk::TreeIter> = None;
@@ -49,7 +48,7 @@ impl FileChangesStore
         self.store.set(
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
-            &[&fileChange.status as &dyn glib::ToValue, &fileChange.path as &dyn glib::ToValue]);
+            &[&fileChange.status, &fileChange.path]);
     }
 
     pub fn update(&mut self, fileChangeUpdate: &FileChangeUpdate)
@@ -60,8 +59,8 @@ impl FileChangesStore
         currentFileChange.status = fileChangeUpdate.new.status.clone();
 
         self.store.set_value(
-            &self.store.iter_nth_child(NO_PARENT, index as i32).unwrap(),
-            FileChangesColumn::Status as u32,
+            &self.store.iter_nth_child(NO_PARENT, index.toI32()).unwrap(),
+            FileChangesColumn::Status.into(),
             &glib::Value::from(&fileChangeUpdate.new.status));
     }
 
@@ -69,13 +68,13 @@ impl FileChangesStore
     {
         let index = self.fileChanges.iter().position(|fileChange| fileChange.path == filePath).unwrap();
         self.fileChanges.remove(index);
-        self.store.remove(&self.store.iter_nth_child(NO_PARENT, index as i32).unwrap());
+        self.store.remove(&self.store.iter_nth_child(NO_PARENT, index.toI32()).unwrap());
     }
 
-    pub fn refresh(&mut self, newFileChanges: Vec<FileChange>)
+    pub fn refresh(&mut self, newFileChanges: &[FileChange])
     {
         let mut oldFileChangeIndex = 0;
-        for newFileChange in &newFileChanges {
+        for newFileChange in newFileChanges {
             self.refreshOldFileChanges(&mut oldFileChangeIndex, newFileChange);
         }
         self.removeLeftoverFileChanges(newFileChanges.len());
@@ -93,18 +92,12 @@ impl FileChangesStore
 
     fn fillFileChangesStore(&self)
     {
-        let fileChangesStoreEntries = self.fileChanges.iter().map(|fileChange| FileChangesStoreEntry {
-            status: fileChange.status.clone(),
-            path: Self::formatFilePath(fileChange)})
-            .collect_vec();
-
-        let internalStoreEntries = fileChangesStoreEntries.iter().map(
-            |fileChange| [&fileChange.status as &dyn glib::ToValue, &fileChange.path as &dyn glib::ToValue])
-            .collect_vec();
-
-        for fileChange in internalStoreEntries {
-            self.store.set(&self.store.append(), &FileChangesColumn::asArrayOfU32(), &fileChange);
-        };
+        self.fileChanges.iter().for_each(|fileChange| {
+            self.store.set(
+                &self.store.append(),
+                &FileChangesColumn::asArrayOfU32(),
+                &[&fileChange.status, &Self::formatFilePath(fileChange)]);
+        });
     }
 
     fn formatFilePath(fileChange: &FileChange) -> String
@@ -125,17 +118,13 @@ impl FileChangesStore
     fn refreshOldFileChanges(&mut self, oldFileChangeIndex: &mut usize, newFileChange: &FileChange)
     {
         loop {
-            match self.fileChanges.get(*oldFileChangeIndex) {
-                Some(_) => {
-                    if self.refreshEntryWhenOldFileChangeIsPresent(oldFileChangeIndex, newFileChange)
-                        == LoopControl::Break {
-                            break;
-                    }
-                },
-                None => {
-                    self.refreshEntryWhenOldFileChangeIsAbsent(oldFileChangeIndex, newFileChange);
+            if self.fileChanges.get(*oldFileChangeIndex).is_some() {
+                if self.refreshEntryWhenOldFileChangeIsPresent(oldFileChangeIndex, newFileChange) == LoopControl::Break {
                     break;
                 }
+            } else {
+                self.refreshEntryWhenOldFileChangeIsAbsent(oldFileChangeIndex, newFileChange);
+                break;
             }
         }
     }
@@ -143,19 +132,19 @@ impl FileChangesStore
     fn refreshEntryWhenOldFileChangeIsPresent(&mut self, oldFileChangeIndex: &mut usize, newFileChange: &FileChange)
         -> LoopControl
     {
-        let oldFileChange = self.fileChanges.get_mut(*oldFileChangeIndex).unwrap();
+        let oldFileChange = &mut self.fileChanges[*oldFileChangeIndex];
         match newFileChange.path.cmp(&oldFileChange.path) {
             Less => {
                 self.refreshEntryWhenNewPathIsLessThanOld(oldFileChangeIndex, newFileChange);
-                return LoopControl::Break;
+                LoopControl::Break
             }
             Equal => {
                 Self::refreshEntryWhenNewPathIsEqualToOld(&self.store, oldFileChangeIndex, oldFileChange, newFileChange);
-                return LoopControl::Break;
+                LoopControl::Break
             },
             Greater => {
                 self.refreshEntryWhenNewPathIsGreaterThanOld(*oldFileChangeIndex);
-                return LoopControl::DoNotBreak;
+                LoopControl::DoNotBreak
             }
         }
     }
@@ -164,9 +153,9 @@ impl FileChangesStore
     {
         self.fileChanges.insert(*oldFileChangeIndex, newFileChange.clone());
         self.store.set(
-            &self.store.insert(*oldFileChangeIndex as i32),
+            &self.store.insert((*oldFileChangeIndex).toI32()),
             &FileChangesColumn::asArrayOfU32(),
-            &[&newFileChange.status as &dyn glib::ToValue, &newFileChange.path as &dyn glib::ToValue]);
+            &[&newFileChange.status, &newFileChange.path]);
         *oldFileChangeIndex += 1;
     }
 
@@ -179,8 +168,8 @@ impl FileChangesStore
         if newFileChange.status != oldFileChange.status {
             oldFileChange.status = newFileChange.status.clone();
             store.set_value(
-                &store.iter_nth_child(NO_PARENT, *oldFileChangeIndex as i32).unwrap(),
-                FileChangesColumn::Status as u32,
+                &store.iter_nth_child(NO_PARENT, (*oldFileChangeIndex).toI32()).unwrap(),
+                FileChangesColumn::Status.into(),
                 &glib::Value::from(&newFileChange.status)
             );
         }
@@ -188,9 +177,9 @@ impl FileChangesStore
         if newFileChange.oldPath != oldFileChange.oldPath {
             oldFileChange.oldPath = newFileChange.oldPath.clone();
             store.set_value(
-                &store.iter_nth_child(NO_PARENT, *oldFileChangeIndex as i32).unwrap(),
-                FileChangesColumn::Path as u32,
-                &glib::Value::from(&Self::formatFilePath(&newFileChange))
+                &store.iter_nth_child(NO_PARENT, (*oldFileChangeIndex).toI32()).unwrap(),
+                FileChangesColumn::Path.into(),
+                &glib::Value::from(&Self::formatFilePath(newFileChange))
             );
         }
 
@@ -200,7 +189,7 @@ impl FileChangesStore
     fn refreshEntryWhenNewPathIsGreaterThanOld(&mut self, oldFileChangeIndex: usize)
     {
         self.fileChanges.remove(oldFileChangeIndex);
-        self.store.remove(&self.store.iter_nth_child(NO_PARENT, oldFileChangeIndex as i32).unwrap());
+        self.store.remove(&self.store.iter_nth_child(NO_PARENT, oldFileChangeIndex.toI32()).unwrap());
     }
 
     fn refreshEntryWhenOldFileChangeIsAbsent(&mut self, oldFileChangeIndex: &mut usize, newFileChange: &FileChange)
@@ -209,16 +198,16 @@ impl FileChangesStore
         self.store.set(
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
-            &[&newFileChange.status as &dyn glib::ToValue, &newFileChange.path as &dyn glib::ToValue]);
+            &[&newFileChange.status, &newFileChange.path]);
         *oldFileChangeIndex += 1;
     }
 
     fn removeLeftoverFileChanges(&mut self, newFileChangesSize: usize)
     {
         if newFileChangesSize < self.fileChanges.len() {
-            for i in (newFileChangesSize..self.fileChanges.len()).rev() {
+            for row in (newFileChangesSize..self.fileChanges.len()).rev() {
                 self.fileChanges.pop();
-                self.store.remove(&self.store.iter_nth_child(NO_PARENT, i as i32).unwrap());
+                self.store.remove(&self.store.iter_nth_child(NO_PARENT, row.toI32()).unwrap());
             }
         }
     }
@@ -228,7 +217,7 @@ impl IFileChangesStore for FileChangesStore
 {
     fn getFileChange(&self, row: usize) -> &FileChange
     {
-        self.fileChanges.get(row).unwrap()
+        &self.fileChanges[row]
     }
 
     fn getFilePath(&self, row: usize) -> &FilePathStr
@@ -238,8 +227,8 @@ impl IFileChangesStore for FileChangesStore
 
     fn findFilePath(&self, path: &FilePathStr) -> Option<usize>
     {
-        self.fileChanges.iter().enumerate().find(|(_index, fileChange)| fileChange.path == path)
-            .map(|(index, _fileChange)| index )
+        self.fileChanges.iter().enumerate().find_map(|(index, fileChange)|
+             if fileChange.path == path { Some(index) } else { None })
     }
 
     fn connectOnRefreshed(&mut self, handler: OnRefreshedHandler)

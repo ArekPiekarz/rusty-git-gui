@@ -21,7 +21,7 @@ pub struct TextView
     shouldNotifyOnFilled: bool
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Notifications
 {
     Enabled,

@@ -248,7 +248,7 @@ impl DiffView
     {
         let mut diffFormatter = DiffFormatter::new();
         let repository = self.repository.borrow();
-        let diff = (diffMaker)(&fileChange, &repository);
+        let diff = (diffMaker)(fileChange, &repository);
         diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))
             .unwrap_or_else(|e| exit(&format!("Failed to format diff: {}", e)));
         diffFormatter.takeText()
@@ -267,5 +267,5 @@ fn makeDiffForStagedChange<'a>(fileChange: &FileChange, repository: &'a Reposito
 
 fn makeDiffForUnstagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
 {
-    repository.makeDiffOfIndexToWorkdirForRenamedFile(&fileChange.oldPath.as_ref().unwrap(), &fileChange.path)
+    repository.makeDiffOfIndexToWorkdirForRenamedFile(fileChange.oldPath.as_ref().unwrap(), &fileChange.path)
 }

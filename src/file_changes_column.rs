@@ -18,3 +18,21 @@ impl FileChangesColumn
         [0, 1]
     }
 }
+
+#[allow(clippy::as_conversions)]
+impl From<FileChangesColumn> for i32
+{
+    fn from(value: FileChangesColumn) -> Self
+    {
+        value as Self
+    }
+}
+
+#[allow(clippy::as_conversions)]
+impl From<FileChangesColumn> for u32
+{
+    fn from(value: FileChangesColumn) -> Self
+    {
+        value as Self
+    }
+}

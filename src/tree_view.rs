@@ -2,6 +2,7 @@ use crate::error_handling::exit;
 use crate::event_constants::KEEP_FORWARDING_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_context::{attach, makeChannel};
+use crate::number_casts::ToI32 as _;
 use crate::tree_model_utils::toRow;
 use crate::tree_selection::TreeSelection;
 
@@ -57,14 +58,14 @@ impl TreeView
         self.widget.get_model().unwrap()
     }
 
-    pub fn getSelection(&self) -> &Rc<RefCell<TreeSelection>>
+    pub const fn getSelection(&self) -> &Rc<RefCell<TreeSelection>>
     {
         &self.selection
     }
 
     pub fn getRowAtPosition(&self, x: f64, y: f64) -> Option<usize>
     {
-        match self.widget.get_path_at_pos(x as i32, y as i32) {
+        match self.widget.get_path_at_pos(x.toI32(), y.toI32()) {
             Some(result) => Some(toRow(&result.0.unwrap())),
             None => None
         }

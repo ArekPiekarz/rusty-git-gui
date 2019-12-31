@@ -17,14 +17,14 @@ pub struct UnstagedChangesStore
 
 impl UnstagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: Rc<RefCell<Repository>>) -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: &Rc<RefCell<Repository>>) -> Rc<RefCell<Self>>
     {
         let newSelf = Rc::new(RefCell::new(Self{
             store: FileChangesStore::new(
                 guiElementProvider,
                 "Unstaged changes store",
                 repository.borrow().getUnstagedChanges()),
-            repository: Rc::clone(&repository)
+            repository: Rc::clone(repository)
         }));
         Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
         newSelf
@@ -102,7 +102,7 @@ impl UnstagedChangesStore
 
     fn onRefreshed(&mut self)
     {
-        self.store.refresh(self.repository.borrow().getUnstagedChanges().to_vec());
+        self.store.refresh(self.repository.borrow().getUnstagedChanges());
     }
 }
 

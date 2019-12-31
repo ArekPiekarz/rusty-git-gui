@@ -165,12 +165,12 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn getCell(model: &gtk::TreeModel, iter: &gtk::TreeIter, column: FileChangesColumn) -> String
     {
-        model.get_value(iter, column as i32).get::<String>().unwrap().unwrap()
+        model.get_value(iter, column.into()).get::<String>().unwrap().unwrap()
     }
 
     fn getFilePathColumn(&self) -> gtk::TreeViewColumn
     {
-        self.view.borrow().getColumn(FileChangesColumn::Path as i32)
+        self.view.borrow().getColumn(FileChangesColumn::Path.into())
     }
 
     fn connectSelfToViewSelection(rcSelf: &Rc<RefCell<Self>>)
@@ -247,7 +247,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn connectSelfToStore(rcSelf: &Rc<RefCell<Self>>)
     {
-        let weakSelf = Rc::downgrade(&rcSelf);
+        let weakSelf = Rc::downgrade(rcSelf);
         rcSelf.borrow().store.borrow_mut().connectOnRefreshed(Box::new(
             move |_| {
                 if let Some(rcSelf) = weakSelf.upgrade() {

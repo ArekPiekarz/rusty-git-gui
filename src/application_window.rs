@@ -38,9 +38,10 @@ impl ApplicationWindow
     fn loadSettings(&self, settings: &Settings)
     {
         let isMaximized = settings.get(SECTION, IS_MAXIMIZED_KEY, MAXIMIZE_BY_DEFAULT);
-        match isMaximized {
-            true => self.window.maximize(),
-            false => self.window.unmaximize()
+        if isMaximized {
+            self.window.maximize();
+        } else {
+            self.window.unmaximize();
         }
     }
 

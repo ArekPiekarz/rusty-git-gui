@@ -27,11 +27,17 @@ impl failchain::ChainErrorKind for ErrorKind
 use ErrorKind::*;
 
 
+#[cfg(feature = "use_color_backtrace")]
 pub fn setupPanicHandler()
 {
-    #[cfg(feature = "use_color_backtrace")]
     color_backtrace::install();
 }
+
+#[cfg(not(feature = "use_color_backtrace"))]
+pub const fn setupPanicHandler()
+{
+}
+
 
 pub fn setupGtk()
 {
@@ -39,8 +45,6 @@ pub fn setupGtk()
         .unwrap_or_else(|e| panic!("Failed to initialize GTK. Cause: {}", e));
 }
 
-#[allow(clippy::indexing_slicing)]
-#[allow(clippy::integer_arithmetic)]
 pub fn findRepositoryDir() -> Result<PathBuf>
 {
     (|| -> Result<PathBuf> {

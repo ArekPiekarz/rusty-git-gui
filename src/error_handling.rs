@@ -1,5 +1,3 @@
-#![allow(clippy::panic)]
-
 use glib::Cast as _;
 use gtk::ContainerExt as _;
 use gtk::DialogExt as _;

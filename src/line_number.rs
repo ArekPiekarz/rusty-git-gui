@@ -1,6 +1,6 @@
 use crate::line_count::LineCount;
 
-use std::convert::TryInto;
+use std::convert::TryInto as _;
 use std::ops::Add;
 use std::ops::AddAssign;
 
@@ -34,9 +34,10 @@ impl From<usize> for LineNumber
     }
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl From::<LineNumber> for i32
 {
-    fn from(value: LineNumber) -> i32
+    fn from(value: LineNumber) -> Self
     {
         value.0.try_into().unwrap()
     }

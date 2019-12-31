@@ -35,7 +35,7 @@ impl Settings
     }
 
     pub fn set<T>(&self, section: &str, key: &str, value: T)
-        where T: ToString
+        where T: Copy + ToString
     {
         self.config.borrow_mut().set_to(Some(section), key.into(), value.to_string());
     }
@@ -48,7 +48,7 @@ impl Settings
     pub fn save(&self)
     {
         for saver in &self.savers {
-            saver(&self);
+            saver(self);
         }
         self.ensureConfigDirExists();
         self.config.borrow_mut().write_to_file(&self.configFilePath).unwrap();

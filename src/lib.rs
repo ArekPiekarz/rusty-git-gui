@@ -1,11 +1,17 @@
 #![allow(clippy::cargo_common_metadata)]
 #![allow(clippy::implicit_return)]
+#![allow(clippy::indexing_slicing)]
+#![allow(clippy::integer_arithmetic)]
+#![allow(clippy::let_underscore_must_use)] // false positives in Debug
 #![allow(clippy::missing_docs_in_private_items)]
+#![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_inline_in_public_items)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::option_unwrap_used)]
+#![allow(clippy::panic)]
 #![allow(clippy::result_unwrap_used)]
+#![allow(clippy::string_add)]
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
 #![feature(arbitrary_self_types)]
@@ -31,7 +37,6 @@ mod file_change;
 mod file_changes_column;
 mod file_changes_paned;
 mod file_changes_store;
-mod file_changes_store_entry;
 mod file_changes_view;
 mod file_path;
 mod grouped_file_changes;
@@ -41,6 +46,7 @@ mod line_count;
 mod line_number;
 mod main_context;
 mod main_paned;
+mod number_casts;
 mod paned;
 mod refresh_button;
 mod settings;

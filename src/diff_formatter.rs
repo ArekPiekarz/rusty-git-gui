@@ -25,6 +25,7 @@ impl DiffFormatter
         FORMATTING_SUCCEEDED
     }
 
+    #[allow(clippy::missing_const_for_fn)] // buggy - self cannot be destructed in const fn
     pub fn takeText(self) -> String
     {
         self.text
@@ -40,7 +41,7 @@ impl DiffFormatter
 
     fn addHunkInfo(&mut self, line : &str)
     {
-        self.text.push_str(&line);
+        self.text.push_str(line);
     }
 }
 

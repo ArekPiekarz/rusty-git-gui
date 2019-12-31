@@ -21,6 +21,6 @@ pub fn makeUnstagedChangesView(
     FileChangesView::new(
         guiElementProvider,
         "Unstaged changes view",
-        UnstagedChangesStore::new(guiElementProvider, repository2),
+        UnstagedChangesStore::new(guiElementProvider, &repository2),
         onRowActivatedAction)
 }
