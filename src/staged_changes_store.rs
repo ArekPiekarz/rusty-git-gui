@@ -11,18 +11,22 @@ use std::rc::Rc;
 
 pub struct StagedChangesStore
 {
-    store: FileChangesStore
+    store: FileChangesStore,
+    repository: Rc<RefCell<Repository>>
 }
 
 impl StagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository) -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: &Rc<RefCell<Repository>>) -> Rc<RefCell<Self>>
     {
-        let newSelf = Rc::new(RefCell::new(Self{store: FileChangesStore::new(
-            guiElementProvider,
-            "Staged changes store",
-            repository.getStagedChanges())}));
-        Self::connectSelfToRepository(&newSelf, repository);
+        let newSelf = Rc::new(RefCell::new(Self{
+            store: FileChangesStore::new(
+                guiElementProvider,
+                "Staged changes store",
+                repository.borrow().getStagedChanges()),
+            repository: Rc::clone(repository)
+        }));
+        Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
         newSelf
     }
 
@@ -35,6 +39,7 @@ impl StagedChangesStore
         Self::connectSelfToRepositoryOnUpdatedInStaged(rcSelf, repository);
         Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf, repository);
         Self::connectSelfToRepositoryOnCommitted(rcSelf, repository);
+        Self::connectSelfToRepositoryOnRefreshed(rcSelf, repository);
     }
 
     fn connectSelfToRepositoryOnAddedToStaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
@@ -81,6 +86,17 @@ impl StagedChangesStore
         }));
     }
 
+    fn connectSelfToRepositoryOnRefreshed(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        repository.connectOnRefreshed(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onRefreshed();
+            }
+            glib::Continue(true)
+        }));
+    }
+
     fn onAddedToStaged(&mut self, fileChange: &FileChange)
     {
         self.store.append(fileChange);
@@ -99,6 +115,11 @@ impl StagedChangesStore
     fn onCommitted(&mut self)
     {
         self.store.clear();
+    }
+
+    fn onRefreshed(&mut self)
+    {
+        self.store.refresh(self.repository.borrow().getStagedChanges());
     }
 }
 
