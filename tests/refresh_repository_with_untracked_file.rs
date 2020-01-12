@@ -28,7 +28,7 @@ fn refreshRepositoryWithUntrackedFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
 
@@ -38,7 +38,7 @@ fn refreshRepositoryWithUntrackedFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
 }

@@ -36,8 +36,8 @@ fn stageDeletedFileGivenNoCommits()
         &[Entry{path: filePath.clone(), workTreeStatus: Deleted, indexStatus: Added}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_DELETED", &filePath)], &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewContains("@@ -1 +0,0 @@\n-some file content\n", &gui);
 
     activateUnstagedChangeToStageIt(&filePath, &gui);

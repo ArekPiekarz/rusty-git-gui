@@ -52,12 +52,12 @@ fn loadRepositoryWithMultipleKindsOfFiles()
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(
-        &[makeFileChange("WT_NEW", &newUnstagedFilePath),
-          makeFileChange("WT_MODIFIED", &newStagedAndModifiedUnstagedFilePath)],
+        &[makeFileChange("New", &newUnstagedFilePath),
+          makeFileChange("Modified", &newStagedAndModifiedUnstagedFilePath)],
         &gui);
     assertStagedChangesViewContains(
-        &[makeFileChange("INDEX_MODIFIED", &modifiedStagedFilePath),
-          makeFileChange("INDEX_NEW", &newStagedAndModifiedUnstagedFilePath)],
+        &[makeFileChange("Modified", &modifiedStagedFilePath),
+          makeFileChange("New", &newStagedAndModifiedUnstagedFilePath)],
         &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+new unstaged file content\n", &gui);
     assertCommitMessageViewIsEmpty(&gui);

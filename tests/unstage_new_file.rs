@@ -33,7 +33,7 @@ fn unstageNewFile()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
     activateStagedChangeToUnstageIt(&filePath, &gui);
@@ -42,7 +42,7 @@ fn unstageNewFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
 

@@ -36,7 +36,7 @@ fn unstageDeletedFile()
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_DELETED", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
     activateStagedChangeToUnstageIt(&filePath, &gui);
@@ -45,7 +45,7 @@ fn unstageDeletedFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Deleted, indexStatus: Unmodified}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_DELETED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
 

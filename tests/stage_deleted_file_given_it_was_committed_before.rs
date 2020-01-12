@@ -34,7 +34,7 @@ fn stageDeletedFileGivenItWasCommittedBefore()
         &[Entry{path: filePath.clone(), workTreeStatus: Deleted, indexStatus: Unmodified}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_DELETED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains(DIFF, &gui);
 
@@ -45,7 +45,7 @@ fn stageDeletedFileGivenItWasCommittedBefore()
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_DELETED", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
     selectStagedChange(&filePath, &gui);

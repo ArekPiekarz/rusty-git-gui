@@ -32,9 +32,9 @@ fn loadRepositoryWithModifiedUnstagedFileAndSameNewStagedFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Added}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified unstaged line\n", &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
 

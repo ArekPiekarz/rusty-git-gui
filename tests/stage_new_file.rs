@@ -32,7 +32,7 @@ fn stageNewFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &gui);
 
@@ -43,7 +43,7 @@ fn stageNewFile()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
     selectStagedChange(&filePath, &gui);

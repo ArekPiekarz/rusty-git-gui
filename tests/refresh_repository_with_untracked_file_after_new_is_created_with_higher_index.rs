@@ -28,7 +28,7 @@ fn refreshRepositoryWithUntrackedFileAfterNewIsCreatedWithHigherIndex()
         &[Entry{path: filePath0.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath0)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath0)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content 0\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
 
@@ -42,8 +42,8 @@ fn refreshRepositoryWithUntrackedFileAfterNewIsCreatedWithHigherIndex()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(
-        &[makeFileChange("WT_NEW", &filePath0),
-          makeFileChange("WT_NEW", &filePath1)],
+        &[makeFileChange("New", &filePath0),
+          makeFileChange("New", &filePath1)],
         &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content 0\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);

@@ -36,7 +36,7 @@ fn loadRepositoryWithNewRenamedFile()
           Entry{path: newFilePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeRenamedFileChange("WT_RENAMED", &oldFilePath, &newFilePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeRenamedFileChange("Renamed", &oldFilePath, &newFilePath)], &gui);
     assertDiffViewIsEmpty(&gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);

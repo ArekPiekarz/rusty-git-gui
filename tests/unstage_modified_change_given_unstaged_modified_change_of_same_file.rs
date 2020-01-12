@@ -35,8 +35,8 @@ fn unstageModifiedChangeGivenUnstagedModifiedChangeOfSameFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Modified}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertDiffViewContains(DIFF_OF_UNSTAGED_CHANGE_BEFORE_UNSTAGING, &gui);
 
     activateStagedChangeToUnstageIt(&filePath, &gui);
@@ -45,7 +45,7 @@ fn unstageModifiedChangeGivenUnstagedModifiedChangeOfSameFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Unmodified}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
 

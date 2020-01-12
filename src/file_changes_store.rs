@@ -48,7 +48,7 @@ impl FileChangesStore
         self.store.set(
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
-            &[&fileChange.status, &fileChange.path]);
+            &[&formatStatus(&fileChange.status), &fileChange.path]);
     }
 
     pub fn update(&mut self, fileChangeUpdate: &FileChangeUpdate)
@@ -61,7 +61,7 @@ impl FileChangesStore
         self.store.set_value(
             &self.store.iter_nth_child(NO_PARENT, index.toI32()).unwrap(),
             FileChangesColumn::Status.into(),
-            &glib::Value::from(&fileChangeUpdate.new.status));
+            &glib::Value::from(&formatStatus(&fileChangeUpdate.new.status)));
     }
 
     pub fn remove(&mut self, filePath: &FilePathStr)
@@ -96,16 +96,8 @@ impl FileChangesStore
             self.store.set(
                 &self.store.append(),
                 &FileChangesColumn::asArrayOfU32(),
-                &[&fileChange.status, &Self::formatFilePath(fileChange)]);
+                &[&formatStatus(&fileChange.status), &formatFilePath(fileChange)]);
         });
-    }
-
-    fn formatFilePath(fileChange: &FileChange) -> String
-    {
-        match fileChange.status.as_str() {
-            "WT_RENAMED" => format!("{} -> {}", fileChange.oldPath.as_ref().unwrap(), fileChange.path),
-            _ => fileChange.path.clone()
-        }
     }
 
     fn notifyOnRefreshed(&self)
@@ -155,7 +147,7 @@ impl FileChangesStore
         self.store.set(
             &self.store.insert((*oldFileChangeIndex).toI32()),
             &FileChangesColumn::asArrayOfU32(),
-            &[&newFileChange.status, &newFileChange.path]);
+            &[&formatStatus(&newFileChange.status), &newFileChange.path]);
         *oldFileChangeIndex += 1;
     }
 
@@ -170,7 +162,7 @@ impl FileChangesStore
             store.set_value(
                 &store.iter_nth_child(NO_PARENT, (*oldFileChangeIndex).toI32()).unwrap(),
                 FileChangesColumn::Status.into(),
-                &glib::Value::from(&newFileChange.status)
+                &glib::Value::from(&formatStatus(&newFileChange.status))
             );
         }
 
@@ -179,7 +171,7 @@ impl FileChangesStore
             store.set_value(
                 &store.iter_nth_child(NO_PARENT, (*oldFileChangeIndex).toI32()).unwrap(),
                 FileChangesColumn::Path.into(),
-                &glib::Value::from(&Self::formatFilePath(newFileChange))
+                &glib::Value::from(&formatFilePath(newFileChange))
             );
         }
 
@@ -198,7 +190,7 @@ impl FileChangesStore
         self.store.set(
             &self.store.append(),
             &FileChangesColumn::asArrayOfU32(),
-            &[&newFileChange.status, &newFileChange.path]);
+            &[&formatStatus(&newFileChange.status), &newFileChange.path]);
         *oldFileChangeIndex += 1;
     }
 
@@ -236,5 +228,24 @@ impl IFileChangesStore for FileChangesStore
         let (sender, receiver) = makeChannel();
         self.onRefreshedSenders.push(sender);
         attach(receiver, handler);
+    }
+}
+
+fn formatStatus(status: &str) -> &str
+{
+    match status {
+        "WT_NEW" | "INDEX_NEW" => "New",
+        "WT_MODIFIED" | "INDEX_MODIFIED" => "Modified",
+        "WT_DELETED" | "INDEX_DELETED" => "Deleted",
+        "WT_RENAMED" | "INDEX_RENAMED" => "Renamed",
+        _ => panic!("Cannot format unknown status: {}", status)
+    }
+}
+
+fn formatFilePath(fileChange: &FileChange) -> String
+{
+    match fileChange.status.as_str() {
+        "WT_RENAMED" => format!("{} -> {}", fileChange.oldPath.as_ref().unwrap(), fileChange.path),
+        _ => fileChange.path.clone()
     }
 }

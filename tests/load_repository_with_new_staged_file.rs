@@ -32,7 +32,7 @@ fn loadRepositoryWithNewStagedFile()
         &[Entry{path: newStagedFilePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &newStagedFilePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &newStagedFilePath)], &gui);
     assertDiffViewIsEmpty(&gui);
     assertUnstagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);

@@ -34,7 +34,7 @@ fn stageModifiedFileGivenItWasCommittedBefore()
         &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Unmodified}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 
@@ -45,7 +45,7 @@ fn stageModifiedFileGivenItWasCommittedBefore()
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
     selectStagedChange(&filePath, &gui);

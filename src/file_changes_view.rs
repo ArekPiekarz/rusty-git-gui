@@ -88,9 +88,9 @@ impl<StoreType> FileChangesView<StoreType>
     {
         let mut content = vec![];
         self.getModel().foreach(|model, _row, iter| {
-            content.push(FileChangesViewEntry {
-                status: Self::getCell(model, iter, FileChangesColumn::Status),
-                path: Self::getCell(model, iter, FileChangesColumn::Path)});
+            content.push(FileChangesViewEntry{
+                status: getStatusCell(model, iter),
+                path: getPathCell(model, iter)});
             CONTINUE_ITERATING_MODEL });
         content
     }
@@ -151,21 +151,6 @@ impl<StoreType> FileChangesView<StoreType>
     fn getModel(&self) -> gtk::TreeModel
     {
         self.view.borrow().getModel()
-    }
-
-    fn getStatusCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
-    {
-        Self::getCell(model, iter, FileChangesColumn::Status)
-    }
-
-    fn getPathCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
-    {
-        Self::getCell(model, iter, FileChangesColumn::Path)
-    }
-
-    fn getCell(model: &gtk::TreeModel, iter: &gtk::TreeIter, column: FileChangesColumn) -> String
-    {
-        model.get_value(iter, column.into()).get::<String>().unwrap().unwrap()
     }
 
     fn getFilePathColumn(&self) -> gtk::TreeViewColumn
@@ -257,15 +242,10 @@ impl<StoreType> FileChangesView<StoreType>
         }));
     }
 
-    fn onRowActivated(&self, row: &gtk::TreePath)
+    fn onRowActivated(&self, rowPath: &gtk::TreePath)
     {
-        let model = self.getModel();
-        let iterator = model.get_iter(row).unwrap();
-        let fileChange = FileChange{
-            status: Self::getStatusCell(&model, &iterator),
-            path: Self::getPathCell(&model, &iterator),
-            oldPath: None};
-
+        let store = self.store.borrow();
+        let fileChange = store.getFileChange(toRow(rowPath));
         (self.onRowActivatedAction)(&fileChange);
     }
 
@@ -314,7 +294,7 @@ impl<StoreType> FileChangesView<StoreType>
         let model = self.getModel();
         let mut rowFound = false;
         model.foreach(|model, row, iter| {
-            if Self::getCell(model, iter, FileChangesColumn::Path) != filePath {
+            if getPathCell(model, iter) != filePath {
                 return CONTINUE_ITERATING_MODEL; }
             rowFound = true;
             action(&self.view.borrow(), row, iter);
@@ -322,4 +302,19 @@ impl<StoreType> FileChangesView<StoreType>
         });
         rowFound
     }
+}
+
+fn getStatusCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
+{
+    getCell(model, iter, FileChangesColumn::Status)
+}
+
+fn getPathCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
+{
+    getCell(model, iter, FileChangesColumn::Path)
+}
+
+fn getCell(model: &gtk::TreeModel, iter: &gtk::TreeIter, column: FileChangesColumn) -> String
+{
+    model.get_value(iter, column.into()).get::<String>().unwrap().unwrap()
 }

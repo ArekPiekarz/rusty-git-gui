@@ -30,7 +30,7 @@ fn loadRepositoryWithNewUnstagedFile()
         &[Entry{path: newUnstagedFilePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &newUnstagedFilePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &newUnstagedFilePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);

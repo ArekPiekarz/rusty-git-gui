@@ -35,7 +35,7 @@ fn loadRepositoryWithModifiedStagedFile()
         &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Modified}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertUnstagedChangesViewIsEmpty(&gui);
     assertDiffViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);

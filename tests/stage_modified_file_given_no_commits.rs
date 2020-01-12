@@ -32,8 +32,8 @@ fn stageModifiedFileGivenNoCommits()
         &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Added}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_MODIFIED", &filePath)], &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewContains("@@ -1 +1,2 @@\n staged file content\n+modified line\n", &gui);
 
     activateUnstagedChangeToStageIt(&filePath, &gui);
@@ -43,7 +43,7 @@ fn stageModifiedFileGivenNoCommits()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
     selectStagedChange(&filePath, &gui);

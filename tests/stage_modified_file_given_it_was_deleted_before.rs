@@ -36,8 +36,8 @@ fn stageModifiedFileGivenItWasDeletedBefore()
             Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_DELETED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1,2 @@\n+some file content\n+modified second line\n", &gui);
 
     activateUnstagedChangeToStageIt(&filePath, &gui);
@@ -47,7 +47,7 @@ fn stageModifiedFileGivenItWasDeletedBefore()
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_MODIFIED", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 }
 

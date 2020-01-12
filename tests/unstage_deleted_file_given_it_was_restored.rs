@@ -37,8 +37,8 @@ fn unstageDeletedFileGivenItWasRestored()
           Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath)], &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_DELETED", &filePath)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertDiffViewContains("@@ -0,0 +1,2 @@\n+some file content\n+second line\n", &gui);
 
     activateStagedChangeToUnstageIt(&filePath, &gui);

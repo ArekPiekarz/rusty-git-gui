@@ -34,8 +34,8 @@ fn stageOneOfTwoNewFiles()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(
-        &[makeFileChange("WT_NEW", &filePath1),
-          makeFileChange("WT_NEW", &filePath2)],
+        &[makeFileChange("New", &filePath1),
+          makeFileChange("New", &filePath2)],
         &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content 1\n", &gui);
@@ -47,8 +47,8 @@ fn stageOneOfTwoNewFiles()
           Entry{path: filePath2.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("WT_NEW", &filePath2)], &gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_NEW", &filePath1)], &gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath2)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath1)], &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content 2\n", &gui);
 
     selectStagedChange(&filePath1, &gui);

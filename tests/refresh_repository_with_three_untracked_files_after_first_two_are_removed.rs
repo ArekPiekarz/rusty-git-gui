@@ -35,9 +35,9 @@ fn refreshRepositoryWithThreeUntrackedFilesAfterFirstTwoAreRemoved()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(
-        &[makeFileChange("WT_NEW", &filePath0),
-          makeFileChange("WT_NEW", &filePath1),
-          makeFileChange("WT_NEW", &filePath2)],
+        &[makeFileChange("New", &filePath0),
+          makeFileChange("New", &filePath1),
+          makeFileChange("New", &filePath2)],
         &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content 0\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
@@ -51,7 +51,7 @@ fn refreshRepositoryWithThreeUntrackedFilesAfterFirstTwoAreRemoved()
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(
-        &[makeFileChange("WT_NEW", &filePath2)],
+        &[makeFileChange("New", &filePath2)],
         &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content 2\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);

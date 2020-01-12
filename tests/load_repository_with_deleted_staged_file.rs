@@ -36,7 +36,7 @@ fn loadRepositoryWithDeletedStagedFile()
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("INDEX_DELETED", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
