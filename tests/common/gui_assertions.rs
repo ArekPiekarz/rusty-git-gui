@@ -32,6 +32,12 @@ pub fn assertDiffViewIsEmpty(gui: &Gui)
             gui.diffView.borrow().getText());
 }
 
+pub fn assertCommitMessageViewIs(text: &str, gui: &Gui)
+{
+    assert_eq!(text, gui.commitMessageView.borrow().getText(),
+              "\nExpected Commit message view text differs from actual.");
+}
+
 pub fn assertCommitMessageViewIsEmpty(gui: &Gui)
 {
     assert!(gui.commitMessageView.borrow().isEmpty(),
@@ -54,6 +60,7 @@ pub fn assertCommitButtonTooltipIs(tooltip: &str, gui: &Gui)
     assert_eq!(tooltip, gui.commitButton.borrow().getTooltip(),
                "\nExpected commit button tooltip does not match actual.");
 }
+
 pub fn assertCommitButtonTooltipIsEmpty(gui: &Gui)
 {
     assert_eq!("", gui.commitButton.borrow().getTooltip());
@@ -75,4 +82,35 @@ pub fn assertDiffViewContains(content: &str, gui: &Gui)
 {
     assert_eq!(content, gui.diffView.borrow().getText(),
                "\nExpected diff view content differs from actual.");
+}
+
+pub fn assertCommitAmendCheckboxIsEnabled(gui: &Gui)
+{
+    assert!(gui.commitAmendCheckbox.borrow().isEnabled());
+}
+
+pub fn assertCommitAmendCheckboxIsDisabled(gui: &Gui)
+{
+    assert!(gui.commitAmendCheckbox.borrow().isDisabled());
+}
+
+pub fn assertCommitAmendCheckboxIsSelected(gui: &Gui)
+{
+    assert!(gui.commitAmendCheckbox.borrow().isSelected());
+}
+
+pub fn assertCommitAmendCheckboxIsUnselected(gui: &Gui)
+{
+    assert!(gui.commitAmendCheckbox.borrow().isUnselected());
+}
+
+pub fn assertCommitAmendCheckboxTooltipIs(tooltip: &str, gui: &Gui)
+{
+    assert_eq!(tooltip, gui.commitAmendCheckbox.borrow().getTooltip(),
+               "\nExpected Commit amend checkbox tooltip does not match actual.");
+}
+
+pub fn assertCommitAmendCheckboxTooltipIsEmpty(gui: &Gui)
+{
+    assertCommitAmendCheckboxTooltipIs("", gui);
 }

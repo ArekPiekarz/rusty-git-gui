@@ -40,7 +40,7 @@ pub fn setCommitMessage(message: &str, gui: &Gui)
 
 pub fn clickCommitButton(gui: &Gui)
 {
-    gui.commitButton.borrow().click();
+    gui.commitButton.borrow().click().unwrap();
     processEvents();
 }
 
@@ -50,6 +50,17 @@ pub fn clickRefreshButton(gui: &Gui)
     processEvents();
 }
 
+pub fn selectCommitAmendCheckbox(gui: &Gui)
+{
+    gui.commitAmendCheckbox.borrow().select();
+    processEvents();
+}
+
+pub fn unselectCommitAmendCheckbox(gui: &Gui)
+{
+    gui.commitAmendCheckbox.borrow().unselect();
+    processEvents();
+}
 
 // private
 

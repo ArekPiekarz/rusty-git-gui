@@ -24,6 +24,10 @@ const STAGED_STATUSES : [git2::Status; 5] = [
     git2::Status::INDEX_RENAMED];
 const STATUS_FOUND : bool = true;
 const STATUS_NOT_FOUND : bool = false;
+const NO_AUTHOR_UPDATE: Option<&git2::Signature> = None;
+const NO_COMMITTER_UPDATE: Option<&git2::Signature> = None;
+const NO_MESSAGE_ENCODING_UPDATE: Option<&str> = None;
+const NO_TREE_UPDATE: Option<&git2::Tree> = None;
 
 
 pub struct Repository
@@ -42,6 +46,7 @@ struct Senders
     onUpdatedInUnstaged: Vec<Sender<FileChangeUpdate>>,
     onRemovedFromUnstaged: Vec<Sender<FileChange>>,
     onCommitted: Vec<Sender<()>>,
+    onAmendedCommit: Vec<Sender<()>>,
     onRefreshed: Vec<Sender<()>>
 }
 
@@ -61,6 +66,7 @@ impl Repository
                 onUpdatedInUnstaged: vec![],
                 onRemovedFromUnstaged: vec![],
                 onCommitted: vec![],
+                onAmendedCommit: vec![],
                 onRefreshed: vec![]
             },
         };
@@ -102,6 +108,25 @@ impl Repository
     pub fn hasStagedChanges(&self) -> bool
     {
         !self.fileChanges.staged.is_empty()
+    }
+
+    #[must_use]
+    pub fn isEmpty(&self) -> bool
+    {
+        self.gitRepo.is_empty()
+            .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
+    }
+
+    #[must_use]
+    pub fn getLastCommitMessage(&self) -> Result<Option<String>,()>
+    {
+        match self.findHeadCommit() {
+            Some(commit) => match commit.message() {
+                Some(message) => Ok(Some(message.into())),
+                None => Err(())
+            }
+            None => Ok(None)
+        }
     }
 
     #[must_use]
@@ -206,6 +231,14 @@ impl Repository
         self.notifyOnCommitted();
     }
 
+    pub fn amendCommit(&mut self, newMessage: &str)
+    {
+        match self.findHeadCommit() {
+            Some(commit) => self.amendGivenCommit(&commit, newMessage),
+            None => println!("Failed to amend commit - no HEAD commit was found.")
+        }
+    }
+
     pub fn refresh(&mut self)
     {
         self.collectCurrentFileChanges();
@@ -261,6 +294,13 @@ impl Repository
         attach(receiver, handler);
     }
 
+    pub fn connectOnAmendedCommit(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
+    {
+        let (sender, receiver) = makeChannel();
+        self.senders.onAmendedCommit.push(sender);
+        attach(receiver, handler);
+    }
+
     pub fn connectOnRefreshed(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
     {
         let (sender, receiver) = makeChannel();
@@ -304,7 +344,7 @@ impl Repository
 
     fn findHeadCommit(&self) -> Option<git2::Commit>
     {
-        if self.isRepositoryEmpty() {
+        if self.isEmpty() {
             return None;
         }
 
@@ -331,12 +371,6 @@ impl Repository
             Err(ref e) if e.class() == git2::ErrorClass::Reference && e.code() == git2::ErrorCode::UnbornBranch => None,
             Err(e) => exit(&format!("Failed to get reference to HEAD: {}", e))
         }
-    }
-
-    fn isRepositoryEmpty(&self) -> bool
-    {
-        self.gitRepo.is_empty()
-            .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
     }
 
     fn finishStagingWhenFileWasAlreadyStaged(&self, oldFileChange: &FileChange, newFileChange: Option<&FileChange>)
@@ -377,6 +411,34 @@ impl Repository
         if let Some(fileChange) = fileChange {
             self.notifyOnAddedToUnstaged(fileChange)
         }
+    }
+
+    fn amendGivenCommit(&self, commit: &git2::Commit, newMessage: &str)
+    {
+        match commit.message() {
+            Some(oldMessage) => {
+                if oldMessage != newMessage {
+                    self.finishAmendingCommit(&commit, newMessage);
+                } else {
+                    println!("Failed to amend commit, old and new message are the same.");
+                }
+            },
+            None => self.finishAmendingCommit(&commit, newMessage)
+        }
+    }
+
+    fn finishAmendingCommit(&self, commit: &git2::Commit, newMessage: &str)
+    {
+        commit.amend(
+            Some("HEAD"),
+            NO_AUTHOR_UPDATE,
+            NO_COMMITTER_UPDATE,
+            NO_MESSAGE_ENCODING_UPDATE,
+            Some(newMessage),
+            NO_TREE_UPDATE)
+            .unwrap();
+
+        self.notifyOnAmendedCommit();
     }
 
     fn notifyOnAddedToStaged(&self, fileChange: &FileChange)
@@ -424,6 +486,13 @@ impl Repository
     fn notifyOnCommitted(&self)
     {
         for sender in &self.senders.onCommitted {
+            sender.send(()).unwrap();
+        }
+    }
+
+    fn notifyOnAmendedCommit(&self)
+    {
+        for sender in &self.senders.onAmendedCommit {
             sender.send(()).unwrap();
         }
     }

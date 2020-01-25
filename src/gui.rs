@@ -1,3 +1,4 @@
+use crate::commit_amend_checkbox::CommitAmendCheckbox;
 use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
 use crate::commit_message_view::CommitMessageView;
@@ -24,9 +25,10 @@ pub struct Gui
     pub unstagedChangesView: Rc<RefCell<UnstagedChangesView>>,
     pub stagedChangesView: Rc<RefCell<StagedChangesView>>,
     pub diffView: Rc<RefCell<DiffView>>,
+    pub refreshButton: Rc<RefreshButton>,
     pub commitMessageView: Rc<RefCell<CommitMessageView>>,
     pub commitButton: Rc<RefCell<CommitButton>>,
-    pub refreshButton: Rc<RefreshButton>,
+    pub commitAmendCheckbox: Rc<RefCell<CommitAmendCheckbox>>,
     applicationWindow: Rc<ApplicationWindow>
 }
 
@@ -47,11 +49,14 @@ impl Gui
             &mut stagedChangesView.borrow_mut(),
             Rc::clone(repository));
 
-        let commitMessageView = CommitMessageView::new(&guiElementProvider, &mut repository.borrow_mut());
-        let commitButton = CommitButton::new(
-            &guiElementProvider, Rc::clone(&commitMessageView), Rc::clone(repository));
-
         let refreshButton = RefreshButton::new(&guiElementProvider, Rc::clone(repository));
+
+        let commitAmendCheckbox = CommitAmendCheckbox::new(&guiElementProvider, &mut repository.borrow_mut());
+        let commitMessageView = CommitMessageView::new(
+            &guiElementProvider, &repository, &mut commitAmendCheckbox.borrow_mut());
+        let commitButton = CommitButton::new(
+            &guiElementProvider, Rc::clone(&commitMessageView), &mut commitAmendCheckbox.borrow_mut(), Rc::clone(repository));
+
 
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);
@@ -61,9 +66,10 @@ impl Gui
             unstagedChangesView: Rc::clone(&unstagedChangesView),
             stagedChangesView: Rc::clone(&stagedChangesView),
             diffView,
+            refreshButton,
             commitMessageView,
             commitButton,
-            refreshButton,
+            commitAmendCheckbox,
             applicationWindow: ApplicationWindow::new(&guiElementProvider, settings),
         }
     }

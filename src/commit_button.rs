@@ -1,3 +1,4 @@
+use crate::commit_amend_checkbox::CommitAmendCheckbox;
 use crate::commit_message_view::CommitMessageView;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_context::{attach, makeChannel};
@@ -15,7 +16,8 @@ pub struct CommitButton
     repository: Rc<RefCell<Repository>>,
     commitMessageView: Rc<RefCell<CommitMessageView>>,
     areChangesStaged: bool,
-    isCommitMessageWritten: bool
+    isCommitMessageWritten: bool,
+    isCommitAmendEnabled: bool
 }
 
 impl CommitButton
@@ -23,6 +25,7 @@ impl CommitButton
     pub fn new(
         guiElementProvider: &GuiElementProvider,
         commitMessageView: Rc<RefCell<CommitMessageView>>,
+        commitAmendCheckbox: &mut CommitAmendCheckbox,
         repository: Rc<RefCell<Repository>>)
         -> Rc<RefCell<Self>>
     {
@@ -33,10 +36,12 @@ impl CommitButton
             repository,
             commitMessageView,
             areChangesStaged,
-            isCommitMessageWritten
+            isCommitMessageWritten,
+            isCommitAmendEnabled: false
         }));
         Self::connectSelfToRepository(&newSelf);
         Self::connectSelfToCommitMessageView(&newSelf);
+        Self::connectSelfToCommitAmmendCheckbox(&newSelf, commitAmendCheckbox);
         Self::connectSelfToWidget(&newSelf);
         newSelf.borrow().update();
         newSelf
@@ -60,9 +65,13 @@ impl CommitButton
         }
     }
 
-    pub fn click(&self)
+    pub fn click(&self) -> Result<(),&str>
     {
+        if self.isDisabled() {
+            return Err("Cannot click, commit button is disabled");
+        }
         self.widget.clicked();
+        Ok(())
     }
 
 
@@ -98,8 +107,8 @@ impl CommitButton
 
     fn connectSelfToCommitMessageView(rcSelf: &Rc<RefCell<Self>>)
     {
-        Self::connectSelfToCommitMessageViewOnFilled(rcSelf);
         Self::connectSelfToCommitMessageViewOnEmptied(rcSelf);
+        Self::connectSelfToCommitMessageViewOnFilled(rcSelf);
     }
 
     fn connectSelfToCommitMessageViewOnFilled(rcSelf: &Rc<RefCell<Self>>)
@@ -119,6 +128,38 @@ impl CommitButton
         rcSelf.borrow().commitMessageView.borrow_mut().connectOnEmptied(Box::new(move |_| {
             if let Some(rcSelf) = weakSelf.upgrade() {
                 rcSelf.borrow_mut().onCommitMessageEmptied();
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToCommitAmmendCheckbox(rcSelf: &Rc<RefCell<Self>>, commitAmendCheckbox: &mut CommitAmendCheckbox)
+    {
+        Self::connectSelfToCommitAmmendCheckboxOnSelected(rcSelf, commitAmendCheckbox);
+        Self::connectSelfToCommitAmmendCheckboxOnUnselected(rcSelf, commitAmendCheckbox);
+    }
+
+    fn connectSelfToCommitAmmendCheckboxOnSelected(
+        rcSelf: &Rc<RefCell<Self>>,
+        commitAmendCheckbox: &mut CommitAmendCheckbox)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        commitAmendCheckbox.connectOnSelected(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onCommitAmendEnabled();
+            }
+            glib::Continue(true)
+        }));
+    }
+
+    fn connectSelfToCommitAmmendCheckboxOnUnselected(
+        rcSelf: &Rc<RefCell<Self>>,
+        commitAmendCheckbox: &mut CommitAmendCheckbox)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        commitAmendCheckbox.connectOnUnselected(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onCommitAmendDisabled();
             }
             glib::Continue(true)
         }));
@@ -170,9 +211,21 @@ impl CommitButton
         self.update();
     }
 
+    fn onCommitAmendEnabled(&mut self)
+    {
+        self.isCommitAmendEnabled = true;
+        self.update();
+    }
+
+    fn onCommitAmendDisabled(&mut self)
+    {
+        self.isCommitAmendEnabled = false;
+        self.update();
+    }
+
     fn update(&self)
     {
-        if self.noChangesAreStaged() {
+        if self.noChangesAreStaged() && self.commitAmendIsDisabled() {
             self.disable();
             self.setTooltip("No changes are staged for commit.");
             return;
@@ -198,6 +251,16 @@ impl CommitButton
         !self.isCommitMessageWritten
     }
 
+    const fn commitAmendIsEnabled(&self) -> bool
+    {
+        self.isCommitAmendEnabled
+    }
+
+    const fn commitAmendIsDisabled(&self) -> bool
+    {
+        !self.commitAmendIsEnabled()
+    }
+
     fn enable(&self)
     {
         self.widget.set_sensitive(true);
@@ -220,7 +283,11 @@ impl CommitButton
 
     fn commit(&mut self)
     {
-        self.repository.borrow_mut().commit(&self.commitMessageView.borrow().getText());
+        if self.commitAmendIsEnabled() {
+            self.repository.borrow_mut().amendCommit(&self.commitMessageView.borrow().getText());
+        } else {
+            self.repository.borrow_mut().commit(&self.commitMessageView.borrow().getText());
+        }
         self.areChangesStaged = false;
         self.update();
     }

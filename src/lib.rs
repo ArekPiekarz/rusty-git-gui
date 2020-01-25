@@ -26,6 +26,7 @@ pub mod repository;
 
 mod application_window;
 mod color;
+mod commit_amend_checkbox;
 mod commit_button;
 mod commit_message_view;
 mod diff_and_commit_paned;
