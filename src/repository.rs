@@ -27,7 +27,6 @@ const STATUS_NOT_FOUND : bool = false;
 const NO_AUTHOR_UPDATE: Option<&git2::Signature> = None;
 const NO_COMMITTER_UPDATE: Option<&git2::Signature> = None;
 const NO_MESSAGE_ENCODING_UPDATE: Option<&str> = None;
-const NO_TREE_UPDATE: Option<&git2::Tree> = None;
 
 
 pub struct Repository
@@ -213,13 +212,7 @@ impl Repository
             let author = self.gitRepo.signature()
                 .unwrap_or_else(|e| exit(&format!("Failed to get a name and/or email of the commit author: {}", e)));
             let commiter = &author;
-
-            let mut index = self.gitRepo.index()
-                .unwrap_or_else(|e| exit(&format!("Failed to acquire repository index: {}", e)));
-            let treeId = index.write_tree()
-                .unwrap_or_else(|e| exit(&format!("Failed to write repository index as tree to disk: {}", e)));
-            let tree = self.gitRepo.find_tree(treeId)
-                .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)));
+            let tree = self.storeIndexAsTree();
             let parentCommits = self.findParentCommits();
             let parentCommits = parentCommits.iter().collect_vec();
 
@@ -233,9 +226,9 @@ impl Repository
 
     pub fn amendCommit(&mut self, newMessage: &str)
     {
-        match self.findHeadCommit() {
-            Some(commit) => self.amendGivenCommit(&commit, newMessage),
-            None => println!("Failed to amend commit - no HEAD commit was found.")
+        if let Ok(_) = self.tryAmendCommit(newMessage) {
+            self.collectCurrentFileChanges();
+            self.notifyOnAmendedCommit();
         }
     }
 
@@ -413,32 +406,33 @@ impl Repository
         }
     }
 
-    fn amendGivenCommit(&self, commit: &git2::Commit, newMessage: &str)
+    fn tryAmendCommit(&self, newMessage: &str) -> Result<(), &str>
     {
-        match commit.message() {
-            Some(oldMessage) => {
-                if oldMessage != newMessage {
-                    self.finishAmendingCommit(&commit, newMessage);
-                } else {
-                    println!("Failed to amend commit, old and new message are the same.");
-                }
+        match self.findHeadCommit() {
+            Some(headCommit) => {
+                let newTree = self.storeIndexAsTree();
+                headCommit.amend(
+                    Some("HEAD"),
+                    NO_AUTHOR_UPDATE,
+                    NO_COMMITTER_UPDATE,
+                    NO_MESSAGE_ENCODING_UPDATE,
+                    Some(newMessage),
+                    Some(&newTree))
+                    .unwrap();
+                Ok(())
             },
-            None => self.finishAmendingCommit(&commit, newMessage)
+            None => Err("Failed to amend commit - no HEAD commit was found.")
         }
     }
 
-    fn finishAmendingCommit(&self, commit: &git2::Commit, newMessage: &str)
+    fn storeIndexAsTree(&self) -> git2::Tree
     {
-        commit.amend(
-            Some("HEAD"),
-            NO_AUTHOR_UPDATE,
-            NO_COMMITTER_UPDATE,
-            NO_MESSAGE_ENCODING_UPDATE,
-            Some(newMessage),
-            NO_TREE_UPDATE)
-            .unwrap();
-
-        self.notifyOnAmendedCommit();
+        let mut index = self.gitRepo.index()
+            .unwrap_or_else(|e| exit(&format!("Failed to acquire repository index: {}", e)));
+        let treeId = index.write_tree()
+            .unwrap_or_else(|e| exit(&format!("Failed to write repository index as tree to disk: {}", e)));
+        self.gitRepo.find_tree(treeId)
+            .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)))
     }
 
     fn notifyOnAddedToStaged(&self, fileChange: &FileChange)

@@ -39,6 +39,7 @@ impl StagedChangesStore
         Self::connectSelfToRepositoryOnUpdatedInStaged(rcSelf, repository);
         Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf, repository);
         Self::connectSelfToRepositoryOnCommitted(rcSelf, repository);
+        Self::connectSelfToRepositoryOnAmendedCommit(rcSelf, repository);
         Self::connectSelfToRepositoryOnRefreshed(rcSelf, repository);
     }
 
@@ -86,6 +87,17 @@ impl StagedChangesStore
         }));
     }
 
+    fn connectSelfToRepositoryOnAmendedCommit(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    {
+        let weakSelf = Rc::downgrade(rcSelf);
+        repository.connectOnAmendedCommit(Box::new(move |_| {
+            if let Some(rcSelf) = weakSelf.upgrade() {
+                rcSelf.borrow_mut().onAmendedCommit();
+            }
+            glib::Continue(true)
+        }));
+    }
+
     fn connectSelfToRepositoryOnRefreshed(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
     {
         let weakSelf = Rc::downgrade(rcSelf);
@@ -113,6 +125,11 @@ impl StagedChangesStore
     }
 
     fn onCommitted(&mut self)
+    {
+        self.store.clear();
+    }
+
+    fn onAmendedCommit(&mut self)
     {
         self.store.clear();
     }
