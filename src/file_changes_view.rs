@@ -246,7 +246,7 @@ impl<StoreType> FileChangesView<StoreType>
     {
         let store = self.store.borrow();
         let fileChange = store.getFileChange(toRow(rowPath));
-        (self.onRowActivatedAction)(&fileChange);
+        (self.onRowActivatedAction)(fileChange);
     }
 
     fn onRightClicked(&self, event: &gdk::EventButton)

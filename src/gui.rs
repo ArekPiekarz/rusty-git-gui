@@ -53,7 +53,7 @@ impl Gui
 
         let commitAmendCheckbox = CommitAmendCheckbox::new(&guiElementProvider, &mut repository.borrow_mut());
         let commitMessageView = CommitMessageView::new(
-            &guiElementProvider, &repository, &mut commitAmendCheckbox.borrow_mut());
+            &guiElementProvider, repository, &mut commitAmendCheckbox.borrow_mut());
         let commitButton = CommitButton::new(
             &guiElementProvider, Rc::clone(&commitMessageView), &mut commitAmendCheckbox.borrow_mut(), Rc::clone(repository));
 

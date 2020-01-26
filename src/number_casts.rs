@@ -14,8 +14,7 @@ impl ToI32 for f64
     fn toI32(&self) -> i32
     {
         match self.classify() {
-            Nan => panic!("Cannot convert f64: {} into i32", self),
-            Infinite => panic!("Cannot convert f64: {} into i32", self),
+            Nan | Infinite => panic!("Cannot convert f64: {} into i32", self),
             Zero | Subnormal => 0,
             Normal => {
                 if *self < i32::min_value().into() || *self > i32::max_value().into() {

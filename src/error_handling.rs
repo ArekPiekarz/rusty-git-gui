@@ -29,9 +29,14 @@ pub fn formatFail(fail: &dyn failure::Fail) -> String
 
 pub fn exit(errorMessage: &str) -> !
 {
-    let dialog = makeDialog(errorMessage);
-    dialog.run();
+    showErrorDialog(errorMessage);
     panic!("{}", errorMessage);
+}
+
+pub fn showErrorDialog(message: &str)
+{
+    let dialog = makeDialog(message);
+    dialog.run();
 }
 
 fn makeDialog(errorMessage: &str) -> gtk::MessageDialog

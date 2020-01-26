@@ -90,7 +90,7 @@ impl DiffColorizer
     fn applyTagsBasedOnLineTypes(&mut self, text: &str)
     {
         for (lineNumber, line) in text.lines().enumerate() {
-            if let Some(character) = line.chars().nth(0) {
+            if let Some(character) = line.chars().next() {
                 match character {
                     '+' => self.applyTagToAddedLine(lineNumber.into()),
                     '-' => self.applyTagToRemovedLine(lineNumber.into()),

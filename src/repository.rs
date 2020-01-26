@@ -1,4 +1,4 @@
-use crate::error_handling::exit;
+use crate::error_handling::{exit, showErrorDialog};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::grouped_file_changes::GroupedFileChanges;
 use crate::main_context::{attach, makeChannel};
@@ -116,7 +116,6 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
     }
 
-    #[must_use]
     pub fn getLastCommitMessage(&self) -> Result<Option<String>,()>
     {
         match self.findHeadCommit() {
@@ -226,9 +225,12 @@ impl Repository
 
     pub fn amendCommit(&mut self, newMessage: &str)
     {
-        if let Ok(_) = self.tryAmendCommit(newMessage) {
-            self.collectCurrentFileChanges();
-            self.notifyOnAmendedCommit();
+        match self.tryAmendCommit(newMessage) {
+            Ok(_) => {
+                self.collectCurrentFileChanges();
+                self.notifyOnAmendedCommit();
+            },
+            Err(e) => showErrorDialog(e)
         }
     }
 
