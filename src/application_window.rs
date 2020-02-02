@@ -1,4 +1,4 @@
-use crate::event_constants::KEEP_FORWARDING_EVENT;
+use crate::event_constants::FORWARD_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::settings::Settings;
 
@@ -67,7 +67,7 @@ impl ApplicationWindow
         self.window.connect_delete_event(move |_window, _event| {
             settings.save();
             gtk::main_quit();
-            KEEP_FORWARDING_EVENT
+            FORWARD_EVENT
         });
     }
 }

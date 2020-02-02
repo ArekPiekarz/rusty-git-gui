@@ -1,5 +1,5 @@
 use crate::error_handling::exit;
-use crate::event_constants::KEEP_FORWARDING_EVENT;
+use crate::event_constants::FORWARD_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::main_context::{attach, makeChannel};
 use crate::number_casts::ToI32 as _;
@@ -138,7 +138,7 @@ impl TreeView
                 if let Some(rcSelf) = weakSelf.upgrade() {
                     rcSelf.borrow().onButtonPressEvent(button);
                 }
-                KEEP_FORWARDING_EVENT
+                FORWARD_EVENT
             }
         );
     }

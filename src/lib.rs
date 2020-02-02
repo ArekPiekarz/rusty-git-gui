@@ -2,6 +2,7 @@
 #![allow(clippy::implicit_return)]
 #![allow(clippy::indexing_slicing)]
 #![allow(clippy::integer_arithmetic)]
+#![allow(clippy::integer_division)]
 #![allow(clippy::let_underscore_must_use)] // false positives in Debug
 #![allow(clippy::missing_docs_in_private_items)]
 #![allow(clippy::missing_errors_doc)]
