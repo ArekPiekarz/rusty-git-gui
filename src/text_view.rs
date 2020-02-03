@@ -168,7 +168,7 @@ impl TextView
 
     fn onScrolled(weakSelf: &Weak<RefCell<Self>>, event: &gdk::EventScroll) -> gtk::Inhibit
     {
-        if event.get_state() != gdk::ModifierType::CONTROL_MASK {
+        if !event.get_state().contains(gdk::ModifierType::CONTROL_MASK) {
             return FORWARD_EVENT;
         }
 
