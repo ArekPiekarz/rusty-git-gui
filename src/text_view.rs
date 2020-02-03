@@ -4,7 +4,6 @@ use crate::line_count::LineCount;
 use crate::line_number::LineNumber;
 use crate::main_context::{attach, makeChannel};
 
-use glib::object::ObjectType as _;
 use glib::Sender;
 use gtk::CssProviderExt as _;
 use gtk::StyleContextExt as _;
@@ -46,7 +45,7 @@ impl TextView
             onFilledSenders: vec![],
             onEmptiedSenders: vec![],
             shouldNotifyOnFilled: true,
-            style: Style::new(&widget.get_style_context()),
+            style: Style::new(&widget),
         }));
         if notifications == Notifications::Enabled {
             Self::connectSelfToBuffer(&newSelf);
@@ -198,7 +197,6 @@ impl TextView
                 self.reloadCorrectCss(event);
             }
         }
-
     }
 
     fn reloadCorrectCss(&mut self, event: &gdk::EventScroll)
@@ -260,14 +258,15 @@ struct Style
 
 impl Style
 {
-    fn new(styleContext: &gtk::StyleContext) -> Self
+    fn new<T>(widget: &T) -> Self
+        where T: glib::IsA<gtk::Widget>
     {
         let cssProvider = gtk::CssProvider::new();
-        styleContext.add_provider(&cssProvider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+        widget.get_style_context().add_provider(&cssProvider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
         Self{
             cssProvider,
-            font: Font::new(styleContext)
+            font: Font::new(widget)
         }
     }
 }
@@ -284,29 +283,32 @@ type FontFamily = String;
 
 impl Font
 {
-    fn new(styleContext: &gtk::StyleContext) -> Self
+    fn new<T>(widget: &T) -> Self
+        where T: glib::IsA<gtk::Widget>
     {
-        let fontDescription = unsafe {gtk_sys::gtk_style_context_get_font(
-            styleContext.as_ptr(), gtk_sys::GTK_STATE_FLAG_NORMAL)};
-
+        let fontDescription = getFontDescription(widget);
         Self{
-            size: getFontSize(fontDescription),
+            size: getFontSize(&fontDescription),
             maxSize: None,
-            family: getFontFamily(fontDescription)
+            family: getFontFamily(&fontDescription)
         }
     }
 }
 
-fn getFontSize(fontDescription: *const pango_sys::PangoFontDescription) -> FontSize
+fn getFontDescription<T>(widget: &T) -> pango::FontDescription
+    where T: glib::IsA<gtk::Widget>
 {
-    (unsafe {pango_sys::pango_font_description_get_size(fontDescription)}) / pango_sys::PANGO_SCALE
+    widget.get_pango_context().unwrap().get_font_description().unwrap()
 }
 
-fn getFontFamily(fontDescription: *const pango_sys::PangoFontDescription) -> FontFamily
+fn getFontSize(fontDescription: &pango::FontDescription) -> FontSize
 {
-    let familyPtr = unsafe {pango_sys::pango_font_description_get_family(fontDescription)};
-    let familyCStr = unsafe {std::ffi::CStr::from_ptr(familyPtr)};
-    familyCStr.to_str().unwrap().to_owned()
+    fontDescription.get_size() / pango::SCALE
+}
+
+fn getFontFamily(fontDescription: &pango::FontDescription) -> FontFamily
+{
+    fontDescription.get_family().unwrap().into()
 }
 
 const fn getY(coordinates: (f64, f64)) -> f64
