@@ -1,30 +1,6 @@
-#![allow(clippy::enum_glob_use)]
-
-use failchain::ResultExt as _;
+use anyhow::{anyhow, Context, Result};
 use std::path::PathBuf;
 #[cfg(test)] use mocktopus::macros::mockable;
-
-
-pub type Error = failchain::BoxedError<ErrorKind>;
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorKind {
-    #[fail(display = "Failed to get current directory.")]
-    GetCurrentDirFailed,
-    #[fail(display = "Failed to find a repository directory.")]
-    FindRepositoryDirFailed,
-    #[fail(display = "Too many arguments to the application, expected 0 or 1 (repository directory), \
-                      instead got {}:\n{:?}", 0, 1)]
-    TooManyArgumentsToApp(usize, Vec<String>)
-}
-
-impl failchain::ChainErrorKind for ErrorKind
-{
-    type Error = Error;
-}
-
-use ErrorKind::*;
 
 
 #[cfg(feature = "use_color_backtrace")]
@@ -37,7 +13,6 @@ pub fn setupPanicHandler()
 pub const fn setupPanicHandler()
 {
 }
-
 
 pub fn setupGtk()
 {
@@ -52,11 +27,14 @@ pub fn findRepositoryDir() -> Result<PathBuf>
         match args.len() {
             0 | 1 => Ok(getCurrentDir()?),
             2 => Ok(PathBuf::from(&args[1])),
-            size => Err(TooManyArgumentsToApp(size-1, args).into())
+            size => Err(anyhow!("Too many arguments to the application, expected 0 or 1 (repository directory), \
+                                 instead got {}:\n    {:?}", size-1, args))
         }
-    })().chain_err(|| FindRepositoryDirFailed)
+    })().context("Failed to find a repository directory.")
 }
 
+
+// private
 
 #[cfg_attr(test, mockable)]
 fn getAppArguments() -> Vec<String>
@@ -67,7 +45,7 @@ fn getAppArguments() -> Vec<String>
 #[cfg_attr(test, mockable)]
 fn getCurrentDir() -> Result<PathBuf>
 {
-    std::env::current_dir().chain_err(|| GetCurrentDirFailed)
+    std::env::current_dir().context("Failed to get current directory.")
 }
 
 
@@ -75,13 +53,14 @@ fn getCurrentDir() -> Result<PathBuf>
 mod tests
 {
     use super::*;
-    use crate::error_handling::formatFail;
+    use crate::error_handling::formatErr;
     use mocktopus::mocking::*;
     use mocktopus::mocking::MockResult::Return;
 
     #[test]
     fn findRepositoryDir_shouldReturnCurrentDir_whenNoArgumentToAppIsProvided()
     {
+        setupPanicHandler();
         getAppArguments.mock_safe(|| Return(vec!["/path/to/app".into()]));
         getCurrentDir.mock_safe(|| Return(Ok(PathBuf::from("/current/dir"))));
         assert_eq!(PathBuf::from("/current/dir"), findRepositoryDir().unwrap());
@@ -90,6 +69,7 @@ mod tests
     #[test]
     fn findRepositoryDir_shouldReturnPathFromArgumentToApp_whenOneIsProvided()
     {
+        setupPanicHandler();
         getAppArguments.mock_safe(|| Return(vec!["/path/to/app".into(), "/path/to/repository".into()]));
         assert_eq!(PathBuf::from("/path/to/repository"), findRepositoryDir().unwrap());
     }
@@ -97,24 +77,27 @@ mod tests
     #[test]
     fn findRepositoryDir_shouldReturnTooManyArgumentsError_whenMoreThanOneArgumentIsProvided()
     {
+        setupPanicHandler();
         getAppArguments.mock_safe(
             || Return(vec!["/path/to/app".into(), "/path/to/repository".into(), "unknown_argument".into()]));
         assert_eq!(
-            "error: Failed to find a repository directory.\n  \
-               cause: Too many arguments to the application, expected 0 or 1 (repository directory), instead got 2:\n\
-             [\"/path/to/app\", \"/path/to/repository\", \"unknown_argument\"]",
-            formatFail(&findRepositoryDir().unwrap_err()));
+            "Error: Failed to find a repository directory.\n    \
+                 Cause: Too many arguments to the application, expected 0 or 1 (repository directory), instead got 2:\n    \
+                 [\"/path/to/app\", \"/path/to/repository\", \"unknown_argument\"]",
+            formatErr(&findRepositoryDir().unwrap_err()));
     }
 
     #[test]
     fn findRepositoryDir_shouldReturnCurrentDirError_whenGettingCurrentDirFails()
     {
+        setupPanicHandler();
         getAppArguments.mock_safe(|| Return(vec!["/path/to/app".into()]));
         getCurrentDir.mock_safe(|| Return(Err::<PathBuf,std::io::Error>(std::io::ErrorKind::PermissionDenied.into())
-            .chain_err(|| GetCurrentDirFailed)));
-        assert_eq!("error: Failed to find a repository directory.\n  \
-                      cause: Failed to get current directory.\n  \
-                      cause: permission denied",
-                   formatFail(&findRepositoryDir().unwrap_err()));
+            .context("Failed to get current directory.")));
+        assert_eq!("Error: Failed to find a repository directory.\n    \
+                        Causes:\n    \
+                        1: Failed to get current directory.\n    \
+                        2: permission denied",
+                   formatErr(&findRepositoryDir().unwrap_err()));
     }
 }

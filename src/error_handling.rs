@@ -1,29 +1,34 @@
+use anyhow::Error;
 use glib::Cast as _;
 use gtk::ContainerExt as _;
 use gtk::DialogExt as _;
 use gtk::LabelExt as _;
 use gtk::MessageDialogExt as _;
+use std::error::Error as StdError;
 
 const NO_WINDOW_PARENT: Option<&gtk::Window> = None;
 
+
 #[allow(clippy::print_stdout)]
-pub fn printFail(fail: &dyn failure::Fail)
+#[allow(clippy::use_debug)]
+pub fn printErr(error: &Error)
 {
-    println!("{}", formatFail(fail));
-    #[cfg(feature = "use_color_backtrace")]
-    {
-        if let Some(backtrace) = fail.find_root_cause().backtrace() {
-            unsafe {
-                color_backtrace::failure::print_backtrace(backtrace, &mut color_backtrace::Settings::new())
-                    .unwrap_or_else(|e| println!("Failed to print backtrace: {}", e)); }}
-    }
+    println!("{}", formatErr(error));
+    println!("\n{:?}", error.backtrace());
 }
 
-pub fn formatFail(fail: &dyn failure::Fail) -> String
+#[must_use]
+pub fn formatErr(error: &Error) -> String
 {
-    let mut result = format!("error: {}", fail);
-    for cause in fail.iter_causes() {
-        result.push_str(&format!("\n  cause: {}", cause)); }
+    let mut result = String::new();
+    result += &format!("Error: {}", error);
+
+    if let Some(cause) = error.source() {
+        match cause.source() {
+            Some(_) => formatMultipleCauses(cause, &mut result),
+            None => formatSingleCause(cause, &mut result)
+        }
+    }
     result
 }
 
@@ -37,6 +42,22 @@ pub fn showErrorDialog(message: &str)
 {
     let dialog = makeDialog(message);
     dialog.run();
+}
+
+
+// private
+
+fn formatSingleCause(cause: &dyn StdError, result: &mut String)
+{
+    result.push_str(&format!("\n    Cause: {}", cause));
+}
+
+fn formatMultipleCauses(cause: &(dyn StdError + 'static), result: &mut String)
+{
+    result.push_str("\n    Causes:");
+    for (n, causeEntry) in cause.chain().enumerate() {
+        result.push_str(&format!("\n    {}: {}", n + 1, causeEntry));
+    }
 }
 
 fn makeDialog(errorMessage: &str) -> gtk::MessageDialog

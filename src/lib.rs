@@ -3,7 +3,6 @@
 #![allow(clippy::indexing_slicing)]
 #![allow(clippy::integer_arithmetic)]
 #![allow(clippy::integer_division)]
-#![allow(clippy::let_underscore_must_use)] // false positives in Debug
 #![allow(clippy::missing_docs_in_private_items)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_inline_in_public_items)]
@@ -15,8 +14,7 @@
 #![allow(clippy::string_add)]
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
-#![feature(arbitrary_self_types)]
-#[macro_use] extern crate failure;
+#![feature(error_iter)]
 
 
 pub mod app_setup;
