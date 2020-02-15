@@ -98,6 +98,11 @@ impl TreeView
         let iter = model.get_iter_first().unwrap();
         let rowPath = model.get_path(&iter).unwrap();
         self.widget.set_cursor(&rowPath, NO_COLUMN_FOCUS, NO_EDITING);
+        self.focus();
+    }
+
+    pub fn focus(&self)
+    {
         self.widget.grab_focus();
     }
 

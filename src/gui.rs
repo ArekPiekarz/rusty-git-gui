@@ -103,7 +103,6 @@ fn setupPanes(guiElementProvider: &GuiElementProvider, settings: &mut Settings)
 fn showFirstFileChange(unstagedChangesView: &Rc<RefCell<UnstagedChangesView>>)
 {
     let view = unstagedChangesView.borrow();
-    if view.isFilled() {
-        view.trySelectFirst();
-    }
+    view.focus();
+    view.trySelectFirst();
 }

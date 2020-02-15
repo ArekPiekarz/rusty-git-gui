@@ -136,13 +136,20 @@ impl<StoreType> FileChangesView<StoreType>
         self.view.borrow().getSelection().borrow().unselectAll();
     }
 
-    pub fn trySelectFirst(&self)
+    pub fn trySelectFirst(&self) -> bool
     {
         if let Some(iter) = self.getModel().get_iter_first() {
             let view = self.view.borrow();
             view.getSelection().borrow().selectByIterator(&iter);
             view.focusFirstRow();
+            return true;
         }
+        false
+    }
+
+    pub fn focus(&self)
+    {
+        self.view.borrow().focus();
     }
 
 
