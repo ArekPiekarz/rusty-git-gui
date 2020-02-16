@@ -7,7 +7,6 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_inline_in_public_items)]
 #![allow(clippy::module_name_repetitions)]
-#![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::option_unwrap_used)]
 #![allow(clippy::panic)]
 #![allow(clippy::result_unwrap_used)]
