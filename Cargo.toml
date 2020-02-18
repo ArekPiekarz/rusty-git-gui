@@ -15,7 +15,7 @@ glib = { version = "0.9.3", default-features = false }
 gtk = { version = "0.8.1", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.8.2", default-features = false, features = ["use_std"] }
 pango = { version = "0.8.0", default-features = false }
-rust-ini = { version = "0.15.1", default-features = false }
+rust-ini = { version = "0.15.2", default-features = false }
 
 [dev-dependencies]
 mocktopus = { version = "0.7.5", default-features = false }

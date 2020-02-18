@@ -141,9 +141,9 @@ dependencies = [
 
 [[package]]
 name = "cairo-rs"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b528aca2ef1026235d0122495dbaee0b09479f77c51f6df8d9bb9cb1c6d6f87"
+checksum = "157049ba9618aa3a61c39d5d785102c04d3b1f40632a706c621a9aedc21e6084"
 dependencies = [
  "bitflags",
  "cairo-sys-rs",
@@ -560,9 +560,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eff2656d88f158ce120947499e971d743c05dbcbed62e5bd2f38f1698bbc3772"
+checksum = "e2c55f143919fbc0bc77e427fe2d74cf23786d7c1875666f2fde3ac3c659bb67"
 dependencies = [
  "libc",
 ]
@@ -871,9 +871,9 @@ dependencies = [
 
 [[package]]
 name = "rust-ini"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75108de5fce2f47335efa7ea2d6bfeac10c1ee8f4a0d22354063ec8a44bf147e"
+checksum = "9c609fa8151080b18c38d39e09d1e55d6301d5610428ff804d0d59c4bac15cf7"
 dependencies = [
  "cfg-if",
  "ordered-multimap",
