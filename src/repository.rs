@@ -571,6 +571,10 @@ fn getFilePath(statusEntry: &git2::StatusEntry) -> String
 fn makeDiffOptions(path: &str) -> git2::DiffOptions
 {
     let mut diffOptions = git2::DiffOptions::new();
-    diffOptions.pathspec(path).show_untracked_content(true).recurse_untracked_dirs(true);
+    diffOptions
+        .pathspec(path)
+        .indent_heuristic(true)
+        .recurse_untracked_dirs(true)
+        .show_untracked_content(true);
     diffOptions
 }
