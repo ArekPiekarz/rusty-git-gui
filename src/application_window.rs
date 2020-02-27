@@ -32,6 +32,10 @@ impl ApplicationWindow
         self.window.show_all();
     }
 
+    pub fn setOpacity(&self, value: f64)
+    {
+        self.window.set_opacity(value);
+    }
 
     // private
 

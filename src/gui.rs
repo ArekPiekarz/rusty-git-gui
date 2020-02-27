@@ -78,6 +78,11 @@ impl Gui
     {
         self.applicationWindow.show();
     }
+
+    pub fn setOpacity(&self, value: f64)
+    {
+        self.applicationWindow.setOpacity(value);
+    }
 }
 
 fn makeOnOtherViewSelectedReaction<StoreType>(fileChangesView: &Rc<RefCell<FileChangesView<StoreType>>>)

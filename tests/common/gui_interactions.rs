@@ -5,6 +5,7 @@ use std::path::Path;
 pub fn show(gui: &Gui)
 {
     gui.show();
+    gui.setOpacity(0.0);
     processEvents();
 }
 
