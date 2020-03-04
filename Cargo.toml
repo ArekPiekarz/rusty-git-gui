@@ -1,3 +1,5 @@
+cargo-features = ["named-profiles"]
+
 [package]
 name = "rusty-git-gui"
 version = "0.1.0"
@@ -14,6 +16,7 @@ git2 = { version = "0.12.0", default-features = false }
 glib = { version = "0.9.3", default-features = false }
 gtk = { version = "0.8.1", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.8.2", default-features = false, features = ["use_std"] }
+mimalloc = { version = "0.1.17", default-features = false, optional = true }
 pango = { version = "0.8.0", default-features = false }
 rust-ini = { version = "0.15.2", default-features = false }
 
@@ -25,6 +28,13 @@ tempfile = { version = "3.1.0", default-features = false }
 
 [features]
 use_color_backtrace = ["color-backtrace"]
+use_mimalloc = ["mimalloc"]
 
 [profile.release]
 lto = "thin"
+
+[profile.max-performance]
+inherits = "release"
+codegen-units = 1
+lto = "fat"
+panic = "abort"
