@@ -1,8 +1,9 @@
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::file_changes_store::FileChangesStore;
 use crate::file_path::FilePathStr;
 use crate::gui_element_provider::GuiElementProvider;
-use crate::ifile_changes_store::{IFileChangesStore, OnRefreshedHandler};
+use crate::ifile_changes_store::IFileChangesStore;
 use crate::repository::Repository;
 
 use std::cell::RefCell;
@@ -15,75 +16,38 @@ pub struct UnstagedChangesStore
     repository: Rc<RefCell<Repository>>
 }
 
+impl IEventHandler for UnstagedChangesStore
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::AddedToUnstaged(fileChange)         => self.onAddedToUnstaged(fileChange),
+            Event::RemovedFromUnstaged(fileChange)     => self.onRemovedFromUnstaged(fileChange),
+            Event::Refreshed                           => self.onRefreshed(),
+            Event::UpdatedInUnstaged(fileChangeUpdate) => self.onUpdatedInUnstaged(fileChangeUpdate),
+            _ => handleUnknown(source, event)
+        }
+    }
+}
+
 impl UnstagedChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: &Rc<RefCell<Repository>>) -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, sender: Sender, repository: &Rc<RefCell<Repository>>)
+        -> Self
     {
-        let newSelf = Rc::new(RefCell::new(Self{
+        Self{
             store: FileChangesStore::new(
                 guiElementProvider,
                 "Unstaged changes store",
+                Source::UnstagedChangesStore,
+                sender,
                 repository.borrow().getUnstagedChanges()),
             repository: Rc::clone(repository)
-        }));
-        Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
-        newSelf
+        }
     }
 
 
     // private
-
-    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
-    {
-        Self::connectSelfToRepositoryOnAddedToUnstaged(rcSelf, repository);
-        Self::connectSelfToRepositoryOnUpdatedInUnstaged(rcSelf, repository);
-        Self::connectSelfToRepositoryOnRemovedFromUnstaged(rcSelf, repository);
-        Self::connectSelfToRepositoryOnRefreshed(rcSelf, repository);
-    }
-
-    fn connectSelfToRepositoryOnAddedToUnstaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        repository.connectOnAddedToUnstaged(Box::new(move |fileChange| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onAddedToUnstaged(&fileChange);
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToRepositoryOnUpdatedInUnstaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        repository.connectOnUpdatedInUnstaged(Box::new(move |updatedFileChange| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onUpdatedInUnstaged(&updatedFileChange);
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToRepositoryOnRemovedFromUnstaged(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        repository.connectOnRemovedFromUnstaged(Box::new(move |filePath| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onRemovedFromUnstaged(&filePath);
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToRepositoryOnRefreshed(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        repository.connectOnRefreshed(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onRefreshed();
-            }
-            glib::Continue(true)
-        }));
-    }
 
     fn onAddedToUnstaged(&mut self, fileChange: &FileChange)
     {
@@ -121,10 +85,5 @@ impl IFileChangesStore for UnstagedChangesStore
     fn findFilePath(&self, path: &FilePathStr) -> Option<usize>
     {
         self.store.findFilePath(path)
-    }
-
-    fn connectOnRefreshed(&mut self, observer: OnRefreshedHandler)
-    {
-        self.store.connectOnRefreshed(observer);
     }
 }

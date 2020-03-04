@@ -14,18 +14,22 @@
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
 #![feature(error_iter)]
+#![feature(track_caller)]
 
 
 pub mod app_setup;
 pub mod error_handling;
+pub mod event;
 pub mod file_changes_view_entry;
 pub mod gui;
+pub mod main_context;
 pub mod repository;
 
 mod application_window;
 mod color;
 mod commit_amend_checkbox;
 mod commit_button;
+mod commit_message;
 mod commit_message_view;
 mod diff_and_commit_paned;
 mod diff_colorizer;
@@ -43,7 +47,6 @@ mod gui_element_provider;
 mod ifile_changes_store;
 mod line_count;
 mod line_number;
-mod main_context;
 mod main_paned;
 mod number_casts;
 mod paned;

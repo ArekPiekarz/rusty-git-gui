@@ -7,7 +7,9 @@
 
 use rusty_git_gui::app_setup::{findRepositoryDir, setupGtk, setupPanicHandler};
 use rusty_git_gui::error_handling::printErr;
+use rusty_git_gui::event::Sender;
 use rusty_git_gui::gui::Gui;
+use rusty_git_gui::main_context::makeChannel;
 use rusty_git_gui::repository::Repository;
 
 use anyhow::{Context, Result};
@@ -20,15 +22,17 @@ fn main()
     let result : Result<()> = try {
         setupPanicHandler();
         setupGtk();
-        let repository = makeRepository()?;
-        let gui = Gui::new(&repository);
+        let (sender, receiver) = makeChannel();
+        let repository = makeRepository(sender.clone())?;
+        let gui = Gui::new(repository, sender, receiver);
         gui.show();
         gtk::main(); };
     result.unwrap_or_else(|e| printErr(&e));
 }
 
-fn makeRepository() -> Result<Rc<RefCell<Repository>>>
+fn makeRepository(sender: Sender) -> Result<Rc<RefCell<Repository>>>
 {
-    Ok(Rc::new(RefCell::new(Repository::new(&findRepositoryDir()
-        .context("Failed to start the application.")?))))
+    Ok(Rc::new(RefCell::new(Repository::new(
+        &findRepositoryDir().context("Failed to start the application.")?,
+        sender))))
 }

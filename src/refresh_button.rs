@@ -1,27 +1,33 @@
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
-use crate::main_context::{attach, makeChannel};
-use crate::repository::Repository;
 
 use gtk::ButtonExt as _;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 
 pub struct RefreshButton
 {
     widget: gtk::Button,
-    repository: Rc<RefCell<Repository>>
+    sender: Sender
+}
+
+impl IEventHandler for RefreshButton
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::Clicked => self.refresh(),
+            _ => handleUnknown(source, event)
+        }
+    }
 }
 
 impl RefreshButton
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: Rc<RefCell<Repository>>) -> Rc<Self>
+    pub fn new(guiElementProvider: &GuiElementProvider, sender: Sender) -> Self
     {
-        let newSelf = Rc::new(Self{
-            widget: guiElementProvider.get::<gtk::Button>("Refresh button"),
-            repository
-        });
-        newSelf.connectSelfToWidget();
+        let widget = guiElementProvider.get::<gtk::Button>("Refresh button");
+        let newSelf = Self{widget, sender};
+        newSelf.connectWidget();
         newSelf
     }
 
@@ -33,24 +39,16 @@ impl RefreshButton
 
     // private
 
-    fn connectSelfToWidget(self: &Rc<Self>)
+    fn connectWidget(&self)
     {
-        let (sender, receiver) = makeChannel();
+        let sender = self.sender.clone();
         self.widget.connect_clicked(move |_button| {
-            sender.send(()).unwrap();
-        });
-
-        let weakSelf = Rc::downgrade(self);
-        attach(receiver, move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.refresh();
-            }
-            glib::Continue(true)
+            sender.send((Source::RefreshButton, Event::Clicked)).unwrap();
         });
     }
 
     fn refresh(&self)
     {
-        self.repository.borrow_mut().refresh();
+        self.sender.send((Source::RefreshButton, Event::RefreshRequested)).unwrap();
     }
 }

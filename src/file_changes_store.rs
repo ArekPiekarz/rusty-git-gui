@@ -1,12 +1,11 @@
+use crate::event::{Event, Sender, Source};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::file_changes_column::FileChangesColumn;
 use crate::file_path::FilePathStr;
 use crate::gui_element_provider::GuiElementProvider;
-use crate::ifile_changes_store::{IFileChangesStore, OnRefreshedHandler};
-use crate::main_context::{attach, makeChannel};
+use crate::ifile_changes_store::IFileChangesStore;
 use crate::number_casts::ToI32 as _;
 
-use glib::Sender;
 use gtk::GtkListStoreExt as _;
 use gtk::prelude::GtkListStoreExtManual as _;
 use gtk::TreeModelExt as _;
@@ -19,7 +18,8 @@ pub struct FileChangesStore
 {
     store: gtk::ListStore,
     fileChanges: Vec<FileChange>,
-    onRefreshedSenders: Vec<Sender<()>>
+    source: Source,
+    sender: Sender
 }
 
 #[derive(Eq, PartialEq)]
@@ -31,12 +31,18 @@ enum LoopControl
 
 impl FileChangesStore
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, fileChanges: &[FileChange]) -> Self
+    pub fn new(
+        guiElementProvider: &GuiElementProvider,
+        name: &str,
+        source: Source,
+        sender: Sender,
+        fileChanges: &[FileChange]) -> Self
     {
         let newSelf = Self {
             store: guiElementProvider.get::<gtk::ListStore>(name),
             fileChanges: fileChanges.into(),
-            onRefreshedSenders: vec![]
+            source,
+            sender
         };
         newSelf.fillFileChangesStore();
         newSelf
@@ -102,9 +108,7 @@ impl FileChangesStore
 
     fn notifyOnRefreshed(&self)
     {
-        for sender in &self.onRefreshedSenders {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((self.source, Event::Refreshed)).unwrap();
     }
 
     fn refreshOldFileChanges(&mut self, oldFileChangeIndex: &mut usize, newFileChange: &FileChange)
@@ -221,13 +225,6 @@ impl IFileChangesStore for FileChangesStore
     {
         self.fileChanges.iter().enumerate().find_map(|(index, fileChange)|
              if fileChange.path == path { Some(index) } else { None })
-    }
-
-    fn connectOnRefreshed(&mut self, handler: OnRefreshedHandler)
-    {
-        let (sender, receiver) = makeChannel();
-        self.onRefreshedSenders.push(sender);
-        attach(receiver, handler);
     }
 }
 

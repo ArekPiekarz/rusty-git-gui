@@ -1,40 +1,32 @@
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
-use crate::main_context::{attach, makeChannel};
 use crate::repository::Repository;
 
-use glib::Sender;
 use gtk::ToggleButtonExt as _;
 use gtk::WidgetExt as _;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub struct CommitAmendCheckbox
 {
     widget: gtk::CheckButton,
-    senders: Senders
+    sender: Sender
 }
 
-struct Senders
+impl IEventHandler for CommitAmendCheckbox
 {
-    onSelected: Vec<Sender<()>>,
-    onUnselected: Vec<Sender<()>>
-}
-
-impl Senders
-{
-    fn new() -> Self
+    fn handle(&mut self, source: Source, event: &Event)
     {
-        Self{ onSelected: vec![], onUnselected: vec![]}
+        match event {
+            Event::AmendedCommit => self.onAmendedCommit(),
+            Event::Toggled       => self.onToggled(),
+            _ => handleUnknown(source, event)
+        }
     }
 }
-
-type OnSelectedHandler = Box<dyn Fn(()) -> glib::Continue>;
-type OnUnselectedHandler = Box<dyn Fn(()) -> glib::Continue>;
 
 impl CommitAmendCheckbox
 {
     #[must_use]
-    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository) -> Rc<RefCell<Self>>
+    pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository, sender: Sender) -> Self
     {
         let widget = guiElementProvider.get::<gtk::CheckButton>("Commit amend checkbox");
         if repository.isEmpty() {
@@ -44,9 +36,8 @@ impl CommitAmendCheckbox
             widget.set_sensitive(true);
         }
 
-        let newSelf = Rc::new(RefCell::new(Self{widget, senders: Senders::new()}));
-        Self::connectSelfToRepository(&newSelf, repository);
-        Self::connectSelfToWidget(&newSelf);
+        let newSelf = Self{widget, sender};
+        newSelf.connectWidget();
         newSelf
     }
 
@@ -93,42 +84,14 @@ impl CommitAmendCheckbox
         self.widget.set_active(false);
     }
 
-    pub fn connectOnSelected(&mut self, handler: OnSelectedHandler)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onSelected.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnUnselected(&mut self, handler: OnUnselectedHandler)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onUnselected.push(sender);
-        attach(receiver, handler);
-    }
-
 
     // private
 
-    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn connectWidget(&self)
     {
-        let weakSelf = Rc::downgrade(rcSelf);
-        repository.connectOnAmendedCommit(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow().onAmendedCommit();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToWidget(rcSelf: &Rc<RefCell<Self>>)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().widget.connect_toggled(move |_checkbox| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow().onToggled();
-            }
-        });
+        let eventSender = self.sender.clone();
+        self.widget.connect_toggled(move |_checkbox|
+            eventSender.send((Source::CommitAmendCheckbox, Event::Toggled)).unwrap());
     }
 
     fn onToggled(&self)
@@ -147,15 +110,11 @@ impl CommitAmendCheckbox
 
     fn notifyOnSelected(&self)
     {
-        for sender in &self.senders.onSelected {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((Source::CommitAmendCheckbox, Event::CommitAmendEnabled)).unwrap();
     }
 
     fn notifyOnUnselected(&self)
     {
-        for sender in &self.senders.onUnselected {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((Source::CommitAmendCheckbox, Event::CommitAmendDisabled)).unwrap();
     }
 }

@@ -1,7 +1,6 @@
-use crate::commit_amend_checkbox::CommitAmendCheckbox;
 use crate::commit_message_view::CommitMessageView;
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
-use crate::main_context::{attach, makeChannel};
 use crate::repository::Repository;
 
 use gtk::ButtonExt as _;
@@ -15,9 +14,27 @@ pub struct CommitButton
     widget: gtk::Button,
     repository: Rc<RefCell<Repository>>,
     commitMessageView: Rc<RefCell<CommitMessageView>>,
+    sender: Sender,
     areChangesStaged: bool,
     isCommitMessageWritten: bool,
     isCommitAmendEnabled: bool
+}
+
+impl IEventHandler for CommitButton
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::AddedToStaged(_)     => self.onAddedToStaged(),
+            Event::Clicked              => self.onClicked(),
+            Event::CommitAmendDisabled  => self.onCommitAmendDisabled(),
+            Event::CommitAmendEnabled   => self.onCommitAmendEnabled(),
+            Event::Emptied              => self.onCommitMessageEmptied(),
+            Event::Filled               => self.onCommitMessageFilled(),
+            Event::RemovedFromStaged(_) => self.onRemovedFromStaged(),
+            _ => handleUnknown(source, event)
+        }
+    }
 }
 
 impl CommitButton
@@ -25,25 +42,23 @@ impl CommitButton
     pub fn new(
         guiElementProvider: &GuiElementProvider,
         commitMessageView: Rc<RefCell<CommitMessageView>>,
-        commitAmendCheckbox: &mut CommitAmendCheckbox,
-        repository: Rc<RefCell<Repository>>)
-        -> Rc<RefCell<Self>>
+        repository: Rc<RefCell<Repository>>,
+        sender: Sender)
+        -> Self
     {
         let isCommitMessageWritten = commitMessageView.borrow().hasText();
         let areChangesStaged = repository.borrow().hasStagedChanges();
-        let newSelf = Rc::new(RefCell::new(Self {
+        let newSelf = Self {
             widget: guiElementProvider.get::<gtk::Button>("Commit button"),
             repository,
             commitMessageView,
+            sender,
             areChangesStaged,
             isCommitMessageWritten,
             isCommitAmendEnabled: false
-        }));
-        Self::connectSelfToRepository(&newSelf);
-        Self::connectSelfToCommitMessageView(&newSelf);
-        Self::connectSelfToCommitAmmendCheckbox(&newSelf, commitAmendCheckbox);
-        Self::connectSelfToWidget(&newSelf);
-        newSelf.borrow().update();
+        };
+        newSelf.connectWidget();
+        newSelf.update();
         newSelf
     }
 
@@ -77,107 +92,11 @@ impl CommitButton
 
     // private
 
-    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>)
+    fn connectWidget(&self)
     {
-        Self::connectSelfToRepositoryOnAddedToStaged(rcSelf);
-        Self::connectSelfToRepositoryOnRemovedFromStaged(rcSelf);
-    }
-
-    fn connectSelfToRepositoryOnAddedToStaged(rcSelf: &Rc<RefCell<Self>>)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().repository.borrow_mut().connectOnAddedToStaged(Box::new(move |_fileChange| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onAddedToStaged();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToRepositoryOnRemovedFromStaged(rcSelf: &Rc<RefCell<Self>>)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().repository.borrow_mut().connectOnRemovedFromStaged(Box::new(move |_fileChange| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onRemovedFromStaged();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToCommitMessageView(rcSelf: &Rc<RefCell<Self>>)
-    {
-        Self::connectSelfToCommitMessageViewOnEmptied(rcSelf);
-        Self::connectSelfToCommitMessageViewOnFilled(rcSelf);
-    }
-
-    fn connectSelfToCommitMessageViewOnFilled(rcSelf: &Rc<RefCell<Self>>)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().commitMessageView.borrow_mut().connectOnFilled(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onCommitMessageFilled();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToCommitMessageViewOnEmptied(rcSelf: &Rc<RefCell<Self>>)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().commitMessageView.borrow_mut().connectOnEmptied(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onCommitMessageEmptied();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToCommitAmmendCheckbox(rcSelf: &Rc<RefCell<Self>>, commitAmendCheckbox: &mut CommitAmendCheckbox)
-    {
-        Self::connectSelfToCommitAmmendCheckboxOnSelected(rcSelf, commitAmendCheckbox);
-        Self::connectSelfToCommitAmmendCheckboxOnUnselected(rcSelf, commitAmendCheckbox);
-    }
-
-    fn connectSelfToCommitAmmendCheckboxOnSelected(
-        rcSelf: &Rc<RefCell<Self>>,
-        commitAmendCheckbox: &mut CommitAmendCheckbox)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        commitAmendCheckbox.connectOnSelected(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onCommitAmendEnabled();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToCommitAmmendCheckboxOnUnselected(
-        rcSelf: &Rc<RefCell<Self>>,
-        commitAmendCheckbox: &mut CommitAmendCheckbox)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        commitAmendCheckbox.connectOnUnselected(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onCommitAmendDisabled();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToWidget(rcSelf: &Rc<RefCell<Self>>)
-    {
-        let (sender, receiver) = makeChannel();
-        rcSelf.borrow().widget.connect_clicked(move |_button| {
-            sender.send(()).unwrap();
-        });
-
-        let weakSelf = Rc::downgrade(rcSelf);
-        attach(receiver, move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().commit();
-            }
-            glib::Continue(true)
+        let sender = self.sender.clone();
+        self.widget.connect_clicked(move |_button| {
+            sender.send((Source::CommitButton, Event::Clicked)).unwrap();
         });
     }
 
@@ -221,6 +140,11 @@ impl CommitButton
     {
         self.isCommitAmendEnabled = false;
         self.update();
+    }
+
+    fn onClicked(&mut self)
+    {
+        self.commit()
     }
 
     fn update(&self)
@@ -283,10 +207,11 @@ impl CommitButton
 
     fn commit(&mut self)
     {
+        let message = self.commitMessageView.borrow().getText();
         if self.commitAmendIsEnabled() {
-            self.repository.borrow_mut().amendCommit(&self.commitMessageView.borrow().getText());
+            self.sender.send((Source::CommitButton, Event::AmendCommitRequested(message))).unwrap();
         } else {
-            self.repository.borrow_mut().commit(&self.commitMessageView.borrow().getText());
+            self.sender.send((Source::CommitButton, Event::CommitRequested(message))).unwrap();
         }
         self.areChangesStaged = false;
         self.update();

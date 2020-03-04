@@ -1,4 +1,4 @@
-use crate::commit_amend_checkbox::CommitAmendCheckbox;
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 use crate::text_view::{Notifications, TextView};
@@ -9,27 +9,43 @@ use std::rc::Rc;
 
 pub struct CommitMessageView
 {
-    widget: Rc<RefCell<TextView>>,
+    widget: TextView,
     repository: Rc<RefCell<Repository>>,
     stashedMessage: String
+}
+
+impl IEventHandler for CommitMessageView
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::BufferChanged       => self.onBufferChanged(source, event),
+            Event::CommitAmendDisabled => self.onCommitAmendDisabled(),
+            Event::CommitAmendEnabled  => self.onCommitAmendEnabled(),
+            Event::Committed           => self.onCommitted(),
+            _ => handleUnknown(source, event)
+        }
+    }
 }
 
 impl CommitMessageView
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
-        repository: &Rc<RefCell<Repository>>,
-        commitAmendCheckbox: &mut CommitAmendCheckbox)
-        -> Rc<RefCell<Self>>
+        repository: Rc<RefCell<Repository>>,
+        sender: Sender)
+        -> Self
     {
-        let newSelf = Rc::new(RefCell::new(Self{
-            widget: TextView::new(guiElementProvider, "Commit message view", Notifications::Enabled),
-            repository: Rc::clone(repository),
+        Self{
+            widget: TextView::new(
+                guiElementProvider,
+                "Commit message view",
+                sender,
+                Source::CommitMessageView,
+                Notifications::Enabled),
+            repository,
             stashedMessage: "".into()
-        }));
-        Self::connectSelfToRepository(&newSelf, &mut repository.borrow_mut());
-        Self::connectSelfToCommitAmendCheckbox(&newSelf, commitAmendCheckbox);
-        newSelf
+        }
     }
 
     pub fn hasText(&self) -> bool
@@ -44,69 +60,25 @@ impl CommitMessageView
 
     pub fn getText(&self) -> String
     {
-        self.widget.borrow().getText()
+        self.widget.getText()
     }
 
     pub fn setText(&self, text: &str)
     {
-        self.widget.borrow().setText(text);
-    }
-
-    pub fn connectOnFilled(&self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        self.widget.borrow_mut().connectOnFilled(handler);
-    }
-
-    pub fn connectOnEmptied(&self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        self.widget.borrow_mut().connectOnEmptied(handler);
+        self.widget.setText(text);
     }
 
 
     // private
 
-    fn connectSelfToRepository(rcSelf: &Rc<RefCell<Self>>, repository: &mut Repository)
+    fn onBufferChanged(&mut self, source: Source, event: &Event)
     {
-        let weakSelf = Rc::downgrade(rcSelf);
-        repository.connectOnCommitted(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow().onCommitted();
-            }
-            glib::Continue(true)
-        }))
-    }
-
-    fn connectSelfToCommitAmendCheckbox(rcSelf: &Rc<RefCell<Self>>, commitAmendCheckbox: &mut CommitAmendCheckbox)
-    {
-        Self::connectSelfToCommitAmendEnabled(rcSelf, commitAmendCheckbox);
-        Self::connectSelfToCommitAmendDisabled(rcSelf, commitAmendCheckbox);
-    }
-
-    fn connectSelfToCommitAmendEnabled(rcSelf: &Rc<RefCell<Self>>, commitAmendCheckbox: &mut CommitAmendCheckbox)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        commitAmendCheckbox.connectOnSelected(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onCommitAmendEnabled();
-            }
-            glib::Continue(true)
-        }))
-    }
-
-    fn connectSelfToCommitAmendDisabled(rcSelf: &Rc<RefCell<Self>>, commitAmendCheckbox: &mut CommitAmendCheckbox)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        commitAmendCheckbox.connectOnUnselected(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onCommitAmendDisabled();
-            }
-            glib::Continue(true)
-        }))
+        self.widget.handle(source, event);
     }
 
     fn onCommitted(&self)
     {
-        self.widget.borrow().clear();
+        self.widget.clear();
     }
 
     fn onCommitAmendEnabled(&mut self)

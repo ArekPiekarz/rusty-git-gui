@@ -1,24 +1,20 @@
-use crate::main_context::{attach, makeChannel};
+use crate::event::{Event, Sender, Source};
 use crate::tree_model_utils::toRow;
 
-use glib::Sender;
 use gtk::TreeSelectionExt as _;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 
 pub struct TreeSelection
 {
     selection: gtk::TreeSelection,
-    onChangedSenders: Vec<Sender<gtk::TreeSelection>>
 }
 
 impl TreeSelection
 {
-    pub fn new(selection: gtk::TreeSelection) -> Rc<RefCell<Self>>
+    pub fn new(selection: gtk::TreeSelection, sender: Sender, selectionSource: Source) -> Self
     {
-        let newSelf = Rc::new(RefCell::new(Self{selection, onChangedSenders: vec![]}));
-        Self::connectSelfToChanged(&newSelf);
+        let newSelf = Self{selection};
+        newSelf.connectSelection(sender, selectionSource);
         newSelf
     }
 
@@ -29,13 +25,6 @@ impl TreeSelection
             Some(rowPath) => Some(toRow(rowPath)),
             None => None
         }
-    }
-
-    pub fn connectOnChanged(&mut self, handler: Box<dyn Fn(gtk::TreeSelection) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.onChangedSenders.push(sender);
-        attach(receiver, handler);
     }
 
     pub fn selectByIterator(&self, iterator: &gtk::TreeIter)
@@ -51,22 +40,9 @@ impl TreeSelection
 
     // private
 
-    fn connectSelfToChanged(rcSelf: &Rc<RefCell<Self>>)
+    fn connectSelection(&self, sender: Sender, eventSource: Source)
     {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().selection.connect_changed(
-            move |selection| {
-                if let Some(rcSelf) = weakSelf.upgrade() {
-                    rcSelf.borrow().notifyOnChanged(selection);
-                }
-            }
-        );
-    }
-
-    fn notifyOnChanged(&self, selection: &gtk::TreeSelection)
-    {
-        for sender in &self.onChangedSenders {
-            sender.send(selection.clone()).unwrap();
-        }
+        self.selection.connect_changed(move |selection|
+            sender.send((eventSource, Event::SelectionChanged(selection.clone()))).unwrap());
     }
 }

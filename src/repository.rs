@@ -1,11 +1,10 @@
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::error_handling::{exit, showErrorDialog};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::grouped_file_changes::GroupedFileChanges;
-use crate::main_context::{attach, makeChannel};
 use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
 
-use glib::Sender;
 use itertools::Itertools;
 use std::path::Path;
 
@@ -33,41 +32,33 @@ pub struct Repository
 {
     gitRepo: git2::Repository,
     fileChanges: GroupedFileChanges,
-    senders: Senders
+    sender: Sender
 }
 
-struct Senders
+impl IEventHandler for Repository
 {
-    onAddedToStaged: Vec<Sender<FileChange>>,
-    onUpdatedInStaged: Vec<Sender<FileChangeUpdate>>,
-    onRemovedFromStaged: Vec<Sender<FileChange>>,
-    onAddedToUnstaged: Vec<Sender<FileChange>>,
-    onUpdatedInUnstaged: Vec<Sender<FileChangeUpdate>>,
-    onRemovedFromUnstaged: Vec<Sender<FileChange>>,
-    onCommitted: Vec<Sender<()>>,
-    onAmendedCommit: Vec<Sender<()>>,
-    onRefreshed: Vec<Sender<()>>
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::AmendCommitRequested(message) => self.amendCommit(message),
+            Event::CommitRequested(message)      => self.commit(message),
+            Event::RefreshRequested              => self.refresh(),
+            Event::StageRequested(fileChange)    => self.stage(fileChange),
+            Event::UnstageRequested(fileChange)  => self.unstage(fileChange),
+            _ => handleUnknown(source, event)
+        }
+    }
 }
 
 impl Repository
 {
     #[must_use]
-    pub fn new(path: &Path) -> Self
+    pub fn new(path: &Path, sender: Sender) -> Self
     {
         let mut newSelf = Self{
             gitRepo: openRepository(path),
             fileChanges: GroupedFileChanges::new(),
-            senders: Senders{
-                onAddedToStaged: vec![],
-                onUpdatedInStaged: vec![],
-                onRemovedFromStaged: vec![],
-                onAddedToUnstaged: vec![],
-                onUpdatedInUnstaged: vec![],
-                onRemovedFromUnstaged: vec![],
-                onCommitted: vec![],
-                onAmendedCommit: vec![],
-                onRefreshed: vec![]
-            },
+            sender
         };
         newSelf.collectCurrentFileChanges();
         newSelf
@@ -159,7 +150,7 @@ impl Repository
         diff
     }
 
-    pub fn stageFileChange(&mut self, fileChange: &FileChange)
+    pub fn stage(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
             "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
@@ -181,7 +172,7 @@ impl Repository
         }
     }
 
-    pub fn unstageFileChange(&mut self, fileChange: &FileChange)
+    pub fn unstage(&mut self, fileChange: &FileChange)
     {
         {
             let commitObject = match self.findHeadCommit() {
@@ -238,69 +229,6 @@ impl Repository
     {
         self.collectCurrentFileChanges();
         self.notifyOnRefreshed();
-    }
-
-    pub fn connectOnAddedToStaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onAddedToStaged.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnUpdatedInStaged(&mut self, handler: Box<dyn Fn(FileChangeUpdate) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onUpdatedInStaged.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnRemovedFromStaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onRemovedFromStaged.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnAddedToUnstaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onAddedToUnstaged.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnUpdatedInUnstaged(&mut self, handler: Box<dyn Fn(FileChangeUpdate) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onUpdatedInUnstaged.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnRemovedFromUnstaged(&mut self, handler: Box<dyn Fn(FileChange) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onRemovedFromUnstaged.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnCommitted(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onCommitted.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnAmendedCommit(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onAmendedCommit.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnRefreshed(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.senders.onRefreshed.push(sender);
-        attach(receiver, handler);
     }
 
 
@@ -439,65 +367,47 @@ impl Repository
 
     fn notifyOnAddedToStaged(&self, fileChange: &FileChange)
     {
-        for sender in &self.senders.onAddedToStaged {
-            sender.send(fileChange.clone()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::AddedToStaged(fileChange.clone()))).unwrap();
     }
 
-    fn notifyOnUpdatedInStaged(&self, updatedFileChange: &FileChangeUpdate)
+    fn notifyOnUpdatedInStaged(&self, fileChangeUpdate: &FileChangeUpdate)
     {
-        for sender in &self.senders.onUpdatedInStaged {
-            sender.send(updatedFileChange.clone()).unwrap();
-        }
-    }
-
-    fn notifyOnUpdatedInUnstaged(&self, updatedFileChange: &FileChangeUpdate)
-    {
-        for sender in &self.senders.onUpdatedInUnstaged {
-            sender.send(updatedFileChange.clone()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::UpdatedInStaged(fileChangeUpdate.clone()))).unwrap();
     }
 
     fn notifyOnRemovedFromStaged(&self, fileChange: &FileChange)
     {
-        for sender in &self.senders.onRemovedFromStaged {
-            sender.send(fileChange.clone()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::RemovedFromStaged(fileChange.clone()))).unwrap();
     }
 
     fn notifyOnAddedToUnstaged(&self, fileChange: &FileChange)
     {
-        for sender in &self.senders.onAddedToUnstaged {
-            sender.send(fileChange.clone()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::AddedToUnstaged(fileChange.clone()))).unwrap();
+    }
+
+    fn notifyOnUpdatedInUnstaged(&self, fileChangeUpdate: &FileChangeUpdate)
+    {
+        self.sender.send((Source::Repository, Event::UpdatedInUnstaged(fileChangeUpdate.clone()))).unwrap();
     }
 
     fn notifyOnRemovedFromUnstaged(&self, fileChange: &FileChange)
     {
-        for sender in &self.senders.onRemovedFromUnstaged {
-            sender.send(fileChange.clone()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::RemovedFromUnstaged(fileChange.clone()))).unwrap();
     }
 
     fn notifyOnCommitted(&self)
     {
-        for sender in &self.senders.onCommitted {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::Committed)).unwrap();
     }
 
     fn notifyOnAmendedCommit(&self)
     {
-        for sender in &self.senders.onAmendedCommit {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::AmendedCommit)).unwrap();
     }
 
     fn notifyOnRefreshed(&self)
     {
-        for sender in &self.senders.onRefreshed {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((Source::Repository, Event::Refreshed)).unwrap();
     }
 }
 

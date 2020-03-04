@@ -1,19 +1,16 @@
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::event_constants::{CONSUME_EVENT, FORWARD_EVENT};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::line_count::LineCount;
 use crate::line_number::LineNumber;
-use crate::main_context::{attach, makeChannel};
 
-use glib::Sender;
 use gtk::CssProviderExt as _;
 use gtk::StyleContextExt as _;
 use gtk::TextBufferExt as _;
 use gtk::TextTagTableExt as _;
 use gtk::TextViewExt as _;
 use gtk::WidgetExt as _;
-use std::cell::RefCell;
 use std::cmp::{min, max};
-use std::rc::{Rc, Weak};
 
 pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 
@@ -21,8 +18,8 @@ pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 pub struct TextView
 {
     buffer: gtk::TextBuffer,
-    onFilledSenders: Vec<Sender<()>>,
-    onEmptiedSenders: Vec<Sender<()>>,
+    sender: Sender,
+    source: Source,
     shouldNotifyOnFilled: bool,
     style: Style
 }
@@ -34,24 +31,40 @@ pub enum Notifications
     Disabled
 }
 
+impl IEventHandler for TextView
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::BufferChanged              => self.onBufferChanged(),
+            Event::ZoomRequested(scrollEvent) => self.onZoomRequested(scrollEvent),
+            _ => handleUnknown(source, event)
+        }
+    }
+}
+
 impl TextView
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, name: &str, notifications: Notifications) -> Rc<RefCell<Self>>
+    pub fn new(
+        guiElementProvider: &GuiElementProvider,
+        name: &str,
+        sender: Sender,
+        source: Source,
+        notifications: Notifications) -> Self
     {
         let widget = guiElementProvider.get::<gtk::TextView>(name);
-
-        let newSelf = Rc::new(RefCell::new(Self{
+        let newSelf = Self{
             buffer: widget.get_buffer().unwrap(),
-            onFilledSenders: vec![],
-            onEmptiedSenders: vec![],
+            sender,
+            source,
             shouldNotifyOnFilled: true,
             style: Style::new(&widget),
-        }));
-        if notifications == Notifications::Enabled {
-            Self::connectSelfToBuffer(&newSelf);
-        }
-        Self::connectSelfToWidget(&newSelf, &widget);
+        };
 
+        if notifications == Notifications::Enabled {
+            newSelf.connectBuffer();
+        }
+        newSelf.connectWidget(&widget);
         newSelf
     }
 
@@ -119,38 +132,24 @@ impl TextView
         self.buffer.remove_all_tags(&self.buffer.get_start_iter(), &self.buffer.get_end_iter());
     }
 
-    pub fn connectOnFilled(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.onFilledSenders.push(sender);
-        attach(receiver, handler);
-    }
-
-    pub fn connectOnEmptied(&mut self, handler: Box<dyn Fn(()) -> glib::Continue>)
-    {
-        let (sender, receiver) = makeChannel();
-        self.onEmptiedSenders.push(sender);
-        attach(receiver, handler);
-    }
-
 
     // private
 
-    fn connectSelfToBuffer(rcSelf: &Rc<RefCell<Self>>)
+    fn connectBuffer(&self)
     {
-        let weakSelf = Rc::downgrade(rcSelf);
-        rcSelf.borrow().buffer.connect_changed(move |_buffer| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow().onBufferChanged();
-            }
+        let sender = self.sender.clone();
+        let source = self.source;
+        self.buffer.connect_changed(move |_buffer| {
+            sender.send((source, Event::BufferChanged)).unwrap();
         });
     }
 
-    fn connectSelfToWidget(rcSelf: &Rc<RefCell<Self>>, widget: &gtk::TextView)
+    fn connectWidget(&self, widget: &gtk::TextView)
     {
-        let weakSelf = Rc::downgrade(rcSelf);
+        let sender = self.sender.clone();
+        let source = self.source;
         widget.connect_scroll_event(move |_widget, event| {
-            Self::onScrolled(&weakSelf, event)
+            onScrolled(event, &sender, source)
         });
     }
 
@@ -163,18 +162,6 @@ impl TextView
         } else {
             self.notifyOnEmptied();
         }
-    }
-
-    fn onScrolled(weakSelf: &Weak<RefCell<Self>>, event: &gdk::EventScroll) -> gtk::Inhibit
-    {
-        if !event.get_state().contains(gdk::ModifierType::CONTROL_MASK) {
-            return FORWARD_EVENT;
-        }
-
-        if let Some(rcSelf) = weakSelf.upgrade() {
-            rcSelf.borrow_mut().onZoomRequested(event);
-        }
-        CONSUME_EVENT
     }
 
     fn onZoomRequested(&mut self, event: &gdk::EventScroll)
@@ -237,17 +224,23 @@ impl TextView
 
     fn notifyOnFilled(&self)
     {
-        for sender in &self.onFilledSenders {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((self.source, Event::Filled)).unwrap();
     }
 
     fn notifyOnEmptied(&self)
     {
-        for sender in &self.onEmptiedSenders {
-            sender.send(()).unwrap();
-        }
+        self.sender.send((self.source, Event::Emptied)).unwrap();
     }
+}
+
+fn onScrolled(event: &gdk::EventScroll, sender: &Sender, source: Source) -> gtk::Inhibit
+{
+    if !event.get_state().contains(gdk::ModifierType::CONTROL_MASK) {
+        return FORWARD_EVENT;
+    }
+
+    sender.send((source, Event::ZoomRequested(event.clone()))).unwrap();
+    CONSUME_EVENT
 }
 
 struct Style

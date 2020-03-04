@@ -47,7 +47,7 @@ pub fn clickCommitButton(gui: &Gui)
 
 pub fn clickRefreshButton(gui: &Gui)
 {
-    gui.refreshButton.click();
+    gui.refreshButton.borrow().click();
     processEvents();
 }
 

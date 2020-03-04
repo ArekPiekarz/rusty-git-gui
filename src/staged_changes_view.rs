@@ -1,6 +1,6 @@
+use crate::event::{Event, Source, Sender};
 use crate::file_changes_view::{FileChangesView, OnRowActivatedAction};
 use crate::gui_element_provider::GuiElementProvider;
-use crate::repository::Repository;
 use crate::staged_changes_store::StagedChangesStore;
 
 use std::cell::RefCell;
@@ -11,16 +11,20 @@ pub type StagedChangesView = FileChangesView<StagedChangesStore>;
 
 pub fn makeStagedChangesView(
     guiElementProvider: &GuiElementProvider,
-    repository: Rc<RefCell<Repository>>)
+    sender: Sender,
+    store: Rc<RefCell<StagedChangesStore>>)
     -> Rc<RefCell<StagedChangesView>>
 {
-    let repository2 = Rc::clone(&repository);
-    let onRowActivatedAction : OnRowActivatedAction =
-        Box::new(move |fileChange| repository.borrow_mut().unstageFileChange(fileChange));
+    let sender2 = sender.clone();
+    let onRowActivatedAction : OnRowActivatedAction = Box::new(move |fileChange|
+        sender.send((Source::StagedChangesView, Event::UnstageRequested(fileChange.clone()))).unwrap());
 
-    FileChangesView::new(
+    Rc::new(RefCell::new(FileChangesView::new(
         guiElementProvider,
         "Staged changes view",
-        StagedChangesStore::new(guiElementProvider, &repository2),
-        onRowActivatedAction)
+        store,
+        onRowActivatedAction,
+        sender2,
+        Source::StagedChangesView
+    )))
 }

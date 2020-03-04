@@ -2,6 +2,7 @@ use crate::common::gui_interactions::show;
 
 use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
 use rusty_git_gui::gui::Gui;
+use rusty_git_gui::main_context::makeChannel;
 use rusty_git_gui::repository::Repository;
 
 use std::cell::RefCell;
@@ -23,7 +24,11 @@ pub fn setupTest() -> TempDir
 
 pub fn makeGui(repositoryDir: &Path) -> Gui
 {
-    let gui = Gui::new(&Rc::new(RefCell::new(Repository::new(&repositoryDir))));
+    let (sender, receiver) = makeChannel();
+    let gui = Gui::new(
+        Rc::new(RefCell::new(Repository::new(&repositoryDir, sender.clone()))),
+        sender,
+        receiver);
     show(&gui);
     gui
 }

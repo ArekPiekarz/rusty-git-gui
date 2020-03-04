@@ -1,12 +1,11 @@
 use crate::diff_colorizer::DiffColorizer;
 use crate::diff_formatter::DiffFormatter;
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
-use crate::staged_changes_view::StagedChangesView;
 use crate::text_view::{Notifications, TextView};
-use crate::unstaged_changes_view::UnstagedChangesView;
 
 use difference::Changeset;
 use std::cell::RefCell;
@@ -15,7 +14,7 @@ use std::rc::Rc;
 
 pub struct DiffView
 {
-    widget: Rc<RefCell<TextView>>,
+    widget: TextView,
     repository: Rc<RefCell<Repository>>,
     diffColorizer: DiffColorizer,
     displayState: DisplayedFileChange
@@ -31,120 +30,55 @@ enum DisplayedFileChange
 
 type DiffMaker = for <'a> fn(&FileChange, &'a Repository) -> git2::Diff<'a>;
 
+impl IEventHandler for DiffView
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        use crate::event::{Source as S, Event as E};
+        match (source, event) {
+            (S::DiffView,            E::ZoomRequested(_))                   => self.onZoomRequested(source, event),
+            (S::StagedChangesView,   E::FileChangeRefreshed(fileChangeOpt)) => self.onStagedOptionalChangeRefreshed(fileChangeOpt),
+            (S::StagedChangesView,   E::FileChangeSelected(fileChange))     => self.onStagedChangeSelected(fileChange),
+            (S::StagedChangesView,   E::FileChangeUnselected)               => self.onStagedChangeUnselected(),
+            (S::UnstagedChangesView, E::FileChangeRefreshed(fileChangeOpt)) => self.onUnstagedOptionalChangeRefreshed(fileChangeOpt),
+            (S::UnstagedChangesView, E::FileChangeSelected(fileChange))     => self.onUnstagedChangeSelected(fileChange),
+            (S::UnstagedChangesView, E::FileChangeUnselected)               => self.onUnstagedChangeUnselected(),
+            _ => handleUnknown(source, event)
+        }
+    }
+}
+
 impl DiffView
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
-        unstagedChangesView: &mut UnstagedChangesView,
-        stagedChangesView: &mut StagedChangesView,
-        repository: Rc<RefCell<Repository>>)
-        -> Rc<RefCell<Self>>
+        repository: Rc<RefCell<Repository>>,
+        sender: Sender)
+        -> Self
     {
-        let widget = TextView::new(guiElementProvider, "Diff view", Notifications::Disabled);
-        let diffColorizer = DiffColorizer::new(Rc::clone(&widget));
-        let newSelf = Rc::new(RefCell::new(Self{
+        let widget = TextView::new(
+            guiElementProvider, "Diff view", sender, Source::DiffView, Notifications::Disabled);
+        let diffColorizer = DiffColorizer::new(&widget);
+        Self{
             widget,
             repository,
             diffColorizer,
             displayState: DisplayedFileChange::None
-        }));
-        Self::connectSelfToUnstagedChangesView(&newSelf, unstagedChangesView);
-        Self::connectSelfToStagedChangesView(&newSelf, stagedChangesView);
-        newSelf
+        }
     }
 
     pub fn getText(&self) -> String
     {
-        self.widget.borrow().getText()
+        self.widget.getText()
     }
 
     pub fn isEmpty(&self) -> bool
     {
-        self.widget.borrow().isEmpty()
+        self.widget.isEmpty()
     }
 
 
     // private
-
-    fn connectSelfToUnstagedChangesView(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
-    {
-        Self::connectSelfToUnstagedChangeSelected(rcSelf, view);
-        Self::connectSelfToUnstagedChangeUnselected(rcSelf, view);
-        Self::connectSelfToUnstagedChangeRefreshed(rcSelf, view);
-    }
-
-    fn connectSelfToStagedChangesView(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
-    {
-        Self::connectSelfToStagedChangeSelected(rcSelf, view);
-        Self::connectSelfToStagedChangeUnselected(rcSelf, view);
-        Self::connectSelfToStagedChangeRefreshed(rcSelf, view);
-    }
-
-    fn connectSelfToUnstagedChangeSelected(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        view.connectOnSelected(Box::new(move |fileChange| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onUnstagedChangeSelected(&fileChange);
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToStagedChangeSelected(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        view.connectOnSelected(Box::new(move |fileChange| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onStagedChangeSelected(&fileChange);
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToUnstagedChangeUnselected(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        view.connectOnUnselected(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onUnstagedChangeUnselected();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToStagedChangeUnselected(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        view.connectOnUnselected(Box::new(move |_| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onStagedChangeUnselected();
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToUnstagedChangeRefreshed(rcSelf: &Rc<RefCell<Self>>, view: &mut UnstagedChangesView)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        view.connectOnRefreshed(Box::new(move |fileChangeOpt| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onUnstagedOptionalChangeRefreshed(&fileChangeOpt);
-            }
-            glib::Continue(true)
-        }));
-    }
-
-    fn connectSelfToStagedChangeRefreshed(rcSelf: &Rc<RefCell<Self>>, view: &mut StagedChangesView)
-    {
-        let weakSelf = Rc::downgrade(rcSelf);
-        view.connectOnRefreshed(Box::new(move |fileChangeOpt| {
-            if let Some(rcSelf) = weakSelf.upgrade() {
-                rcSelf.borrow_mut().onStagedOptionalChangeRefreshed(&fileChangeOpt);
-            }
-            glib::Continue(true)
-        }));
-    }
 
     fn onUnstagedChangeSelected(&mut self, fileChange: &FileChange)
     {
@@ -168,7 +102,7 @@ impl DiffView
         newDisplayState: DisplayedFileChange)
     {
         let diff = self.makeFormattedDiff(fileChange, diffMaker);
-        self.diffColorizer.colorize(&diff);
+        self.diffColorizer.colorize(&self.widget, &diff);
         self.displayState = newDisplayState;
     }
 
@@ -178,10 +112,10 @@ impl DiffView
         diffMaker: DiffMaker,
         newDisplayState: DisplayedFileChange)
     {
-        let oldDiff = self.widget.borrow().getText();
+        let oldDiff = self.widget.getText();
         let newDiff = self.makeFormattedDiff(fileChange, diffMaker);
         let changeset = Changeset::new(&oldDiff, &newDiff, "\n");
-        self.diffColorizer.update(changeset.diffs);
+        self.diffColorizer.update(&self.widget, changeset.diffs);
         self.displayState = newDisplayState;
     }
 
@@ -238,9 +172,14 @@ impl DiffView
         self.onFileChangeRefreshed(fileChange, makeDiffForStagedChange, DisplayedFileChange::Staged);
     }
 
+    fn onZoomRequested(&mut self, source: Source, event: &Event)
+    {
+        self.widget.handle(source, event);
+    }
+
     fn clear(&mut self)
     {
-        self.widget.borrow().clear();
+        self.widget.clear();
         self.displayState = DisplayedFileChange::None;
     }
 
