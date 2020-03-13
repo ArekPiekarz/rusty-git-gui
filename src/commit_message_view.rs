@@ -18,11 +18,13 @@ impl IEventHandler for CommitMessageView
 {
     fn handle(&mut self, source: Source, event: &Event)
     {
+        use crate::event::Event as E;
         match event {
-            Event::BufferChanged       => self.onBufferChanged(source, event),
-            Event::CommitAmendDisabled => self.onCommitAmendDisabled(),
-            Event::CommitAmendEnabled  => self.onCommitAmendEnabled(),
-            Event::Committed           => self.onCommitted(),
+            E::BufferChanged       => self.onBufferChanged(source, event),
+            E::CommitAmendDisabled => self.onCommitAmendDisabled(),
+            E::CommitAmendEnabled  => self.onCommitAmendEnabled(),
+            E::Committed           => self.onCommitted(),
+            E::ZoomRequested(_)    => self.onZoomRequested(source, event),
             _ => handleUnknown(source, event)
         }
     }
@@ -90,5 +92,10 @@ impl CommitMessageView
     fn onCommitAmendDisabled(&mut self)
     {
         self.setText(&self.stashedMessage);
+    }
+
+    fn onZoomRequested(&mut self, source: Source, event: &Event)
+    {
+        self.widget.handle(source, event);
     }
 }

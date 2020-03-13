@@ -118,6 +118,7 @@ fn setupDispatching(gui: &Gui, mut repository: Rc<RefCell<Repository>>, receiver
         (S::CommitMessageView,    E::BufferChanged)           => commitMessageView.handle(source, &event),
         (S::CommitMessageView,    E::Emptied)                 => commitButton.handle(source, &event),
         (S::CommitMessageView,    E::Filled)                  => commitButton.handle(source, &event),
+        (S::CommitMessageView,    E::ZoomRequested(_))        => commitMessageView.handle(source, &event),
         (S::DiffView,             E::ZoomRequested(_))        => diffView.handle(source, &event),
         (S::RefreshButton,        E::Clicked)                 => refreshButton.handle(source, &event),
         (S::RefreshButton,        E::RefreshRequested)        => repository.handle(source, &event),
