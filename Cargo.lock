@@ -10,6 +10,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "amending_commit"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "rusty-git-gui",
+]
+
+[[package]]
 name = "ansi_term"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -182,6 +190,25 @@ dependencies = [
  "atty",
  "backtrace",
  "termcolor",
+]
+
+[[package]]
+name = "committing"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "rusty-git-gui",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "gtk",
+ "itertools",
+ "pretty_assertions",
+ "rusty-git-gui",
+ "tempfile",
 ]
 
 [[package]]
@@ -636,6 +663,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "loading_repository"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "rusty-git-gui",
+]
+
+[[package]]
 name = "log"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -678,12 +713,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "more-asserts"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0debeb9fcf88823ea64d64e4a815ab1643f33127d995978e099942ce38f25238"
 
 [[package]]
 name = "ordered-multimap"
@@ -861,6 +890,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "refreshing_repository"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "rusty-git-gui",
+]
+
+[[package]]
 name = "remove_dir_all"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -912,11 +949,8 @@ dependencies = [
  "itertools",
  "mimalloc",
  "mocktopus",
- "more-asserts",
  "pango",
- "pretty_assertions",
  "rust-ini",
- "tempfile",
 ]
 
 [[package]]
@@ -930,6 +964,14 @@ name = "smallvec"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c2fb2ec9bcd216a5b0d0ccf31ab17b5ed1d627960edff65bbe95d3ce221cefc"
+
+[[package]]
+name = "staging"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "rusty-git-gui",
+]
 
 [[package]]
 name = "syn"
@@ -988,6 +1030,14 @@ name = "unicode-xid"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
+
+[[package]]
+name = "unstaging"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "rusty-git-gui",
+]
 
 [[package]]
 name = "url"
