@@ -13,6 +13,9 @@ use gtk::WidgetExt as _;
 use std::cmp::{min, max};
 
 pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
+const NO_SEARCH_LIMIT: Option<&gtk::TextIter> = None;
+const SEARCH_VISIBLE_TEXT: gtk::TextSearchFlags = gtk::TextSearchFlags::from_bits_truncate(
+    gtk::TextSearchFlags::VISIBLE_ONLY.bits() | gtk::TextSearchFlags::TEXT_ONLY.bits());
 
 
 pub struct TextView
@@ -125,6 +128,13 @@ impl TextView
     pub fn applyTagUntilEnd(&self, tag: &gtk::TextTag, startLine: LineNumber)
     {
         self.buffer.apply_tag(tag, &self.buffer.get_iter_at_line(startLine.into()), &self.buffer.get_end_iter());
+    }
+
+    pub fn applyTagUntilMatchEnd(&self, tag: &gtk::TextTag, startLine: LineNumber, pattern: &str)
+    {
+        let startIter = self.buffer.get_iter_at_line(startLine.into());
+        let endIter = startIter.forward_search(pattern, SEARCH_VISIBLE_TEXT, NO_SEARCH_LIMIT).unwrap().1;
+        self.buffer.apply_tag(tag, &startIter, &endIter);
     }
 
     pub fn removeTags(&self)

@@ -7,8 +7,9 @@ use gtk::TextTagExt as _;
 
 pub struct DiffColorizer
 {
-    greenTag: gtk::TextTag,
-    redTag: gtk::TextTag,
+    addedLineTag: gtk::TextTag,
+    removedLineTag: gtk::TextTag,
+    hunkHeaderTag: gtk::TextTag,
     tagStartLine: LineNumber,
     state: State
 }
@@ -24,12 +25,14 @@ impl DiffColorizer
 {
     pub fn new(textView: &TextView) -> Self
     {
-        let greenTag = makeTag("green");
-        let redTag = makeTag("red");
-        textView.registerTags(&[&greenTag, &redTag]);
+        let addedLineTag = makeTag("green");
+        let removedLineTag = makeTag("red");
+        let hunkHeaderTag = makeTag("silver");
+        textView.registerTags(&[&addedLineTag, &removedLineTag, &hunkHeaderTag]);
         Self{
-            greenTag,
-            redTag,
+            addedLineTag,
+            removedLineTag,
+            hunkHeaderTag,
             tagStartLine: 0.into(),
             state: State::Normal}
     }
@@ -66,10 +69,12 @@ impl DiffColorizer
     {
         for (lineNumber, line) in text.lines().enumerate() {
             if let Some(character) = line.chars().next() {
+                let lineNumber: LineNumber = lineNumber.into();
                 match character {
-                    '+' => self.applyTagToAddedLine(textView, lineNumber.into()),
-                    '-' => self.applyTagToRemovedLine(textView, lineNumber.into()),
-                     _  => self.applyTagToNormalLine(textView, lineNumber.into())
+                    '+' => self.applyTagToAddedLine(textView, lineNumber),
+                    '-' => self.applyTagToRemovedLine(textView, lineNumber),
+                    '@' => self.applyTagToHunkHeader(textView, lineNumber),
+                     _  => self.applyTagToNormalLine(textView, lineNumber)
                 }
             }
         }
@@ -84,7 +89,7 @@ impl DiffColorizer
             },
             State::Added => (),
             State::Removed => {
-                textView.applyTag(&self.redTag, self.tagStartLine, lineNumber);
+                textView.applyTag(&self.removedLineTag, self.tagStartLine, lineNumber);
                 self.tagStartLine = lineNumber;
                 self.state = State::Added;
             }
@@ -99,7 +104,7 @@ impl DiffColorizer
                 self.state = State::Removed;
             },
             State::Added => {
-                textView.applyTag(&self.greenTag, self.tagStartLine, lineNumber);
+                textView.applyTag(&self.addedLineTag, self.tagStartLine, lineNumber);
                 self.tagStartLine = lineNumber;
                 self.state = State::Removed;
             }
@@ -107,16 +112,33 @@ impl DiffColorizer
         }
     }
 
+    fn applyTagToHunkHeader(&mut self, textView: &TextView, lineNumber: LineNumber)
+    {
+        match self.state {
+            State::Normal => (),
+            State::Added => {
+                textView.applyTag(&self.addedLineTag, self.tagStartLine, lineNumber);
+                self.state = State::Normal;
+            }
+            State::Removed => {
+                textView.applyTag(&self.removedLineTag, self.tagStartLine, lineNumber);
+                self.state = State::Normal;
+            }
+        }
+        // hunk headers are in the form of "@@ -24,12 +25,14 @@ struct Foo"
+        textView.applyTagUntilMatchEnd(&self.hunkHeaderTag, lineNumber, " @@");
+    }
+
     fn applyTagToNormalLine(&mut self, textView: &TextView, lineNumber: LineNumber)
     {
         match self.state {
             State::Normal => (),
             State::Added => {
-                textView.applyTag(&self.greenTag, self.tagStartLine, lineNumber);
+                textView.applyTag(&self.addedLineTag, self.tagStartLine, lineNumber);
                 self.state = State::Normal;
             },
             State::Removed => {
-                textView.applyTag(&self.redTag, self.tagStartLine, lineNumber);
+                textView.applyTag(&self.removedLineTag, self.tagStartLine, lineNumber);
                 self.state = State::Normal;
             }
         }
@@ -126,8 +148,8 @@ impl DiffColorizer
     {
         match self.state {
             State::Normal => (),
-            State::Added => textView.applyTagUntilEnd(&self.greenTag, self.tagStartLine),
-            State::Removed => textView.applyTagUntilEnd(&self.redTag, self.tagStartLine)
+            State::Added => textView.applyTagUntilEnd(&self.addedLineTag, self.tagStartLine),
+            State::Removed => textView.applyTagUntilEnd(&self.removedLineTag, self.tagStartLine)
         }
     }
 }

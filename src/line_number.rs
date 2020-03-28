@@ -18,6 +18,16 @@ impl Add::<LineCount> for LineNumber
     }
 }
 
+impl Add::<usize> for LineNumber
+{
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self
+    {
+        Self(self.0 + rhs)
+    }
+}
+
 impl AddAssign::<usize> for LineNumber
 {
     fn add_assign(&mut self, rhs: usize)

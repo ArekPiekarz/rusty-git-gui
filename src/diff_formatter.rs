@@ -18,7 +18,7 @@ impl DiffFormatter
     {
         let lineContent = String::from_utf8_lossy(line.content());
         match line.origin() {
-            prefix if isContentPrefix(prefix) => self.addContent(prefix, &lineContent),
+            prefix @ ('+' | '-' | ' ') => self.addContent(prefix, &lineContent),
             'F' => IGNORE_FILE_HEADER,
              _  => self.addHunkInfo(&lineContent)
         };
@@ -43,9 +43,4 @@ impl DiffFormatter
     {
         self.text.push_str(line);
     }
-}
-
-fn isContentPrefix(prefix: char) -> bool
-{
-    prefix == '+' || prefix == '-' || prefix == ' '
 }
