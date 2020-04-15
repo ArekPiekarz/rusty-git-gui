@@ -99,11 +99,6 @@ impl TextView
         !self.getText().is_empty()
     }
 
-    pub fn isEmpty(&self) -> bool
-    {
-        !self.isFilled()
-    }
-
     pub fn clear(&self)
     {
         self.setText("");

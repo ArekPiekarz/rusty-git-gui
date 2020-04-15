@@ -42,41 +42,9 @@ impl CommitAmendCheckbox
     }
 
     #[must_use]
-    pub fn isEnabled(&self) -> bool
-    {
-        self.widget.is_sensitive()
-    }
-
-    #[must_use]
-    pub fn isDisabled(&self) -> bool
-    {
-        !self.isEnabled()
-    }
-
-    #[must_use]
     pub fn isSelected(&self) -> bool
     {
         self.widget.get_active()
-    }
-
-    #[must_use]
-    pub fn isUnselected(&self) -> bool
-    {
-        !self.isSelected()
-    }
-
-    #[must_use]
-    pub fn getTooltip(&self) -> String
-    {
-        match self.widget.get_tooltip_text() {
-            Some(text) => text.into(),
-            None => "".into()
-        }
-    }
-
-    pub fn select(&self)
-    {
-        self.widget.set_active(true);
     }
 
     pub fn unselect(&self)

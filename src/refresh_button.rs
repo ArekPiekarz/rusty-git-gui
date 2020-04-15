@@ -31,11 +31,6 @@ impl RefreshButton
         newSelf
     }
 
-    pub fn click(&self)
-    {
-        self.widget.clicked();
-    }
-
 
     // private
 

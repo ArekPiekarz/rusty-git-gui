@@ -1,13 +1,13 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
     assertGuiIsEmpty,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
-use common::gui_interactions::{clickRefreshButton, selectUnstagedChange};
+use common::gui_interactions::{clickRefreshButton, selectUnstagedChangeInRow};
 use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryIsEmpty, assertRepositoryStatusIs};
 use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
@@ -36,6 +36,6 @@ fn refreshEmptyRepositoryAfterNewFileIsCreated()
     assertDiffViewIsEmpty(&gui);
     assertStagedChangesViewIsEmpty(&gui);
 
-    selectUnstagedChange(&newUnstagedFilePath, &gui);
+    selectUnstagedChangeInRow(0, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+unstaged file content\n", &gui);
 }

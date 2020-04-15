@@ -5,7 +5,7 @@ use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitButtonTooltipIs,
     assertCommitButtonTooltipIsEmpty};
-use common::gui_interactions::{activateStagedChangeToUnstageIt, setCommitMessage};
+use common::gui_interactions::{activateStagedChangeInRow, setCommitMessage};
 use common::setup::{makeGui, makeNewStagedFile, setupTest};
 
 use std::path::PathBuf;
@@ -24,7 +24,7 @@ fn forbidCommittingWhenLastStagedChangeIsUnstagedAndMessageIsFilled()
     assertCommitButtonIsEnabled(&gui);
     assertCommitButtonTooltipIsEmpty(&gui);
 
-    activateStagedChangeToUnstageIt(&filePath, &gui);
+    activateStagedChangeInRow(0, &gui);
 
     assertCommitButtonIsDisabled(&gui);
     assertCommitButtonTooltipIs("No changes are staged for commit.", &gui);

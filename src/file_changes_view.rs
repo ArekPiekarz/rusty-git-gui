@@ -1,10 +1,9 @@
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::file_change::FileChange;
 use crate::file_changes_column::FileChangesColumn;
-use crate::file_changes_view_entry::FileChangesViewEntry;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::ifile_changes_store::IFileChangesStore;
-use crate::tree_model_utils::{CONTINUE_ITERATING_MODEL, STOP_ITERATING_MODEL, toRow};
+use crate::tree_model_utils::toRow;
 use crate::tree_view::TreeView;
 
 use gtk::GtkMenuExt as _;
@@ -77,42 +76,6 @@ impl<StoreType> FileChangesView<StoreType>
         }
     }
 
-    pub fn isEmpty(&self) -> bool
-    {
-        self.getModel().get_iter_first().is_none()
-    }
-
-    pub fn isFilled(&self) -> bool
-    {
-        !self.isEmpty()
-    }
-
-    pub fn getData(&self) -> Vec<FileChangesViewEntry>
-    {
-        let mut content = vec![];
-        self.getModel().foreach(|model, _row, iter| {
-            content.push(FileChangesViewEntry{
-                status: getStatusCell(model, iter),
-                path: getPathCell(model, iter)});
-            CONTINUE_ITERATING_MODEL });
-        content
-    }
-
-    pub fn select(&self, filePath: &str) -> bool
-    {
-        self.invokeForRowWith(
-            filePath,
-            |view, _row, iterator| { view.getSelection().selectByIterator(iterator); })
-    }
-
-    pub fn activate(&self, filePath: &str) -> bool
-    {
-        self.select(filePath);
-        self.invokeForRowWith(
-            filePath,
-            |view, row, _iterator| { view.rowActivated(row, &self.getFilePathColumn()); })
-    }
-
     pub fn unselectAll(&self)
     {
         self.view.getSelection().unselectAll();
@@ -139,11 +102,6 @@ impl<StoreType> FileChangesView<StoreType>
     fn getModel(&self) -> gtk::TreeModel
     {
         self.view.getModel()
-    }
-
-    fn getFilePathColumn(&self) -> gtk::TreeViewColumn
-    {
-        self.view.getColumn(FileChangesColumn::Path.into())
     }
 
     fn notifyBasedOnSelectionChanged(&self, selection: &gtk::TreeSelection)
@@ -212,37 +170,4 @@ impl<StoreType> FileChangesView<StoreType>
         };
         self.notifyOnRefreshed(fileChangeOpt);
     }
-
-    fn invokeForRowWith(
-        &self,
-        filePath: &str,
-        action: impl Fn(&TreeView, &gtk::TreePath, &gtk::TreeIter))
-        -> bool
-    {
-        let model = self.getModel();
-        let mut rowFound = false;
-        model.foreach(|model, row, iter| {
-            if getPathCell(model, iter) != filePath {
-                return CONTINUE_ITERATING_MODEL; }
-            rowFound = true;
-            action(&self.view, row, iter);
-            STOP_ITERATING_MODEL
-        });
-        rowFound
-    }
-}
-
-fn getStatusCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
-{
-    getCell(model, iter, FileChangesColumn::Status)
-}
-
-fn getPathCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
-{
-    getCell(model, iter, FileChangesColumn::Path)
-}
-
-fn getCell(model: &gtk::TreeModel, iter: &gtk::TreeIter, column: FileChangesColumn) -> String
-{
-    model.get_value(iter, column.into()).get::<String>().unwrap().unwrap()
 }

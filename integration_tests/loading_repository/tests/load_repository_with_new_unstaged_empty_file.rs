@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,

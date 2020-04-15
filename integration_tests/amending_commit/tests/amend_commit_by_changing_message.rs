@@ -6,8 +6,8 @@ use common::gui_assertions::{
     assertCommitAmendCheckboxIsUnselected,
     assertCommitButtonIsDisabled,
     assertCommitButtonIsEnabled,
-    assertCommitMessageViewIs,
     assertCommitMessageViewIsEmpty,
+    assertCommitMessageViewTextIs,
     assertStagedChangesViewIsEmpty};
 use common::gui_interactions::{clickCommitButton, selectCommitAmendCheckbox, setCommitMessage};
 use common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIsEmpty};
@@ -32,7 +32,7 @@ fn amendCommitByChangingMessage()
     assertCommitAmendCheckboxIsSelected(&gui);
     assertCommitAmendCheckboxIsEnabled(&gui);
     assertStagedChangesViewIsEmpty(&gui);
-    assertCommitMessageViewIs(COMMIT_MESSAGE2, &gui);
+    assertCommitMessageViewTextIs(COMMIT_MESSAGE2, &gui);
     assertCommitButtonIsEnabled(&gui);
 
     clickCommitButton(&gui);

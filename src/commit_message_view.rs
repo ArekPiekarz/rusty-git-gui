@@ -50,16 +50,6 @@ impl CommitMessageView
         }
     }
 
-    pub fn hasText(&self) -> bool
-    {
-        !self.getText().is_empty()
-    }
-
-    pub fn isEmpty(&self) -> bool
-    {
-        !self.hasText()
-    }
-
     pub fn getText(&self) -> String
     {
         self.widget.getText()

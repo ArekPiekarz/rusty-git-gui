@@ -1,14 +1,14 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertCommitAmendCheckboxIsEnabled,
     assertCommitAmendCheckboxIsSelected,
     assertCommitAmendCheckboxIsUnselected,
     assertCommitButtonIsDisabled,
     assertCommitButtonIsEnabled,
-    assertCommitMessageViewIs,
     assertCommitMessageViewIsEmpty,
+    assertCommitMessageViewTextIs,
     assertStagedChangesViewContains,
     assertStagedChangesViewIsEmpty};
 use common::gui_interactions::{clickCommitButton, selectCommitAmendCheckbox};
@@ -38,7 +38,7 @@ fn amendCommitByChangingFile()
     assertCommitAmendCheckboxIsSelected(&gui);
     assertCommitAmendCheckboxIsEnabled(&gui);
     assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
-    assertCommitMessageViewIs(COMMIT_MESSAGE, &gui);
+    assertCommitMessageViewTextIs(COMMIT_MESSAGE, &gui);
     assertCommitButtonIsEnabled(&gui);
 
     clickCommitButton(&gui);

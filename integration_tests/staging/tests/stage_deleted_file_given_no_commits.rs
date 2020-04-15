@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
@@ -8,7 +8,7 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::activateUnstagedChangeToStageIt;
+use common::gui_interactions::activateUnstagedChangeInRow;
 use common::repository_assertions::{
     assertRepositoryHasNoCommits,
     assertRepositoryStatusIs,
@@ -38,7 +38,7 @@ fn stageDeletedFileGivenNoCommits()
     assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewContains("@@ -1 +0,0 @@\n-some file content\n", &gui);
 
-    activateUnstagedChangeToStageIt(&filePath, &gui);
+    activateUnstagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIsEmpty(&repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);

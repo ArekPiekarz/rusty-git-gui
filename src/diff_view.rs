@@ -67,16 +67,6 @@ impl DiffView
         }
     }
 
-    pub fn getText(&self) -> String
-    {
-        self.widget.getText()
-    }
-
-    pub fn isEmpty(&self) -> bool
-    {
-        self.widget.isEmpty()
-    }
-
 
     // private
 

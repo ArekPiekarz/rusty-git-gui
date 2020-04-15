@@ -13,18 +13,18 @@ pub fn makeStagedChangesView(
     guiElementProvider: &GuiElementProvider,
     sender: Sender,
     store: Rc<RefCell<StagedChangesStore>>)
-    -> Rc<RefCell<StagedChangesView>>
+    -> StagedChangesView
 {
     let sender2 = sender.clone();
     let onRowActivatedAction : OnRowActivatedAction = Box::new(move |fileChange|
         sender.send((Source::StagedChangesView, Event::UnstageRequested(fileChange.clone()))).unwrap());
 
-    Rc::new(RefCell::new(FileChangesView::new(
+    FileChangesView::new(
         guiElementProvider,
         "Staged changes view",
         store,
         onRowActivatedAction,
         sender2,
         Source::StagedChangesView
-    )))
+    )
 }

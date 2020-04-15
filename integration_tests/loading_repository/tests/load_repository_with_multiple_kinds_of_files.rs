@@ -1,13 +1,13 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
     assertStagedChangesViewContains,
     assertUnstagedChangesViewContains};
-use common::gui_interactions::{selectStagedChange, selectUnstagedChange};
+use common::gui_interactions::{selectStagedChangeInRow, selectUnstagedChangeInRow};
 use common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
 use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{
@@ -61,11 +61,11 @@ fn loadRepositoryWithMultipleKindsOfFiles()
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
 
-    selectUnstagedChange(&newStagedAndModifiedUnstagedFilePath, &gui);
+    selectUnstagedChangeInRow(1, &gui);
     assertDiffViewContains("@@ -1 +1,2 @@\n new staged file content\n+modified unstaged line\n", &gui);
-    selectStagedChange(&modifiedStagedFilePath, &gui);
+    selectStagedChangeInRow(0, &gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
-    selectStagedChange(&newStagedAndModifiedUnstagedFilePath, &gui);
+    selectStagedChangeInRow(1, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+new staged file content\n", &gui);
 }
 

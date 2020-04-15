@@ -67,6 +67,7 @@
                     <property name="shadow_type">in</property>
                     <child>
                       <object class="GtkTreeView" id="Unstaged changes view">
+                        <property name="name">Unstaged changes view</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">Unstaged changes store</property>
@@ -122,6 +123,7 @@
                     <property name="shadow_type">in</property>
                     <child>
                       <object class="GtkTreeView" id="Staged changes view">
+                        <property name="name">Staged changes view</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">Staged changes store</property>
@@ -191,6 +193,7 @@
                     <property name="shadow_type">in</property>
                     <child>
                       <object class="GtkTextView" id="Diff view">
+                        <property name="name">Diff view</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="hexpand">True</property>
@@ -238,6 +241,7 @@
                     <child>
                       <object class="GtkButton" id="Refresh button">
                         <property name="label" translatable="yes">Refresh</property>
+                        <property name="name">Refresh button</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -251,6 +255,7 @@
                     <child>
                       <object class="GtkButton" id="Commit button">
                         <property name="label" translatable="yes">Commit</property>
+                        <property name="name">Commit button</property>
                         <property name="height_request">10</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -265,6 +270,7 @@
                     <child>
                       <object class="GtkCheckButton" id="Commit amend checkbox">
                         <property name="label" translatable="yes">Amend</property>
+                        <property name="name">Commit amend checkbox</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="focus_on_click">False</property>
@@ -310,6 +316,7 @@
                         <property name="shadow_type">in</property>
                         <child>
                           <object class="GtkTextView" id="Commit message view">
+                            <property name="name">Commit message view</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="buffer">Commit message view buffer</property>

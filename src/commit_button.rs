@@ -1,4 +1,4 @@
-use crate::commit_message_view::CommitMessageView;
+use crate::commit_message_reader::CommitMessageReader;
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
@@ -13,7 +13,7 @@ pub struct CommitButton
 {
     widget: gtk::Button,
     repository: Rc<RefCell<Repository>>,
-    commitMessageView: Rc<RefCell<CommitMessageView>>,
+    commitMessageReader: CommitMessageReader,
     sender: Sender,
     areChangesStaged: bool,
     isCommitMessageWritten: bool,
@@ -41,17 +41,17 @@ impl CommitButton
 {
     pub fn new(
         guiElementProvider: &GuiElementProvider,
-        commitMessageView: Rc<RefCell<CommitMessageView>>,
+        commitMessageReader: CommitMessageReader,
         repository: Rc<RefCell<Repository>>,
         sender: Sender)
         -> Self
     {
-        let isCommitMessageWritten = commitMessageView.borrow().hasText();
+        let isCommitMessageWritten = commitMessageReader.hasText();
         let areChangesStaged = repository.borrow().hasStagedChanges();
         let newSelf = Self {
             widget: guiElementProvider.get::<gtk::Button>("Commit button"),
             repository,
-            commitMessageView,
+            commitMessageReader,
             sender,
             areChangesStaged,
             isCommitMessageWritten,
@@ -60,33 +60,6 @@ impl CommitButton
         newSelf.connectWidget();
         newSelf.update();
         newSelf
-    }
-
-    pub fn isEnabled(&self) -> bool
-    {
-        self.widget.is_sensitive()
-    }
-
-    pub fn isDisabled(&self) -> bool
-    {
-        !self.isEnabled()
-    }
-
-    pub fn getTooltip(&self) -> String
-    {
-        match self.widget.get_tooltip_text() {
-            Some(text) => text.into(),
-            None => "".into()
-        }
-    }
-
-    pub fn click(&self) -> Result<(),&str>
-    {
-        if self.isDisabled() {
-            return Err("Cannot click, commit button is disabled");
-        }
-        self.widget.clicked();
-        Ok(())
     }
 
 
@@ -207,7 +180,7 @@ impl CommitButton
 
     fn commit(&mut self)
     {
-        let message = self.commitMessageView.borrow().getText();
+        let message = self.commitMessageReader.getText();
         if self.commitAmendIsEnabled() {
             self.sender.send((Source::CommitButton, Event::AmendCommitRequested(message))).unwrap();
         } else {

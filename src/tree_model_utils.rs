@@ -1,11 +1,9 @@
 use std::convert::TryInto as _;
 
 
-// https://developer.gnome.org/gtk3/stable/GtkTreeModel.html#gtk-tree-model-foreach
-pub const CONTINUE_ITERATING_MODEL: bool = false;
-pub const STOP_ITERATING_MODEL: bool = true;
+pub type Row = usize;
 
-pub fn toRow(rowPath: &gtk::TreePath) -> usize
+pub fn toRow(rowPath: &gtk::TreePath) -> Row
 {
     rowPath.get_indices()[0].try_into().unwrap()
 }

@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use common::gui_assertions::{assertCommitButtonIsEnabled, assertCommitButtonTooltipIsEmpty};
-use common::gui_interactions::{activateStagedChangeToUnstageIt, setCommitMessage};
+use common::gui_interactions::{activateStagedChangeInRow, setCommitMessage};
 use common::setup::{makeGui, makeNewStagedFile, setupTest};
 
 use std::path::PathBuf;
@@ -22,7 +22,7 @@ fn allowCommittingWhenOneOfStagedChangesIsUnstagedAndMessageIsFilled()
     assertCommitButtonIsEnabled(&gui);
     assertCommitButtonTooltipIsEmpty(&gui);
 
-    activateStagedChangeToUnstageIt(&filePath, &gui);
+    activateStagedChangeInRow(0, &gui);
 
     assertCommitButtonIsEnabled(&gui);
     assertCommitButtonTooltipIsEmpty(&gui);

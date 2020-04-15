@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{assertDiffViewContains, assertStagedChangesViewContains, assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{clickRefreshButton, selectStagedChange};
+use common::gui_interactions::{clickRefreshButton, selectStagedChangeInRow};
 use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryLogIs, assertRepositoryStatusIs};
 use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
@@ -25,7 +25,7 @@ fn refreshRepositoryWithNewSelectedStagedFileAfterItChangesToModified()
     assertRepositoryHasNoCommits(&repositoryDir);
     assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertUnstagedChangesViewIsEmpty(&gui);
-    selectStagedChange(&filePath, &gui);
+    selectStagedChangeInRow(0, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+staged file content\n", &gui);
 
     makeCommit("Initial commit", &repositoryDir);

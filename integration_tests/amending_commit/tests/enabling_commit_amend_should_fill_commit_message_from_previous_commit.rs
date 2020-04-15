@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::gui_assertions::{assertCommitMessageViewIs, assertCommitMessageViewIsEmpty};
+use common::gui_assertions::{assertCommitMessageViewIsEmpty, assertCommitMessageViewTextIs};
 use common::gui_interactions::selectCommitAmendCheckbox;
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, setupTest};
 
@@ -19,7 +19,7 @@ fn enablingCommitAmendShouldFillCommitMessageFromPreviousCommit()
 
     selectCommitAmendCheckbox(&gui);
 
-    assertCommitMessageViewIs(COMMIT_MESSAGE, &gui);
+    assertCommitMessageViewTextIs(COMMIT_MESSAGE, &gui);
 }
 
 const COMMIT_MESSAGE: &str = "Initial commit\n";

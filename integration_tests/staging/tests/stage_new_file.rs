@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
@@ -8,7 +8,7 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange};
+use common::gui_interactions::{activateUnstagedChangeInRow, selectStagedChangeInRow};
 use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
 use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewUnstagedFile, setupTest};
@@ -34,7 +34,7 @@ fn stageNewFile()
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &gui);
 
-    activateUnstagedChangeToStageIt(&filePath, &gui);
+    activateUnstagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIs(
         &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
@@ -44,6 +44,6 @@ fn stageNewFile()
     assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
-    selectStagedChange(&filePath, &gui);
+    selectStagedChangeInRow(0, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+file content\n", &gui);
 }

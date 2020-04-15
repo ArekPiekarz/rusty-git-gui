@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertDiffViewContains,
     assertDiffViewIsEmpty,
@@ -8,7 +8,7 @@ use common::gui_assertions::{
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains,
     assertUnstagedChangesViewIsEmpty};
-use common::gui_interactions::{activateUnstagedChangeToStageIt, selectStagedChange};
+use common::gui_interactions::{activateUnstagedChangeInRow, selectStagedChangeInRow};
 use common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
 use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest};
@@ -36,7 +36,7 @@ fn stageModifiedFileGivenItWasCommittedBefore()
     assertStagedChangesViewIsEmpty(&gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 
-    activateUnstagedChangeToStageIt(&filePath, &gui);
+    activateUnstagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIs(
         &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Modified}],
@@ -46,7 +46,7 @@ fn stageModifiedFileGivenItWasCommittedBefore()
     assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
     assertDiffViewIsEmpty(&gui);
 
-    selectStagedChange(&filePath, &gui);
+    selectStagedChangeInRow(0, &gui);
     assertDiffViewContains("@@ -1,2 +1,2 @@\n some file content\n-second line\n+modified second line\n", &gui);
 }
 

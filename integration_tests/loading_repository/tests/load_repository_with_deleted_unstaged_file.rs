@@ -1,13 +1,13 @@
 #![allow(non_snake_case)]
 
-use common::file_change_view_utils::makeFileChange;
+use common::file_changes_view_utils::makeFileChange;
 use common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
     assertStagedChangesViewContains,
     assertUnstagedChangesViewContains};
-use common::gui_interactions::selectStagedChange;
+use common::gui_interactions::selectStagedChangeInRow;
 use common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
 use common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use common::setup::{makeGui, makeNewStagedFile, removeFile, setupTest};
@@ -36,6 +36,6 @@ fn loadRepositoryWithDeletedUnstagedFile()
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
 
-    selectStagedChange(&filePath, &gui);
+    selectStagedChangeInRow(0, &gui);
     assertDiffViewContains("@@ -0,0 +1 @@\n+some file content\n", &gui);
 }

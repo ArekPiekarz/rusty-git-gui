@@ -41,11 +41,6 @@ impl TreeView
         newSelf
     }
 
-    pub fn getColumn(&self, index: i32) -> gtk::TreeViewColumn
-    {
-        self.widget.get_column(index).unwrap()
-    }
-
     pub fn getModel(&self) -> gtk::TreeModel
     {
         self.widget.get_model().unwrap()
@@ -62,11 +57,6 @@ impl TreeView
             Some(result) => Some(toRow(&result.0.unwrap())),
             None => None
         }
-    }
-
-    pub fn rowActivated(&self, path: &gtk::TreePath, column: &gtk::TreeViewColumn)
-    {
-        self.widget.row_activated(path, column);
     }
 
     pub fn focusFirstRow(&self)

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use common::gui_assertions::{assertCommitButtonIsDisabled, assertCommitButtonIsEnabled, assertCommitMessageViewIs};
+use common::gui_assertions::{assertCommitButtonIsDisabled, assertCommitButtonIsEnabled, assertCommitMessageViewTextIs};
 use common::gui_interactions::{selectCommitAmendCheckbox, setCommitMessage, unselectCommitAmendCheckbox};
 use common::setup::{makeCommit, makeGui, makeNewStagedFile, setupTest};
 
@@ -17,12 +17,12 @@ fn disablingCommitAmendShouldRestoreStashedCommitMessage()
     let gui = makeGui(&repositoryDir);
     setCommitMessage(COMMIT_MESSAGE2, &gui);
     selectCommitAmendCheckbox(&gui);
-    assertCommitMessageViewIs(COMMIT_MESSAGE1, &gui);
+    assertCommitMessageViewTextIs(COMMIT_MESSAGE1, &gui);
     assertCommitButtonIsEnabled(&gui);
 
     unselectCommitAmendCheckbox(&gui);
 
-    assertCommitMessageViewIs(COMMIT_MESSAGE2, &gui);
+    assertCommitMessageViewTextIs(COMMIT_MESSAGE2, &gui);
     assertCommitButtonIsDisabled(&gui);
 }
 
