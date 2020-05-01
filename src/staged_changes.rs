@@ -9,7 +9,7 @@ pub struct StagedChanges(pub Vec<FileChange>);
 
 impl StagedChanges
 {
-    pub fn new() -> Self
+    pub const fn new() -> Self
     {
         Self{0: vec![]}
     }

@@ -9,7 +9,7 @@ pub struct UnstagedChanges(pub Vec<FileChange>);
 
 impl UnstagedChanges
 {
-    pub fn new() -> Self
+    pub const fn new() -> Self
     {
         Self{0: vec![]}
     }
