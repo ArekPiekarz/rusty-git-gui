@@ -10,7 +10,7 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = { version = "1.0.28", default-features = false, features = ["std"] }
+anyhow = { version = "1.0.29", default-features = false, features = ["std"] }
 color-backtrace = { version = "0.4.1", default-features = false, optional = true }
 difference = { version = "2.0.0", default-features = false }
 dirs = { version = "2.0.2", default-features = false }
