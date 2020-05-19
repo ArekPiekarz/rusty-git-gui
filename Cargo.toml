@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = { version = "1.0.31", default-features = false, features = ["std"] }
-color-backtrace = { version = "0.4.1", default-features = false, optional = true }
+color-backtrace = { version = "0.4.2", default-features = false, optional = true }
 difference = { version = "2.0.0", default-features = false }
 dirs = { version = "2.0.2", default-features = false }
 gdk = { version = "0.12.1", default-features = false }
