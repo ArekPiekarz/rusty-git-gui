@@ -21,7 +21,7 @@ gtk = { version = "0.8.1", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.9.0", default-features = false, features = ["use_std"] }
 mimalloc = { version = "0.1.19", default-features = false, optional = true }
 pango = { version = "0.8.0", default-features = false }
-rust-ini = { version = "0.15.2", default-features = false }
+rust-ini = { version = "0.15.3", default-features = false }
 
 [dev-dependencies]
 mocktopus = { version = "0.7.5", default-features = false }
