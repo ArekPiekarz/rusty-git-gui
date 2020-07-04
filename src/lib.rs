@@ -7,15 +7,13 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_inline_in_public_items)]
 #![allow(clippy::module_name_repetitions)]
-#![allow(clippy::option_unwrap_used)]
 #![allow(clippy::panic)]
-#![allow(clippy::result_unwrap_used)]
 #![allow(clippy::string_add)]
+#![allow(clippy::unwrap_used)]
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
 #![feature(error_iter)]
 #![feature(or_patterns)]
-#![feature(track_caller)]
 
 
 pub mod app_setup;

@@ -181,7 +181,7 @@ fn makeTag(name: &str) -> gtk::TextTag
     tag
 }
 
-fn diffRequiresUpdating(differences: &[Difference]) -> bool
+const fn diffRequiresUpdating(differences: &[Difference]) -> bool
 {
     match differences {
         [] | [Difference::Same(_)] => false,
