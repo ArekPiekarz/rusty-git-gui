@@ -1,0 +1,15 @@
+1. Building for max performance requires GCC 9 or newer and LLD linker:
+
+- Arch Linux / Manjaro:
+sudo pacman -S gcc lld
+
+- Ubuntu:
+sudo apt install gcc lld
+
+2. Running tests requires XDO:
+
+- Arch Linux / Manjaro:
+sudo pacman -S xdotool
+
+- Ubuntu:
+sudo apt install libxdo-dev

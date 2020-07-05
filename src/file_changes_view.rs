@@ -147,7 +147,7 @@ impl<StoreType> FileChangesView<StoreType>
     {
         let filePath = self.store.borrow().getFilePath(row).to_owned();
         let menu = gtk::Menu::new();
-        let menuItem = gtk::MenuItem::new_with_label("Copy path");
+        let menuItem = gtk::MenuItem::with_label("Copy path");
         menuItem.connect_activate(move |_item| {
             let clipboard = gtk::Clipboard::get(&gdk::SELECTION_CLIPBOARD);
             clipboard.set_text(&filePath);

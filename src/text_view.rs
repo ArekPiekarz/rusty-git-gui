@@ -296,7 +296,7 @@ impl Font
 fn getFontDescription<T>(widget: &T) -> pango::FontDescription
     where T: glib::IsA<gtk::Widget>
 {
-    widget.get_pango_context().unwrap().get_font_description().unwrap()
+    widget.get_pango_context().get_font_description().unwrap()
 }
 
 fn getFontSize(fontDescription: &pango::FontDescription) -> FontSize

@@ -12,7 +12,7 @@ impl GuiElementProvider
 {
     pub fn new(guiDescription: &str) -> Self
     {
-        Self{provider: gtk::Builder::new_from_string(guiDescription)}
+        Self{provider: gtk::Builder::from_string(guiDescription)}
     }
 
     pub fn get<T: glib::IsA<glib::Object>>(&self, name: &str) -> T
