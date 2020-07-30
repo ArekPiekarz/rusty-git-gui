@@ -1,15 +1,38 @@
-1. Building for max performance requires GCC 9 or newer and LLD linker:
+Git GUI written in Rust
 
+WARNING - This is not a production ready software. The current error handling is to panic.
+
+Rust nightly compiler is required.
+
+1. Build normally with:
+cargo run
+
+2. Build with all featues:
+cargo run --all-features -Zfeatures=all 
+
+3. Build in release mode with stripping:
+./build-release.sh
+
+2. Build for max performance:
+
+Requires GCC 9 or newer and LLD linker:
 - Arch Linux / Manjaro:
 sudo pacman -S gcc lld
-
 - Ubuntu:
 sudo apt install gcc lld
 
-2. Running tests requires XDO:
+Then run:
+./build-max-performance.sh
 
+3. Run tests:
+
+Requires XDO:
 - Arch Linux / Manjaro:
 sudo pacman -S xdotool
-
 - Ubuntu:
 sudo apt install libxdo-dev
+
+Then run:
+cargo test --workspace --all-features -Zfeatures=all
+or
+./run-tests.sh
