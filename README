@@ -33,6 +33,6 @@ sudo pacman -S xdotool
 sudo apt install libxdo-dev
 
 Then run:
-cargo test --workspace --all-features -Zfeatures=all
+cargo test --all-features -Zfeatures=all
 or
 ./run-tests.sh

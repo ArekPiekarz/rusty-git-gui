@@ -1,8 +1,5 @@
 cargo-features = ["named-profiles"]
 
-[workspace]
-members = ["integration_tests/*"]
-
 [package]
 name = "rusty-git-gui"
 version = "0.1.0"
@@ -22,12 +19,17 @@ itertools = { version = "0.9.0", default-features = false, features = ["use_std"
 mimalloc = { version = "0.1.19", default-features = false, optional = true }
 pango = { version = "0.9.1", default-features = false }
 rust-ini = { version = "0.15.3", default-features = false }
+termcolor = { version = "1.1.0", default-features = false, optional = true }
 
 [dev-dependencies]
+gtk-test = {version = "0.6.1", default-features = false }
 mocktopus = { version = "0.7.5", default-features = false }
+pretty_assertions = { version = "0.6.1", default-features = false }
+rusty-fork = { version = "0.3.0", default-features = false }
+tempfile = { version = "3.1.0", default-features = false }
 
 [features]
-use_color_backtrace = ["color-backtrace"]
+use_color_backtrace = ["color-backtrace", "termcolor"]
 use_mimalloc = ["mimalloc"]
 
 [profile.release]

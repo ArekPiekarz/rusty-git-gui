@@ -1,0 +1,6 @@
+mod allow_amending_commit_when_commit_is_found;
+mod amend_commit_by_changing_file;
+mod amend_commit_by_changing_message;
+mod disabling_commit_amend_should_restore_stashed_commit_message;
+mod enabling_commit_amend_should_fill_commit_message_from_previous_commit;
+mod forbid_amending_commit_when_no_commit_is_found;

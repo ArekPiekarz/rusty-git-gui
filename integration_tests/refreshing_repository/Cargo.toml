@@ -1,9 +1,0 @@
-[package]
-name = "refreshing_repository"
-version = "0.1.0"
-authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
-edition = "2018"
-
-[dev-dependencies]
-common = { path = "../common" }
-rusty-git-gui = { path = "../.." }

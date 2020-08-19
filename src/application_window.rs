@@ -70,7 +70,9 @@ impl ApplicationWindow
     {
         self.window.connect_delete_event(move |_window, _event| {
             settings.save();
-            gtk::main_quit();
+            if gtk::main_level() > 0 {
+                gtk::main_quit();
+            }
             FORWARD_EVENT
         });
     }

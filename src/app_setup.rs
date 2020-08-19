@@ -1,12 +1,14 @@
 use anyhow::{anyhow, Context, Result};
 use std::path::PathBuf;
 #[cfg(test)] use mocktopus::macros::mockable;
+#[cfg(feature = "use_color_backtrace")] use color_backtrace::BacktracePrinter;
+#[cfg(feature = "use_color_backtrace")] use termcolor::{ColorChoice, StandardStream};
 
 
 #[cfg(feature = "use_color_backtrace")]
 pub fn setupPanicHandler()
 {
-    color_backtrace::install();
+    BacktracePrinter::default().install(Box::new(StandardStream::stderr(ColorChoice::Always)));
 }
 
 #[cfg(not(feature = "use_color_backtrace"))]
