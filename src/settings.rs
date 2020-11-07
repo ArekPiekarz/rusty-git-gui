@@ -17,7 +17,7 @@ impl Settings
 {
     pub fn new() -> Self
     {
-        let configFilePath = dirs::config_dir().unwrap().join("rusty-git-gui/config.ini");
+        let configFilePath = dirs_next::config_dir().unwrap().join("rusty-git-gui/config.ini");
         Self{
             config: RefCell::new(ini::Ini::load_from_file(&configFilePath).unwrap_or_default()),
             configFilePath,
