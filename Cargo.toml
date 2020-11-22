@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = { version = "1.0.34", default-features = false, features = ["std"] }
-color-backtrace = { version = "0.4.2", default-features = false, optional = true }
+color-backtrace = { version = "0.5.0", default-features = false, optional = true }
 difference = { version = "2.0.0", default-features = false }
 dirs-next = { version = "2.0.0", default-features = false }
 gdk = { version = "0.13.2", default-features = false }
@@ -19,7 +19,7 @@ itertools = { version = "0.9.0", default-features = false, features = ["use_std"
 mimalloc = { version = "0.1.22", default-features = false, optional = true }
 pango = { version = "0.9.1", default-features = false }
 rust-ini = { version = "0.16.0", default-features = false }
-termcolor = { version = "1.1.0", default-features = false, optional = true }
+termcolor = { version = "1.1.2", default-features = false, optional = true }
 
 [dev-dependencies]
 gtk-test = {version = "0.6.1", default-features = false }
