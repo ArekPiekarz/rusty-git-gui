@@ -37,16 +37,27 @@ pub fn assertRepositoryStatusIs(expectedStatusEntries: &[RepositoryStatusEntry],
               "\nExpected repository status did not match actual.\nRaw output: {}", output);
 }
 
+pub fn assertRepositoryStatusIsEmpty(repositoryDir: &Path)
+{
+    assertRepositoryStatusIs(&[], repositoryDir);
+}
+
+pub fn assertGitDiffUnstagedIs(expectedOutput: &str, repositoryDir: &Path)
+{
+    assertCommandOutput(&["git", "diff"], expectedOutput, repositoryDir);
+}
+
+pub fn assertGitDiffStagedIs(expectedOutput: &str, repositoryDir: &Path)
+{
+    assertCommandOutput(&["git", "diff", "--staged"], expectedOutput, repositoryDir);
+}
+
+
 fn getCommandOutput(commandParts: &[&str], repositoryDir: &Path) -> std::process::Output
 {
     let mut command = Command::new(commandParts[0]);
     command.args(&commandParts[1..]).current_dir(&repositoryDir);
     command.output().unwrap()
-}
-
-pub fn assertRepositoryStatusIsEmpty(repositoryDir: &Path)
-{
-    assertRepositoryStatusIs(&[], repositoryDir);
 }
 
 fn assertCommandOutput(commandParts: &[&str], expectedOutput: &str, repositoryDir: &Path)

@@ -17,7 +17,8 @@ pub struct DiffView
     widget: TextView,
     repository: Rc<RefCell<Repository>>,
     diffColorizer: DiffColorizer,
-    displayState: DisplayedFileChange
+    displayState: DisplayedFileChange,
+    stagedChangeDiffMaker: DiffMaker
 }
 
 #[derive(Eq, PartialEq)]
@@ -36,6 +37,8 @@ impl IEventHandler for DiffView
     {
         use crate::event::{Source as S, Event as E};
         match (source, event) {
+            (S::CommitAmendCheckbox, E::CommitAmendDisabled)                => self.onCommitAmendDisabled(),
+            (S::CommitAmendCheckbox, E::CommitAmendEnabled)                 => self.onCommitAmendEnabled(),
             (S::DiffView,            E::ZoomRequested(_))                   => self.onZoomRequested(source, event),
             (S::StagedChangesView,   E::FileChangeRefreshed(fileChangeOpt)) => self.onStagedOptionalChangeRefreshed(fileChangeOpt),
             (S::StagedChangesView,   E::FileChangeSelected(fileChange))     => self.onStagedChangeSelected(fileChange),
@@ -63,7 +66,8 @@ impl DiffView
             widget,
             repository,
             diffColorizer,
-            displayState: DisplayedFileChange::None
+            displayState: DisplayedFileChange::None,
+            stagedChangeDiffMaker: makeDiffForStagedChange
         }
     }
 
@@ -82,7 +86,7 @@ impl DiffView
 
     fn onStagedChangeSelected(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeSelected(fileChange, makeDiffForStagedChange, DisplayedFileChange::Staged);
+        self.onFileChangeSelected(fileChange, self.stagedChangeDiffMaker, DisplayedFileChange::Staged);
     }
 
     fn onFileChangeSelected(
@@ -159,12 +163,22 @@ impl DiffView
 
     fn onStagedChangeRefreshed(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeRefreshed(fileChange, makeDiffForStagedChange, DisplayedFileChange::Staged);
+        self.onFileChangeRefreshed(fileChange, self.stagedChangeDiffMaker, DisplayedFileChange::Staged);
     }
 
     fn onZoomRequested(&mut self, source: Source, event: &Event)
     {
         self.widget.handle(source, event);
+    }
+
+    fn onCommitAmendDisabled(&mut self)
+    {
+        self.stagedChangeDiffMaker = makeDiffForStagedChange;
+    }
+
+    fn onCommitAmendEnabled(&mut self)
+    {
+        self.stagedChangeDiffMaker = makeDiffForStagedChangeToAmend;
     }
 
     fn clear(&mut self)
@@ -192,6 +206,11 @@ fn makeDiffForUnstagedChange<'a>(fileChange: &FileChange, repository: &'a Reposi
 fn makeDiffForStagedChange<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
 {
     repository.makeDiffOfTreeToIndex(&fileChange.path)
+}
+
+fn makeDiffForStagedChangeToAmend<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+{
+    repository.makeDiffToAmendForPath(&fileChange.path)
 }
 
 fn makeDiffForUnstagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>

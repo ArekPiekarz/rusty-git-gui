@@ -1,3 +1,4 @@
+use crate::common::file_changes_view_utils::makeFileChange;
 use crate::common::gui_assertions::{
     assertCommitAmendCheckboxIsEnabled,
     assertCommitAmendCheckboxIsSelected,
@@ -6,6 +7,7 @@ use crate::common::gui_assertions::{
     assertCommitButtonIsEnabled,
     assertCommitMessageViewIsEmpty,
     assertCommitMessageViewTextIs,
+    assertStagedChangesViewContains,
     assertStagedChangesViewIsEmpty};
 use crate::common::gui_interactions::{clickCommitButton, selectCommitAmendCheckbox, setCommitMessage};
 use crate::common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIsEmpty};
@@ -32,7 +34,7 @@ fn amendCommitByChangingMessage()
     assertRepositoryLogIs(REPOSITORY_LOG_BEFORE_COMMIT_AMEND, &repositoryDir);
     assertCommitAmendCheckboxIsSelected(&gui);
     assertCommitAmendCheckboxIsEnabled(&gui);
-    assertStagedChangesViewIsEmpty(&gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertCommitMessageViewTextIs(COMMIT_MESSAGE2, &gui);
     assertCommitButtonIsEnabled(&gui);
 

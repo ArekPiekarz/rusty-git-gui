@@ -9,7 +9,7 @@ use rusty_fork::rusty_fork_test;
 
 rusty_fork_test! {
 #[test]
-fn forbidAmendingCommitWhenNoCommitIsFound()
+fn forbidEnablingAmendModeWhenNoCommitIsFound()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();

@@ -41,7 +41,7 @@ fn amendCommitByChangingFile()
     assertRepositoryLogIs(REPOSITORY_LOG_BEFORE_COMMIT_AMEND, &repositoryDir);
     assertCommitAmendCheckboxIsSelected(&gui);
     assertCommitAmendCheckboxIsEnabled(&gui);
-    assertStagedChangesViewContains(&[makeFileChange("Modified", &filePath)], &gui);
+    assertStagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertCommitMessageViewTextIs(COMMIT_MESSAGE, &gui);
     assertCommitButtonIsEnabled(&gui);
 

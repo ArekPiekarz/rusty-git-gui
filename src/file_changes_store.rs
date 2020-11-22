@@ -22,13 +22,6 @@ pub struct FileChangesStore
     sender: Sender
 }
 
-#[derive(Eq, PartialEq)]
-enum LoopControl
-{
-    Break,
-    DoNotBreak
-}
-
 impl FileChangesStore
 {
     pub fn new(
@@ -209,6 +202,13 @@ impl FileChangesStore
     }
 }
 
+#[derive(Eq, PartialEq)]
+enum LoopControl
+{
+    Break,
+    DoNotBreak
+}
+
 impl IFileChangesStore for FileChangesStore
 {
     fn getFileChange(&self, row: usize) -> &FileChange
@@ -235,6 +235,8 @@ fn formatStatus(status: &str) -> &str
         "WT_MODIFIED" | "INDEX_MODIFIED" => "Modified",
         "WT_DELETED" | "INDEX_DELETED" => "Deleted",
         "WT_RENAMED" | "INDEX_RENAMED" => "Renamed",
+        "Added" => "New",
+        "Modified" => "Modified",
         _ => panic!("Cannot format unknown status: {}", status)
     }
 }

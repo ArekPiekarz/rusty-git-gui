@@ -5,6 +5,7 @@ use crate::repository::Repository;
 use gtk::ToggleButtonExt as _;
 use gtk::WidgetExt as _;
 
+
 pub struct CommitAmendCheckbox
 {
     widget: gtk::CheckButton,
@@ -17,6 +18,7 @@ impl IEventHandler for CommitAmendCheckbox
     {
         match event {
             Event::AmendedCommit => self.onAmendedCommit(),
+            Event::Committed     => self.onCommitted(),
             Event::Toggled       => self.onToggled(),
             _ => handleUnknown(source, event)
         }
@@ -29,17 +31,19 @@ impl CommitAmendCheckbox
     pub fn new(guiElementProvider: &GuiElementProvider, repository: &mut Repository, sender: Sender) -> Self
     {
         let widget = guiElementProvider.get::<gtk::CheckButton>("Commit amend checkbox");
+        let newSelf = Self{widget, sender};
         if repository.isEmpty() {
-            widget.set_sensitive(false);
-            widget.set_tooltip_text(Some("No commit found to amend."));
+            newSelf.disable();
         } else {
-            widget.set_sensitive(true);
+            newSelf.enable();
         }
 
-        let newSelf = Self{widget, sender};
         newSelf.connectWidget();
         newSelf
     }
+
+
+    // private
 
     #[must_use]
     pub fn isSelected(&self) -> bool
@@ -52,14 +56,41 @@ impl CommitAmendCheckbox
         self.widget.set_active(false);
     }
 
+    #[must_use]
+    fn isDisabled(&self) -> bool
+    {
+        !self.widget.is_sensitive()
+    }
 
-    // private
+    fn enable(&self)
+    {
+        self.widget.set_sensitive(true);
+        self.widget.set_tooltip_text(None);
+    }
+
+    fn disable(&self)
+    {
+        self.widget.set_sensitive(false);
+        self.widget.set_tooltip_text(Some("No commit found to amend."));
+    }
 
     fn connectWidget(&self)
     {
         let eventSender = self.sender.clone();
         self.widget.connect_toggled(move |_checkbox|
             eventSender.send((Source::CommitAmendCheckbox, Event::Toggled)).unwrap());
+    }
+
+    fn onAmendedCommit(&self)
+    {
+        self.unselect();
+    }
+
+    fn onCommitted(&self)
+    {
+        if self.isDisabled() {
+            self.enable();
+        }
     }
 
     fn onToggled(&self)
@@ -69,11 +100,6 @@ impl CommitAmendCheckbox
         } else {
             self.notifyOnUnselected();
         }
-    }
-
-    fn onAmendedCommit(&self)
-    {
-        self.unselect();
     }
 
     fn notifyOnSelected(&self)

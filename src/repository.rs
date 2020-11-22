@@ -8,7 +8,7 @@ use crate::unstaged_changes::UnstagedChanges;
 use itertools::Itertools;
 use std::path::Path;
 
-const NO_INDEX : Option<&git2::Index> = None;
+const CURRENT_INDEX : Option<&git2::Index> = None;
 const UNSTAGED_STATUSES : [git2::Status; 5] = [
     git2::Status::WT_NEW,
     git2::Status::WT_MODIFIED,
@@ -32,7 +32,9 @@ pub struct Repository
 {
     gitRepo: git2::Repository,
     fileChanges: GroupedFileChanges,
-    sender: Sender
+    sender: Sender,
+    stager: Stager,
+    unstager: Unstager
 }
 
 impl IEventHandler for Repository
@@ -41,6 +43,8 @@ impl IEventHandler for Repository
     {
         match event {
             Event::AmendCommitRequested(message) => self.amendCommit(message),
+            Event::CommitAmendDisabled           => self.disableCommitAmendMode(),
+            Event::CommitAmendEnabled            => self.enableCommitAmendMode(),
             Event::CommitRequested(message)      => self.commit(message),
             Event::RefreshRequested              => self.refresh(),
             Event::StageRequested(fileChange)    => self.stage(fileChange),
@@ -58,7 +62,9 @@ impl Repository
         let mut newSelf = Self{
             gitRepo: openRepository(path),
             fileChanges: GroupedFileChanges::new(),
-            sender
+            sender,
+            stager: Self::stageNormally,
+            unstager: Self::unstageNormally
         };
         newSelf.collectCurrentFileChanges();
         newSelf
@@ -118,11 +124,29 @@ impl Repository
         }
     }
 
+    fn collectLastCommitChanges(&self) -> Vec<FileChange>
+    {
+        let mut fileChanges = vec![];
+        if let Some(commit) = self.findHeadCommit() {
+            let amendDiff = self.makeDiffToAmend(&commit);
+            for delta in amendDiff.deltas() {
+                fileChanges.push(FileChange{
+                    status: format!("{:?}", delta.status()),
+                    path: delta.new_file().path().unwrap().to_str().unwrap().into(),
+                    oldPath: match delta.old_file().path() {
+                        Some(path) => Some(path.to_str().unwrap().into()),
+                        None => None
+                    }});
+            }
+        }
+        fileChanges
+    }
+
     #[must_use]
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
     {
         let mut diffOptions = makeDiffOptions(path);
-        self.gitRepo.diff_index_to_workdir(NO_INDEX, Some(&mut diffOptions))
+        self.gitRepo.diff_index_to_workdir(CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(
                 &format!("Failed to get index-to-workdir diff for path {}: {}", path, e)))
     }
@@ -132,7 +156,7 @@ impl Repository
     {
         let mut diffOptions = makeDiffOptions(path);
         let tree = self.findCurrentTree();
-        self.gitRepo.diff_tree_to_index(tree.as_ref(), NO_INDEX, Some(&mut diffOptions))
+        self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
     }
 
@@ -141,7 +165,7 @@ impl Repository
     {
         let mut diffOptions = makeDiffOptions(oldPath);
         diffOptions.pathspec(newPath);
-        let mut diff = self.gitRepo.diff_index_to_workdir(NO_INDEX, Some(&mut diffOptions))
+        let mut diff = self.gitRepo.diff_index_to_workdir(CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(
                 &format!("Failed to get index-to-workdir diff for path {}: {}", oldPath, e)));
         let mut diffFindOptions = git2::DiffFindOptions::new();
@@ -150,50 +174,37 @@ impl Repository
         diff
     }
 
+    #[must_use]
+    pub fn makeDiffToAmend(&self, commit: &git2::Commit) -> git2::Diff
+    {
+        let mut diffOptions = git2::DiffOptions::new();
+        diffOptions.indent_heuristic(true);
+        let tree = findTreeOfParentOfCommit(commit);
+        self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
+            .unwrap_or_else(|e| exit(&format!("Failed to get diff to amend: {}", e)))
+    }
+
+    #[must_use]
+    pub fn makeDiffToAmendForPath(&self, path: &str) -> git2::Diff
+    {
+        let mut diffOptions = git2::DiffOptions::new();
+        diffOptions
+            .pathspec(path)
+            .indent_heuristic(true);
+        let tree = self.findTreeOfParentOfHeadCommit();
+        self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to get tree-to-index diff to amend for path {}: {}", path, e)))
+    }
+
     pub fn stage(&mut self, fileChange: &FileChange)
     {
-        match fileChange.status.as_str() {
-            "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
-            _ => self.addPathToIndex(&fileChange.path)
-        }
-
-        let oldStagedFileChange = self.fileChanges.staged.iter().find(
-            |stagedFileChange| stagedFileChange.path == fileChange.path).cloned();
-        self.collectCurrentFileChanges();
-        let newStagedFileChange = self.fileChanges.staged.iter().find(
-            |stagedFileChange| stagedFileChange.path == fileChange.path);
-
-        self.notifyOnRemovedFromUnstaged(fileChange);
-
-        match oldStagedFileChange {
-            Some(oldStagedFileChange) => self.finishStagingWhenFileWasAlreadyStaged(
-                &oldStagedFileChange, newStagedFileChange),
-            None => self.finishStagingWhenFileWasNotYetStaged(newStagedFileChange)
-        }
+        (self.stager)(self, fileChange);
     }
 
     pub fn unstage(&mut self, fileChange: &FileChange)
     {
-        {
-            let commitObject = match self.findHeadCommit() {
-                Some(commit) => Some(commit.into_object()),
-                None => None };
-            self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
-                .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
-        }
-
-        self.notifyOnRemovedFromStaged(fileChange);
-        let oldUnstagedFileChange = self.fileChanges.unstaged.iter().find(
-            |unstagedFileChange| unstagedFileChange.path == fileChange.path).cloned();
-        self.collectCurrentFileChanges();
-        let newUnstagedFileChange = self.fileChanges.unstaged.iter().find(
-            |unstagedFileChange| unstagedFileChange.path == fileChange.path);
-
-        match oldUnstagedFileChange {
-            Some(oldUnstagedFileChange) => self.finishUnstagingWhenFileWasAlreadyUnstaged(
-                &oldUnstagedFileChange, newUnstagedFileChange),
-            None => self.finishUnstagingWhenFileWasNotYetUnstaged(newUnstagedFileChange)
-        }
+        (self.unstager)(self, fileChange);
     }
 
     pub fn commit(&mut self, message: &str)
@@ -234,10 +245,131 @@ impl Repository
 
     // private
 
+    fn enableCommitAmendMode(&mut self)
+    {
+        self.stager = Self::stageToAmend;
+        self.unstager = Self::unstageToAmend;
+        self.collectCurrentFileChangesToAmend();
+        self.notifyOnRefreshed();
+    }
+
+    fn disableCommitAmendMode(&mut self)
+    {
+        self.stager = Self::stageNormally;
+        self.unstager = Self::unstageNormally;
+        self.collectCurrentFileChanges();
+        self.notifyOnRefreshed();
+    }
+
+    pub fn stageNormally(&mut self, fileChange: &FileChange)
+    {
+        match fileChange.status.as_str() {
+            "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
+            _ => self.addPathToIndex(&fileChange.path)
+        }
+
+        let oldStagedFileChange = self.fileChanges.staged.iter().find(
+            |stagedFileChange| stagedFileChange.path == fileChange.path).cloned();
+        self.collectCurrentFileChanges();
+        let newStagedFileChange = self.fileChanges.staged.iter().find(
+            |stagedFileChange| stagedFileChange.path == fileChange.path);
+
+        self.notifyOnRemovedFromUnstaged(fileChange);
+
+        match oldStagedFileChange {
+            Some(oldStagedFileChange) => self.finishStagingWhenFileWasAlreadyStaged(
+                &oldStagedFileChange, newStagedFileChange),
+            None => self.finishStagingWhenFileWasNotYetStaged(newStagedFileChange)
+        }
+    }
+
+    pub fn stageToAmend(&mut self, fileChange: &FileChange)
+    {
+        match fileChange.status.as_str() {
+            "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
+            _ => self.addPathToIndex(&fileChange.path)
+        }
+
+        let oldStagedFileChange = self.fileChanges.staged.iter().find(
+            |stagedFileChange| stagedFileChange.path == fileChange.path).cloned();
+        self.collectCurrentFileChangesToAmend();
+        let newStagedFileChange = self.fileChanges.staged.iter().find(
+            |stagedFileChange| stagedFileChange.path == fileChange.path);
+
+        self.notifyOnRemovedFromUnstaged(fileChange);
+
+        match oldStagedFileChange {
+            Some(oldStagedFileChange) => self.finishStagingWhenFileWasAlreadyStaged(
+                &oldStagedFileChange, newStagedFileChange),
+            None => self.finishStagingWhenFileWasNotYetStaged(newStagedFileChange)
+        }
+    }
+
+    pub fn unstageNormally(&mut self, fileChange: &FileChange)
+    {
+        {
+            let commitObject = match self.findHeadCommit() {
+                Some(commit) => Some(commit.into_object()),
+                None => None };
+            self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
+                .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
+        }
+
+        self.notifyOnRemovedFromStaged(fileChange);
+        let oldUnstagedFileChange = self.fileChanges.unstaged.iter().find(
+            |unstagedFileChange| unstagedFileChange.path == fileChange.path).cloned();
+        self.collectCurrentFileChanges();
+        let newUnstagedFileChange = self.fileChanges.unstaged.iter().find(
+            |unstagedFileChange| unstagedFileChange.path == fileChange.path);
+
+        match oldUnstagedFileChange {
+            Some(oldUnstagedFileChange) => self.finishUnstagingWhenFileWasAlreadyUnstaged(
+                &oldUnstagedFileChange, newUnstagedFileChange),
+            None => self.finishUnstagingWhenFileWasNotYetUnstaged(newUnstagedFileChange)
+        }
+    }
+
+    fn unstageToAmend(&mut self, fileChange: &FileChange)
+    {
+        {
+            let parent = self.findParentOfHeadCommit();
+            let parentObject = match parent {
+                Some(parent) => Some(parent.into_object()),
+                None => None
+            };
+            self.gitRepo.reset_default(parentObject.as_ref(), &[&fileChange.path])
+                .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
+        }
+
+        self.notifyOnRemovedFromStaged(fileChange);
+        let oldUnstagedFileChange = self.fileChanges.unstaged.iter().find(
+            |unstagedFileChange| unstagedFileChange.path == fileChange.path).cloned();
+        self.collectCurrentFileChangesToAmend();
+        let newUnstagedFileChange = self.fileChanges.unstaged.iter().find(
+            |unstagedFileChange| unstagedFileChange.path == fileChange.path);
+
+        match oldUnstagedFileChange {
+            Some(oldUnstagedFileChange) => self.finishUnstagingWhenFileWasAlreadyUnstaged(
+                &oldUnstagedFileChange, newUnstagedFileChange),
+            None => self.finishUnstagingWhenFileWasNotYetUnstaged(newUnstagedFileChange)
+        }
+    }
+
     fn collectFileStatuses(&self) -> git2::Statuses
     {
         self.gitRepo.statuses(Some(&mut makeStatusOptions()))
             .unwrap_or_else(|e| exit(&format!("Failed to get statuses: {}", e)))
+    }
+
+    pub fn collectCurrentFileChangesToAmend(&mut self) -> &GroupedFileChanges
+    {
+        let mut unstaged = UnstagedChanges::new();
+        for fileStatusEntry in self.collectFileStatuses().iter() {
+            maybeAddToUnstaged(&fileStatusEntry, &mut unstaged);
+        }
+        let staged = StagedChanges(self.collectLastCommitChanges());
+        self.fileChanges = GroupedFileChanges{unstaged, staged};
+        &self.fileChanges
     }
 
     fn addPathToIndex(&self, filePath: &str)
@@ -294,6 +426,18 @@ impl Repository
             Err(ref e) if e.class() == git2::ErrorClass::Reference && e.code() == git2::ErrorCode::UnbornBranch => None,
             Err(e) => exit(&format!("Failed to get reference to HEAD: {}", e))
         }
+    }
+
+    fn findTreeOfParentOfHeadCommit(&self) -> Option<git2::Tree>
+    {
+        let head = self.findHeadCommit().unwrap();
+        findTreeOfParentOfCommit(&head)
+    }
+
+    fn findParentOfHeadCommit(&self) -> Option<git2::Commit>
+    {
+        let head = self.findHeadCommit().unwrap();
+        head.parents().next()
     }
 
     fn finishStagingWhenFileWasAlreadyStaged(&self, oldFileChange: &FileChange, newFileChange: Option<&FileChange>)
@@ -488,3 +632,14 @@ fn makeDiffOptions(path: &str) -> git2::DiffOptions
         .show_untracked_content(true);
     diffOptions
 }
+
+fn findTreeOfParentOfCommit<'a>(commit: &git2::Commit<'a>) -> Option<git2::Tree<'a>>
+{
+    match commit.parents().next() {
+        Some(parent) => Some(parent.tree().unwrap()),
+        None => None
+    }
+}
+
+type Stager = fn(&mut Repository, &FileChange);
+type Unstager = fn(&mut Repository, &FileChange);

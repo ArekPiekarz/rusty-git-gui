@@ -114,8 +114,8 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
     use Source as S;
     use Event as E;
     attach(receiver, move |(source, event)| { match (source, &event) {
-        (S::CommitAmendCheckbox,  E::CommitAmendDisabled)     => (&mut commitMessageView, &mut commitButton).handle(source, &event),
-        (S::CommitAmendCheckbox,  E::CommitAmendEnabled)      => (&mut commitMessageView, &mut commitButton).handle(source, &event),
+        (S::CommitAmendCheckbox,  E::CommitAmendDisabled)     => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
+        (S::CommitAmendCheckbox,  E::CommitAmendEnabled)      => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
         (S::CommitAmendCheckbox,  E::Toggled)                 => commitAmendCheckbox.handle(source, &event),
         (S::CommitButton,         E::AmendCommitRequested(_)) => repository.handle(source, &event),
         (S::CommitButton,         E::Clicked)                 => commitButton.handle(source, &event),
@@ -130,7 +130,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::Repository,           E::AddedToStaged(_))        => (&stagedChangesStore, &mut commitButton).handle(source, &event),
         (S::Repository,           E::AddedToUnstaged(_))      => unstagedChangesStore.handle(source, &event),
         (S::Repository,           E::AmendedCommit)           => (&stagedChangesStore, &mut commitAmendCheckbox).handle(source, &event),
-        (S::Repository,           E::Committed)               => (&stagedChangesStore, &mut commitMessageView).handle(source, &event),
+        (S::Repository,           E::Committed)               => (&stagedChangesStore, &mut commitMessageView, &mut commitAmendCheckbox).handle(source, &event),
         (S::Repository,           E::RemovedFromStaged(_))    => (&stagedChangesStore, &mut commitButton).handle(source, &event),
         (S::Repository,           E::RemovedFromUnstaged(_))  => unstagedChangesStore.handle(source, &event),
         (S::Repository,           E::Refreshed)               => (&unstagedChangesStore, &stagedChangesStore).handle(source, &event),
@@ -171,13 +171,36 @@ fn showFirstFileChange(unstagedChangesView: &UnstagedChangesView)
     unstagedChangesView.trySelectFirst();
 }
 
-impl<T, U> IEventHandler for (T, U)
-    where T: IEventHandler, U: IEventHandler
+impl<T0, T1> IEventHandler for (T0, T1)
+    where T0: IEventHandler, T1: IEventHandler
 {
     fn handle(&mut self, source: Source, event: &Event)
     {
         self.0.handle(source, event);
         self.1.handle(source, event);
+    }
+}
+
+impl<T0, T1, T2> IEventHandler for (T0, T1, T2)
+    where T0: IEventHandler, T1: IEventHandler, T2: IEventHandler
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        self.0.handle(source, event);
+        self.1.handle(source, event);
+        self.2.handle(source, event);
+    }
+}
+
+impl<T0, T1, T2, T3> IEventHandler for (T0, T1, T2, T3)
+    where T0: IEventHandler, T1: IEventHandler, T2: IEventHandler, T3: IEventHandler
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        self.0.handle(source, event);
+        self.1.handle(source, event);
+        self.2.handle(source, event);
+        self.3.handle(source, event);
     }
 }
 
