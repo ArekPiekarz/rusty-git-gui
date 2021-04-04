@@ -13,7 +13,6 @@
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
 #![feature(error_iter)]
-#![feature(or_patterns)]
 
 
 pub mod app_setup;

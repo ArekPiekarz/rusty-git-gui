@@ -8,7 +8,7 @@ Rust nightly compiler is required.
 cargo run
 
 2. Build with all featues:
-cargo run --all-features -Zfeatures=all 
+cargo run --all-features
 
 3. Build in release mode with stripping:
 ./build-release.sh
@@ -33,6 +33,6 @@ sudo pacman -S xdotool
 sudo apt install libxdo-dev
 
 Then run:
-cargo test --all-features -Zfeatures=all
+cargo test --all-features
 or
 ./run-tests.sh

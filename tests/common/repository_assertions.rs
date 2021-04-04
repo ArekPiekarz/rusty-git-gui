@@ -80,7 +80,7 @@ fn assertCommandOutput(commandParts: &[&str], expectedOutput: &str, repositoryDi
 fn assertFailedCommandErrorOutput(commandParts: &[&str], expectedErrorOutput: &str, repositoryDir: &Path)
 {
     let mut command = Command::new(commandParts[0]);
-    command.args(&commandParts[1..]).current_dir(&repositoryDir);
+    command.env("LC_ALL", "C").args(&commandParts[1..]).current_dir(&repositoryDir);
     let output = command.output().unwrap();
 
     diffed_eq!(
