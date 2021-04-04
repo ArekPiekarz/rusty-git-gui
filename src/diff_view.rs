@@ -4,10 +4,10 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
 use crate::gui_element_provider::GuiElementProvider;
+use crate::line_diff::LineDiff;
 use crate::repository::Repository;
 use crate::text_view::{Notifications, TextView};
 
-use difference::Changeset;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -108,8 +108,14 @@ impl DiffView
     {
         let oldDiff = self.widget.getText();
         let newDiff = self.makeFormattedDiff(fileChange, diffMaker);
-        let changeset = Changeset::new(&oldDiff, &newDiff, "\n");
-        self.diffColorizer.update(&self.widget, changeset.diffs);
+        let changeset = similar::TextDiff::configure().diff_lines(&oldDiff, &newDiff);
+        let changeset: Vec<_> = changeset.iter_all_changes().map(
+            |change| match change.tag() {
+                similar::ChangeTag::Equal => LineDiff::Equal(change.to_string_lossy()),
+                similar::ChangeTag::Delete => LineDiff::Delete(change.to_string_lossy()),
+                similar::ChangeTag::Insert => LineDiff::Insert(change.to_string_lossy())
+            }).collect();
+        self.diffColorizer.update(&self.widget, changeset);
         self.displayState = newDisplayState;
     }
 

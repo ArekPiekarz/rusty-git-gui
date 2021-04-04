@@ -1,7 +1,7 @@
+use crate::line_diff::LineDiff;
 use crate::line_number::LineNumber;
 use crate::text_view::TextView;
 
-use difference::Difference;
 use gtk::TextTagExt as _;
 
 
@@ -43,7 +43,7 @@ impl DiffColorizer
         self.applyTags(textView, diff);
     }
 
-    pub fn update(&mut self, textView: &TextView, differences: Vec<Difference>)
+    pub fn update(&mut self, textView: &TextView, differences: Vec<LineDiff>)
     {
         if !diffRequiresUpdating(&differences) {
             return;
@@ -154,20 +154,20 @@ impl DiffColorizer
     }
 }
 
-fn updateDiff(textView: &TextView, differences: Vec<Difference>)
+fn updateDiff(textView: &TextView, differences: Vec<LineDiff>)
 {
     let mut currentLine = 0.into();
     for difference in differences {
         match difference {
-            Difference::Same(text) => {
+            LineDiff::Equal(text) => {
                 currentLine += text.lines().count();
             },
-            Difference::Add(text) => {
-                let text = ensureTextEndsWithNewLine(text);
+            LineDiff::Insert(text) => {
+                let text = ensureTextEndsWithNewLine(&text);
                 textView.insertTextAt(&text, currentLine);
                 currentLine += text.lines().count();
             }
-            Difference::Rem(text) => {
+            LineDiff::Delete(text) => {
                 textView.removeTextAt(currentLine, text.lines().count().into());
             }
         }
@@ -181,19 +181,28 @@ fn makeTag(name: &str) -> gtk::TextTag
     tag
 }
 
-const fn diffRequiresUpdating(differences: &[Difference]) -> bool
+fn diffRequiresUpdating(differences: &[LineDiff]) -> bool
 {
-    match differences {
-        [] | [Difference::Same(_)] => false,
-        _ => true
+    if differences.is_empty() {
+        return false;
     }
+
+    for change in differences {
+        match change {
+            LineDiff::Equal(_) => continue,
+            LineDiff::Delete(_) => return true,
+            LineDiff::Insert(_) => return true
+        }
+    }
+
+    false
 }
 
-fn ensureTextEndsWithNewLine(text: String) -> String
+fn ensureTextEndsWithNewLine(text: &str) -> String
 {
     if text.ends_with('\n') {
-        text
+        text.into()
     } else {
-        text + "\n"
+        text.to_string()+ "\n"
     }
 }

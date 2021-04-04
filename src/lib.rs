@@ -55,6 +55,7 @@ mod settings;
 mod staged_changes;
 mod staged_changes_store;
 mod staged_changes_view;
+mod line_diff;
 mod text_view;
 mod tree_selection;
 mod tree_view;
