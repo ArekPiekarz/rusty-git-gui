@@ -1,3 +1,5 @@
+use gtk::glib;
+
 const DEFAULT_CONTEXT : Option<&glib::MainContext> = None;
 
 

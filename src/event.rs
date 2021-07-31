@@ -1,6 +1,8 @@
 use crate::commit_message::CommitMessage;
 use crate::file_change::{FileChange, FileChangeUpdate};
 
+use gtk::{gdk, glib};
+
 
 #[derive(Debug)]
 pub enum Event

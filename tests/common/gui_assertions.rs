@@ -3,12 +3,12 @@ use crate::common::test_gui::TestGui;
 
 use rusty_git_gui::file_changes_view_entry::FileChangesViewEntry;
 
-use gtk::TextBufferExt as _;
-use gtk::TextViewExt as _;
-use gtk::ToggleButtonExt as _;
-use gtk::TreeModelExt as _;
-use gtk::TreeViewExt as _;
-use gtk::WidgetExt as _;
+use gtk::prelude::TextBufferExt as _;
+use gtk::prelude::TextViewExt as _;
+use gtk::prelude::ToggleButtonExt as _;
+use gtk::prelude::TreeModelExt as _;
+use gtk::prelude::TreeViewExt as _;
+use gtk::prelude::WidgetExt as _;
 
 const CONTINUE_ITERATING_MODEL: bool = false;
 const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
@@ -68,13 +68,13 @@ pub fn assertCommitButtonIsDisabled(gui: &TestGui)
 
 pub fn assertCommitButtonTooltipIs(tooltip: &str, gui: &TestGui)
 {
-    assert_eq!(tooltip, gui.findCommitButton().get_tooltip_text().unwrap().as_str(),
+    assert_eq!(tooltip, gui.findCommitButton().tooltip_text().unwrap().as_str(),
                "\nExpected commit button tooltip differs from actual.");
 }
 
 pub fn assertCommitButtonTooltipIsEmpty(gui: &TestGui)
 {
-    assert_eq!(None, gui.findCommitButton().get_tooltip_text(),
+    assert_eq!(None, gui.findCommitButton().tooltip_text(),
                "\nExpected empty commit button tooltip, but it is filled.");
 }
 
@@ -110,25 +110,25 @@ pub fn assertCommitAmendCheckboxIsDisabled(gui: &TestGui)
 
 pub fn assertCommitAmendCheckboxIsSelected(gui: &TestGui)
 {
-    assert!(gui.findCommitAmendCheckbox().get_active(),
+    assert!(gui.findCommitAmendCheckbox().is_active(),
             "\nExpected commit amend checkbox to be selected, but it is unselected.");
 }
 
 pub fn assertCommitAmendCheckboxIsUnselected(gui: &TestGui)
 {
-    assert!(!gui.findCommitAmendCheckbox().get_active(),
+    assert!(!gui.findCommitAmendCheckbox().is_active(),
             "\nExpected commit amend checkbox to be unselected, but it is selected.");
 }
 
 pub fn assertCommitAmendCheckboxTooltipIs(tooltip: &str, gui: &TestGui)
 {
-    assert_eq!(tooltip, gui.findCommitAmendCheckbox().get_tooltip_text().unwrap(),
+    assert_eq!(tooltip, gui.findCommitAmendCheckbox().tooltip_text().unwrap(),
                "\nExpected content of commit amend checkbox tooltip differs from actual.");
 }
 
 pub fn assertCommitAmendCheckboxTooltipIsEmpty(gui: &TestGui)
 {
-    assert_eq!(None, gui.findCommitAmendCheckbox().get_tooltip_text(),
+    assert_eq!(None, gui.findCommitAmendCheckbox().tooltip_text(),
                "\nExpected empty commit amend checkbox tooltip, but it is filled.");
 }
 
@@ -138,7 +138,7 @@ pub fn assertCommitAmendCheckboxTooltipIsEmpty(gui: &TestGui)
 fn getFileChanges(fileChangesView: &gtk::TreeView) -> Vec<FileChangesViewEntry>
 {
     let mut content = vec![];
-    fileChangesView.get_model().unwrap().foreach(|model, _row, iter| {
+    fileChangesView.model().unwrap().foreach(|model, _row, iter| {
         content.push(FileChangesViewEntry{
             status: getStatusCell(model, iter),
             path: getPathCell(model, iter)});
@@ -158,13 +158,11 @@ fn getPathCell(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> String
 
 fn getCell(model: &gtk::TreeModel, iter: &gtk::TreeIter, column: i32) -> String
 {
-    model.get_value(iter, column).get::<String>().unwrap().unwrap()
+    model.value(iter, column).get::<String>().unwrap()
 }
 
 fn getText(textView: &gtk::TextView) -> String
 {
-    let buffer = textView.get_buffer().unwrap();
-    buffer.get_text(
-        &buffer.get_start_iter(), &buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
-        .unwrap().into()
+    let buffer = textView.buffer().unwrap();
+    buffer.text(&buffer.start_iter(), &buffer.end_iter(), EXCLUDE_HIDDEN_CHARACTERS).unwrap().into()
 }

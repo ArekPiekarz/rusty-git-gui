@@ -9,6 +9,7 @@ use crate::common::repository_assertions::{assertRepositoryLogIs, assertReposito
 use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, renameFile, setupTest};
 
+use gtk::glib;
 use rusty_fork::rusty_fork_test;
 use std::path::PathBuf;
 
@@ -17,6 +18,8 @@ rusty_fork_test! {
 #[test]
 fn loadRepositoryWithNewRenamedFile()
 {
+    let context = glib::MainContext::default();
+    let _contextGuard = context.acquire().unwrap();
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
     let oldFilePath = PathBuf::from("file");

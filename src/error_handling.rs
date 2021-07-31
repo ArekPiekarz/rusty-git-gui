@@ -1,9 +1,9 @@
 use anyhow::Error;
-use glib::Cast as _;
-use gtk::ContainerExt as _;
-use gtk::DialogExt as _;
-use gtk::LabelExt as _;
-use gtk::MessageDialogExt as _;
+use gtk::glib::Cast as _;
+use gtk::prelude::ContainerExt as _;
+use gtk::prelude::DialogExt as _;
+use gtk::prelude::LabelExt as _;
+use gtk::prelude::MessageDialogExt as _;
 use std::error::Error as StdError;
 
 const NO_WINDOW_PARENT: Option<&gtk::Window> = None;
@@ -69,11 +69,10 @@ fn makeDialog(errorMessage: &str) -> gtk::MessageDialog
         gtk::ButtonsType::Ok,
         errorMessage);
 
-    let messageArea = dialog.get_message_area()
-        .unwrap_or_else(|| panic!("Failed to get message area from dialog"));
+    let messageArea = dialog.message_area();
     let messageArea = messageArea.downcast_ref::<gtk::Box>()
         .unwrap_or_else(|| panic!("Failed to convert widget into box"));
-    let children = messageArea.get_children();
+    let children = messageArea.children();
     let child = children.get(0)
         .unwrap_or_else(|| panic!("Failed to get the 0th child of message area"));
     let label = child.downcast_ref::<gtk::Label>()

@@ -3,8 +3,8 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 
-use gtk::ButtonExt as _;
-use gtk::WidgetExt as _;
+use gtk::prelude::ButtonExt as _;
+use gtk::prelude::WidgetExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 

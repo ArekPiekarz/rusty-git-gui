@@ -6,9 +6,10 @@ use crate::gui_element_provider::GuiElementProvider;
 use crate::ifile_changes_store::IFileChangesStore;
 use crate::number_casts::ToI32 as _;
 
-use gtk::GtkListStoreExt as _;
+use gtk::glib;
+use gtk::prelude::GtkListStoreExt as _;
 use gtk::prelude::GtkListStoreExtManual as _;
-use gtk::TreeModelExt as _;
+use gtk::prelude::TreeModelExt as _;
 use std::cmp::{Ord, Ordering::Less, Ordering::Equal, Ordering::Greater};
 
 const NO_PARENT: Option<&gtk::TreeIter> = None;
@@ -46,8 +47,8 @@ impl FileChangesStore
         self.fileChanges.push(fileChange.clone());
         self.store.set(
             &self.store.append(),
-            &FileChangesColumn::asArrayOfU32(),
-            &[&formatStatus(&fileChange.status), &fileChange.path]);
+            &[(FileChangesColumn::Status.into(), &formatStatus(&fileChange.status)),
+              (FileChangesColumn::Path.into(),   &fileChange.path)]);
     }
 
     pub fn update(&mut self, fileChangeUpdate: &FileChangeUpdate)
@@ -94,8 +95,8 @@ impl FileChangesStore
         self.fileChanges.iter().for_each(|fileChange| {
             self.store.set(
                 &self.store.append(),
-                &FileChangesColumn::asArrayOfU32(),
-                &[&formatStatus(&fileChange.status), &formatFilePath(fileChange)]);
+                &[(FileChangesColumn::Status.into(), &formatStatus(&fileChange.status)),
+                  (FileChangesColumn::Path.into(),   &formatFilePath(fileChange))]);
         });
     }
 
@@ -143,8 +144,8 @@ impl FileChangesStore
         self.fileChanges.insert(*oldFileChangeIndex, newFileChange.clone());
         self.store.set(
             &self.store.insert((*oldFileChangeIndex).toI32()),
-            &FileChangesColumn::asArrayOfU32(),
-            &[&formatStatus(&newFileChange.status), &newFileChange.path]);
+            &[(FileChangesColumn::Status.into(), &formatStatus(&newFileChange.status)),
+              (FileChangesColumn::Path.into(),   &newFileChange.path)]);
         *oldFileChangeIndex += 1;
     }
 
@@ -186,8 +187,8 @@ impl FileChangesStore
         self.fileChanges.push(newFileChange.clone());
         self.store.set(
             &self.store.append(),
-            &FileChangesColumn::asArrayOfU32(),
-            &[&formatStatus(&newFileChange.status), &newFileChange.path]);
+            &[(FileChangesColumn::Status.into(), &formatStatus(&newFileChange.status)),
+              (FileChangesColumn::Path.into(),   &newFileChange.path)]);
         *oldFileChangeIndex += 1;
     }
 

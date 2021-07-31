@@ -18,6 +18,7 @@ use crate::staged_changes_view::{makeStagedChangesView, StagedChangesView};
 use crate::unstaged_changes_store::UnstagedChangesStore;
 use crate::unstaged_changes_view::{makeUnstagedChangesView, UnstagedChangesView};
 
+use gtk::glib;
 use std::cell::RefCell;
 use std::rc::Rc;
 

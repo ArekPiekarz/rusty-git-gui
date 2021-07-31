@@ -2,8 +2,8 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::repository::Repository;
 
-use gtk::ToggleButtonExt as _;
-use gtk::WidgetExt as _;
+use gtk::prelude::ToggleButtonExt as _;
+use gtk::prelude::WidgetExt as _;
 
 
 pub struct CommitAmendCheckbox
@@ -48,7 +48,7 @@ impl CommitAmendCheckbox
     #[must_use]
     pub fn isSelected(&self) -> bool
     {
-        self.widget.get_active()
+        self.widget.is_active()
     }
 
     pub fn unselect(&self)

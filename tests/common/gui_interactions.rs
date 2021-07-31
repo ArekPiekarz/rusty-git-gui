@@ -4,14 +4,14 @@ use crate::common::test_gui::TestGui;
 use rusty_git_gui::gui::Gui;
 use rusty_git_gui::tree_model_utils::Row;
 
-use gtk::ButtonExt as _;
-use gtk::TextBufferExt as _;
-use gtk::TextViewExt as _;
-use gtk::ToggleButtonExt as _;
-use gtk::TreeModelExt as _;
-use gtk::TreeSelectionExt as _;
-use gtk::TreeViewExt as _;
-use gtk::WidgetExt as _;
+use gtk::prelude::ButtonExt as _;
+use gtk::prelude::TextBufferExt as _;
+use gtk::prelude::TextViewExt as _;
+use gtk::prelude::ToggleButtonExt as _;
+use gtk::prelude::TreeModelExt as _;
+use gtk::prelude::TreeSelectionExt as _;
+use gtk::prelude::TreeViewExt as _;
+use gtk::prelude::WidgetExt as _;
 use std::convert::TryFrom as _;
 
 const NO_PARENT: Option<&gtk::TreeIter> = None;
@@ -47,7 +47,7 @@ pub fn activateStagedChangeInRow(row: Row, gui: &TestGui)
 pub fn setCommitMessage(message: &str, gui: &TestGui)
 {
     let view = gui.findCommitMessageView();
-    view.get_buffer().unwrap().set_text(message);
+    view.buffer().unwrap().set_text(message);
     processEvents();
 }
 
@@ -65,7 +65,7 @@ pub fn selectCommitAmendCheckbox(gui: &TestGui)
 {
     let checkbox = gui.findCommitAmendCheckbox();
     assert!(checkbox.is_sensitive());
-    assert!(!checkbox.get_active());
+    assert!(!checkbox.is_active());
     checkbox.clicked();
     processEvents();
 }
@@ -74,7 +74,7 @@ pub fn unselectCommitAmendCheckbox(gui: &TestGui)
 {
     let checkbox = gui.findCommitAmendCheckbox();
     assert!(checkbox.is_sensitive());
-    assert!(checkbox.get_active());
+    assert!(checkbox.is_active());
     checkbox.clicked();
     processEvents();
 }
@@ -91,21 +91,21 @@ fn processEvents()
 
 fn selectFileChange(row: Row, view: &gtk::TreeView)
 {
-    let model = view.get_model().unwrap();
+    let model = view.model().unwrap();
     let row = i32::try_from(row).unwrap();
     let iter = model.iter_nth_child(NO_PARENT, row).unwrap();
-    view.get_selection().select_iter(&iter);
+    view.selection().select_iter(&iter);
     processEvents();
 }
 
 fn activateFileChangeInRow(row: Row, view: &gtk::TreeView)
 {
-    let model = view.get_model().unwrap();
+    let model = view.model().unwrap();
     let row = i32::try_from(row).unwrap();
     let iter = model.iter_nth_child(NO_PARENT, row).unwrap();
-    view.get_selection().select_iter(&iter);
-    let rowPath = model.get_path(&iter).unwrap();
-    let column = view.get_column(PATH_COLUMN).unwrap();
+    view.selection().select_iter(&iter);
+    let rowPath = model.path(&iter).unwrap();
+    let column = view.column(PATH_COLUMN).unwrap();
     view.row_activated(&rowPath, &column);
     processEvents();
 }

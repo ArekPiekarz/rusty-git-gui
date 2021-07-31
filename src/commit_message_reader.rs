@@ -1,8 +1,8 @@
 use crate::gui_element_provider::GuiElementProvider;
 use crate::text_view::EXCLUDE_HIDDEN_CHARACTERS;
 
-use gtk::TextBufferExt as _;
-use gtk::TextViewExt as _;
+use gtk::prelude::TextBufferExt as _;
+use gtk::prelude::TextViewExt as _;
 
 
 pub struct CommitMessageReader
@@ -14,7 +14,7 @@ impl CommitMessageReader
 {
     pub fn new(guiElementProvider: &GuiElementProvider) -> Self
     {
-        Self{buffer: guiElementProvider.get::<gtk::TextView>("Commit message view").get_buffer().unwrap()}
+        Self{buffer: guiElementProvider.get::<gtk::TextView>("Commit message view").buffer().unwrap()}
     }
 
     pub fn hasText(&self) -> bool
@@ -24,7 +24,7 @@ impl CommitMessageReader
 
     pub fn getText(&self) -> String
     {
-        self.buffer.get_text(&self.buffer.get_start_iter(), &self.buffer.get_end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
+        self.buffer.text(&self.buffer.start_iter(), &self.buffer.end_iter(), EXCLUDE_HIDDEN_CHARACTERS)
             .unwrap().into()
     }
 }

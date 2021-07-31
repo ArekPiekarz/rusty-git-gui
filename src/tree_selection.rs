@@ -1,7 +1,7 @@
 use crate::event::{Event, Sender, Source};
 use crate::tree_model_utils::toRow;
 
-use gtk::TreeSelectionExt as _;
+use gtk::prelude::TreeSelectionExt as _;
 
 
 pub struct TreeSelection
@@ -20,7 +20,7 @@ impl TreeSelection
 
     pub fn getSelectedRow(&self) -> Option<usize>
     {
-        let (rowPaths, _model) = self.selection.get_selected_rows();
+        let (rowPaths, _model) = self.selection.selected_rows();
         match rowPaths.get(0) {
             Some(rowPath) => Some(toRow(rowPath)),
             None => None

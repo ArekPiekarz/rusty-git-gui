@@ -6,8 +6,8 @@ use rusty_git_gui::gui::Gui;
 use rusty_git_gui::main_context::makeChannel;
 use rusty_git_gui::repository::Repository;
 
-use glib::object::Cast as _;
-use glib::ObjectExt as _;
+use gtk::glib::object::Cast as _;
+use gtk::glib::ObjectExt as _;
 use std::cell::RefCell;
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
@@ -102,7 +102,7 @@ fn getAppWindow() -> gtk::ApplicationWindow
         1 => topLevelWindows.remove(0).downcast::<gtk::ApplicationWindow>().unwrap(),
         2 => {
             let tooltipWindow = topLevelWindows[1].downcast_ref::<gtk::Window>().unwrap();
-            assert_eq!(tooltipWindow.get_type().name(), "GtkTooltipWindow");
+            assert_eq!(tooltipWindow.type_().name(), "GtkTooltipWindow");
             topLevelWindows.remove(0).downcast::<gtk::ApplicationWindow>().unwrap()
         },
         count => panic!("Wrong number of windows, expected 1 or 2, got {}: {:?}", count, topLevelWindows)

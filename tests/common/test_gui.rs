@@ -1,5 +1,6 @@
-use glib::Cast as _;
-use gtk::GtkWindowExt as _;
+use gtk::glib;
+use gtk::glib::Cast as _;
+use gtk::prelude::GtkWindowExt as _;
 
 
 pub struct TestGui

@@ -6,10 +6,10 @@ use crate::number_casts::ToI32 as _;
 use crate::tree_model_utils::toRow;
 use crate::tree_selection::TreeSelection;
 
-use gtk::CellLayoutExt as _;
-use gtk::TreeModelExt as _;
-use gtk::TreeViewExt as _;
-use gtk::WidgetExt as _;
+use gtk::prelude::CellLayoutExt as _;
+use gtk::prelude::TreeModelExt as _;
+use gtk::prelude::TreeViewExt as _;
+use gtk::prelude::WidgetExt as _;
 
 const EXPAND_IN_LAYOUT : bool = true;
 const NO_COLUMN_FOCUS: Option<&gtk::TreeViewColumn> = None;
@@ -34,7 +34,7 @@ impl TreeView
         -> Self
     {
         let widget = guiElementProvider.get::<gtk::TreeView>(widgetName);
-        let selection = TreeSelection::new(widget.get_selection(), sender.clone(), source);
+        let selection = TreeSelection::new(widget.selection(), sender.clone(), source);
         let newSelf = Self{widget, selection};
         newSelf.setupColumns(columns);
         newSelf.connectWidget(sender, source);
@@ -43,7 +43,7 @@ impl TreeView
 
     pub fn getModel(&self) -> gtk::TreeModel
     {
-        self.widget.get_model().unwrap()
+        self.widget.model().unwrap()
     }
 
     pub const fn getSelection(&self) -> &TreeSelection
@@ -53,7 +53,7 @@ impl TreeView
 
     pub fn getRowAtPosition(&self, x: f64, y: f64) -> Option<usize>
     {
-        match self.widget.get_path_at_pos(x.toI32(), y.toI32()) {
+        match self.widget.path_at_pos(x.toI32(), y.toI32()) {
             Some(result) => Some(toRow(&result.0.unwrap())),
             None => None
         }
@@ -62,8 +62,8 @@ impl TreeView
     pub fn focusFirstRow(&self)
     {
         let model = self.getModel();
-        let iter = model.get_iter_first().unwrap();
-        let rowPath = model.get_path(&iter).unwrap();
+        let iter = model.iter_first().unwrap();
+        let rowPath = model.path(&iter).unwrap();
         self.widget.set_cursor(&rowPath, NO_COLUMN_FOCUS, NO_EDITING);
         self.focus();
     }
@@ -84,7 +84,7 @@ impl TreeView
     fn setupColumn(&self, columnIndex: i32)
     {
         let renderer = gtk::CellRendererText::new();
-        let column = self.widget.get_column(columnIndex)
+        let column = self.widget.column(columnIndex)
             .unwrap_or_else(|| exit(&format!("Failed to get column with index {}", columnIndex)));
         column.pack_start(&renderer, EXPAND_IN_LAYOUT);
         column.add_attribute(&renderer, "text", columnIndex);
@@ -106,7 +106,7 @@ impl TreeView
     fn connectButtonPressEvent(&self, sender: Sender, source: Source)
     {
         self.widget.connect_button_press_event(move |_view, event| {
-            if event.get_button() == MOUSE_RIGHT_BUTTON {
+            if event.button() == MOUSE_RIGHT_BUTTON {
                 sender.send((source, Event::RightClicked(event.clone()))).unwrap();
             }
             FORWARD_EVENT

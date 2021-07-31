@@ -1,7 +1,7 @@
 use crate::gui_element_provider::GuiElementProvider;
 use crate::settings::Settings;
 
-use gtk::PanedExt as _;
+use gtk::prelude::PanedExt as _;
 
 const POSITION_KEY: &str = "position";
 
@@ -40,6 +40,6 @@ impl Paned
 
     fn save(&self, settings: &Settings)
     {
-        settings.set(self.name, POSITION_KEY, self.widget.get_position());
+        settings.set(self.name, POSITION_KEY, self.widget.position());
     }
 }

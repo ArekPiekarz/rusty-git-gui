@@ -2,8 +2,8 @@ use crate::event_constants::FORWARD_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::settings::Settings;
 
-use gtk::GtkWindowExt as _;
-use gtk::WidgetExt as _;
+use gtk::prelude::GtkWindowExt as _;
+use gtk::prelude::WidgetExt as _;
 use std::rc::Rc;
 
 const SECTION: &str = "Application window";

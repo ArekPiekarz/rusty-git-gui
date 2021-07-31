@@ -11,6 +11,7 @@ use crate::common::repository_assertions::{assertRepositoryLogIs, assertReposito
 use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
 use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, removeFile, setupTest};
 
+use gtk::glib;
 use rusty_fork::rusty_fork_test;
 use std::path::PathBuf;
 
@@ -19,6 +20,8 @@ rusty_fork_test! {
 #[test]
 fn stageDeletedFileGivenItWasCommittedBefore()
 {
+    let context = glib::MainContext::default();
+    let _contextGuard = context.acquire().unwrap();
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
     let filePath = PathBuf::from("someFile");

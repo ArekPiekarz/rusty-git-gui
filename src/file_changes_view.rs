@@ -6,11 +6,12 @@ use crate::ifile_changes_store::IFileChangesStore;
 use crate::tree_model_utils::toRow;
 use crate::tree_view::TreeView;
 
-use gtk::GtkMenuExt as _;
-use gtk::GtkMenuItemExt as _;
-use gtk::TreeModelExt as _;
-use gtk::TreeSelectionExt as _;
-use gtk::WidgetExt as _;
+use gtk::gdk;
+use gtk::prelude::GtkMenuExt as _;
+use gtk::prelude::GtkMenuItemExt as _;
+use gtk::prelude::TreeModelExt as _;
+use gtk::prelude::TreeSelectionExt as _;
+use gtk::prelude::WidgetExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -83,7 +84,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     pub fn trySelectFirst(&self) -> bool
     {
-        if let Some(iter) = self.getModel().get_iter_first() {
+        if let Some(iter) = self.getModel().iter_first() {
             self.view.getSelection().selectByIterator(&iter);
             self.view.focusFirstRow();
             return true;
@@ -106,7 +107,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn notifyBasedOnSelectionChanged(&self, selection: &gtk::TreeSelection)
     {
-        let (rows, _model) = selection.get_selected_rows();
+        let (rows, _model) = selection.selected_rows();
         match rows.get(0) {
             Some(rowPath) => self.notifyOnSelected(self.store.borrow().getFileChange(toRow(rowPath)).clone()),
             None => self.notifyOnUnselected()
@@ -137,7 +138,7 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn onRightClicked(&self, event: &gdk::EventButton)
     {
-        let (x, y) = event.get_position();
+        let (x, y) = event.position();
         if let Some(row) = self.view.getRowAtPosition(x, y) {
             self.onRightClickedRow(row, event);
         }
