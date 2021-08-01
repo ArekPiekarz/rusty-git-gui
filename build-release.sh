@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# Script for building Rusty Git Gui with a release profile.
+# Script for building Rusty Git Gui with a release profile and options tuned for better runtime performance and size.
 
-cargo +nightly build --release && strip target/release/rusty-git-gui
+RUSTFLAGS="-Clink-arg=-fuse-ld=lld -Ctarget-cpu=native" cargo build --release --features use_mimalloc && strip target/release/rusty-git-gui

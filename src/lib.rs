@@ -12,7 +12,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(non_snake_case)]
 #![deny(unused_must_use)]
-#![feature(error_iter)]
 
 
 pub mod app_setup;

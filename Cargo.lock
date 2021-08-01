@@ -37,6 +37,9 @@ name = "anyhow"
 version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "595d3cfa7a60d4555cb5067b99f07142a08ea778de5cf993f7b75c7d8fabc486"
+dependencies = [
+ "backtrace",
+]
 
 [[package]]
 name = "atk"
@@ -740,26 +743,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mocktopus"
-version = "0.7.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1e54a5bbecd61a064cb9c6ef396f8c896aee14e5baba8d1d555f35167dfd7c3"
-dependencies = [
- "mocktopus_macros",
-]
-
-[[package]]
-name = "mocktopus_macros"
-version = "0.7.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3048ef3680533a27f9f8e7d6a0bce44dc61e4895ea0f42709337fa1c8616fefe"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "objc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1052,7 +1035,6 @@ dependencies = [
  "gtk-test",
  "itertools",
  "mimalloc",
- "mocktopus",
  "pretty_assertions",
  "rust-ini",
  "rusty-fork",
