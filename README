@@ -2,18 +2,13 @@ Git GUI written in Rust
 
 WARNING - This is not a production ready software. The current error handling is to panic.
 
-Rust nightly compiler is required.
+Requires stable Rust compiler, the newest version is recommended.
 
-1. Build normally with:
-cargo run
+1. (Beginners) Build with:
+cargo build --release
+The output binary will be placed in target/release/rusty-git-gui
 
-2. Build with all featues:
-cargo run --all-features
-
-3. Build in release mode with stripping:
-./build-release.sh
-
-2. Build for max performance:
+3. (Advanced) Build in release mode with LLD, native architecture and binary stripping:
 
 Requires GCC 9 or newer and LLD linker:
 - Arch Linux / Manjaro:
@@ -22,7 +17,7 @@ sudo pacman -S gcc lld
 sudo apt install gcc lld
 
 Then run:
-./build-max-performance.sh
+./build-release.sh
 
 3. Run tests:
 
