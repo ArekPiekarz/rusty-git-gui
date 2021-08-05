@@ -5,6 +5,7 @@ use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
 use rusty_git_gui::gui::Gui;
 use rusty_git_gui::main_context::makeChannel;
 use rusty_git_gui::repository::Repository;
+use rusty_git_gui::settings::Settings;
 
 use gtk::glib::object::Cast as _;
 use gtk::glib::ObjectExt as _;
@@ -30,7 +31,7 @@ pub fn makeGui(repositoryDir: &Path) -> TestGui
 {
     let (sender, receiver) = makeChannel();
     let gui = Gui::new(
-        Rc::new(RefCell::new(Repository::new(&repositoryDir, sender.clone()))),
+        Rc::new(RefCell::new(Repository::new(&repositoryDir, sender.clone(), &Settings::new()))),
         sender,
         receiver);
     show(&gui);

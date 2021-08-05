@@ -21,6 +21,7 @@ pub mod file_changes_view_entry;
 pub mod gui;
 pub mod main_context;
 pub mod repository;
+pub mod settings;
 pub mod tree_model_utils;
 
 mod application_window;
@@ -50,7 +51,6 @@ mod main_paned;
 mod number_casts;
 mod paned;
 mod refresh_button;
-mod settings;
 mod staged_changes;
 mod staged_changes_store;
 mod staged_changes_view;

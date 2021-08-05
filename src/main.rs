@@ -9,6 +9,7 @@ use rusty_git_gui::event::Sender;
 use rusty_git_gui::gui::Gui;
 use rusty_git_gui::main_context::makeChannel;
 use rusty_git_gui::repository::Repository;
+use rusty_git_gui::settings::Settings;
 
 use anyhow::{Context, Result};
 use gtk::glib;
@@ -34,5 +35,6 @@ fn makeRepository(sender: Sender) -> Result<Rc<RefCell<Repository>>>
 {
     Ok(Rc::new(RefCell::new(Repository::new(
         &findRepositoryDir().context("Failed to start the application.")?,
-        sender))))
+        sender,
+        &Settings::new()))))
 }

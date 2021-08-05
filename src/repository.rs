@@ -2,6 +2,7 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::error_handling::{exit, showErrorDialog};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::grouped_file_changes::GroupedFileChanges;
+use crate::settings::Settings;
 use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
 
@@ -26,6 +27,7 @@ const STATUS_NOT_FOUND : bool = false;
 const NO_AUTHOR_UPDATE: Option<&git2::Signature> = None;
 const NO_COMMITTER_UPDATE: Option<&git2::Signature> = None;
 const NO_MESSAGE_ENCODING_UPDATE: Option<&str> = None;
+const DEFAULT_DIFF_CONTEXT_SIZE: u32 = 3;
 
 
 pub struct Repository
@@ -34,7 +36,8 @@ pub struct Repository
     fileChanges: GroupedFileChanges,
     sender: Sender,
     stager: Stager,
-    unstager: Unstager
+    unstager: Unstager,
+    diffContextSize: u32
 }
 
 impl IEventHandler for Repository
@@ -57,14 +60,15 @@ impl IEventHandler for Repository
 impl Repository
 {
     #[must_use]
-    pub fn new(path: &Path, sender: Sender) -> Self
+    pub fn new(path: &Path, sender: Sender, settings: &Settings) -> Self
     {
         let mut newSelf = Self{
             gitRepo: openRepository(path),
             fileChanges: GroupedFileChanges::new(),
             sender,
             stager: Self::stageNormally,
-            unstager: Self::unstageNormally
+            unstager: Self::unstageNormally,
+            diffContextSize: settings.get("Repository", "diffContextSize", DEFAULT_DIFF_CONTEXT_SIZE)
         };
         newSelf.collectCurrentFileChanges();
         newSelf
@@ -145,7 +149,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
     {
-        let mut diffOptions = makeDiffOptions(path);
+        let mut diffOptions = self.makeDiffOptions(path);
         self.gitRepo.diff_index_to_workdir(CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(
                 &format!("Failed to get index-to-workdir diff for path {}: {}", path, e)))
@@ -154,7 +158,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfTreeToIndex(&self, path: &str) -> git2::Diff
     {
-        let mut diffOptions = makeDiffOptions(path);
+        let mut diffOptions = self.makeDiffOptions(path);
         let tree = self.findCurrentTree();
         self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
@@ -163,7 +167,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfIndexToWorkdirForRenamedFile(&self, oldPath: &str, newPath: &str) -> git2::Diff
     {
-        let mut diffOptions = makeDiffOptions(oldPath);
+        let mut diffOptions = self.makeDiffOptions(oldPath);
         diffOptions.pathspec(newPath);
         let mut diff = self.gitRepo.diff_index_to_workdir(CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(
@@ -509,6 +513,18 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)))
     }
 
+    fn makeDiffOptions(&self, path: &str) -> git2::DiffOptions
+    {
+        let mut diffOptions = git2::DiffOptions::new();
+        diffOptions
+            .pathspec(path)
+            .indent_heuristic(true)
+            .recurse_untracked_dirs(true)
+            .show_untracked_content(true)
+            .context_lines(self.diffContextSize);
+        diffOptions
+    }
+
     fn notifyOnAddedToStaged(&self, fileChange: &FileChange)
     {
         self.sender.send((Source::Repository, Event::AddedToStaged(fileChange.clone()))).unwrap();
@@ -620,17 +636,6 @@ fn getFilePath(statusEntry: &git2::StatusEntry) -> String
     statusEntry.path().unwrap_or_else(
         || exit(&format!("Failed to convert status entry file path to UTF-8: {}",
              String::from_utf8_lossy(statusEntry.path_bytes())))).to_string()
-}
-
-fn makeDiffOptions(path: &str) -> git2::DiffOptions
-{
-    let mut diffOptions = git2::DiffOptions::new();
-    diffOptions
-        .pathspec(path)
-        .indent_heuristic(true)
-        .recurse_untracked_dirs(true)
-        .show_untracked_content(true);
-    diffOptions
 }
 
 fn findTreeOfParentOfCommit<'a>(commit: &git2::Commit<'a>) -> Option<git2::Tree<'a>>
