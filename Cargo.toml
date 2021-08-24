@@ -10,7 +10,7 @@ anyhow = { version = "1.0.43", default-features = false, features = ["backtrace"
 color-backtrace = { version = "0.5.1", default-features = false, optional = true }
 dirs = { version = "3.0.2", default-features = false }
 git2 = { version = "0.13.21", default-features = false }
-gtk = { version = "0.14.0", default-features = false, features = ["v3_22"] }
+gtk = { version = "0.14.1", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.10.1", default-features = false, features = ["use_std"] }
 rust-ini = { version = "0.17.0", default-features = false }
 similar = {version = "1.3.0", default-features = false, features = ["text"] }

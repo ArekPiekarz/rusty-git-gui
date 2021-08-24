@@ -12,7 +12,6 @@ use rusty_git_gui::repository::Repository;
 use rusty_git_gui::settings::Settings;
 
 use anyhow::{Context, Result};
-use gtk::glib;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -21,9 +20,6 @@ fn main()
 {
     setupPanicHandler();
     setupGtk();
-    let context = glib::MainContext::default();
-    let _contextGuard = context.acquire()
-        .unwrap_or_else(|error| panic!("Failed to acquire the main context from glib. Cause: {:?}", error));
     let (sender, receiver) = makeChannel();
     let repository = makeRepository(sender.clone()).unwrap();
     let gui = Gui::new(repository, sender, receiver);
