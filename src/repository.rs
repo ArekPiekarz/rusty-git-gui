@@ -134,13 +134,7 @@ impl Repository
         if let Some(commit) = self.findHeadCommit() {
             let amendDiff = self.makeDiffToAmend(&commit);
             for delta in amendDiff.deltas() {
-                fileChanges.push(FileChange{
-                    status: format!("{:?}", delta.status()),
-                    path: delta.new_file().path().unwrap().to_str().unwrap().into(),
-                    oldPath: match delta.old_file().path() {
-                        Some(path) => Some(path.to_str().unwrap().into()),
-                        None => None
-                    }});
+                fileChanges.push(FileChange::from(&delta));
             }
         }
         fileChanges

@@ -1,3 +1,5 @@
+use crate::file_change::FileChange;
+
 const FORMATTING_SUCCEEDED: bool = true;
 const IGNORE_FILE_HEADER: () = ();
 
@@ -9,9 +11,9 @@ pub struct DiffFormatter
 
 impl DiffFormatter
 {
-    pub fn new() -> Self
+    pub fn new(fileChange: &FileChange) -> Self
     {
-        Self{text: "".into()}
+        Self{text: formatDiffHeader(fileChange)}
     }
 
     pub fn format(&mut self, line: &git2::DiffLine) -> bool
@@ -42,5 +44,13 @@ impl DiffFormatter
     fn addHunkInfo(&mut self, line : &str)
     {
         self.text.push_str(line);
+    }
+}
+
+fn formatDiffHeader(fileChange: &FileChange) -> String
+{
+    match &fileChange.oldPath {
+        Some(oldPath) => format!("renamed file\nold path: {}\nnew path: {}\n", oldPath, fileChange.path),
+        None => String::new()
     }
 }

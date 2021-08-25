@@ -96,7 +96,7 @@ impl FileChangesStore
             self.store.set(
                 &self.store.append(),
                 &[(FileChangesColumn::Status.into(), &formatStatus(&fileChange.status)),
-                  (FileChangesColumn::Path.into(),   &formatFilePath(fileChange))]);
+                  (FileChangesColumn::Path.into(),   &fileChange.path)]);
         });
     }
 
@@ -169,7 +169,7 @@ impl FileChangesStore
             store.set_value(
                 &store.iter_nth_child(NO_PARENT, (*oldFileChangeIndex).toI32()).unwrap(),
                 FileChangesColumn::Path.into(),
-                &glib::Value::from(&formatFilePath(newFileChange))
+                &glib::Value::from(&newFileChange.path)
             );
         }
 
@@ -239,13 +239,5 @@ fn formatStatus(status: &str) -> &str
         "Added" => "New",
         "Modified" => "Modified",
         _ => panic!("Cannot format unknown status: {}", status)
-    }
-}
-
-fn formatFilePath(fileChange: &FileChange) -> String
-{
-    match fileChange.status.as_str() {
-        "WT_RENAMED" => format!("{} -> {}", fileChange.oldPath.as_ref().unwrap(), fileChange.path),
-        _ => fileChange.path.clone()
     }
 }

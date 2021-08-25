@@ -33,7 +33,6 @@ fn stageNewFileForAmendWhichInNormalModeWasStagedForRemoval()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
-    println!("AAA repoDir: {:?}", repositoryDir);
     let filePath = PathBuf::from("file");
     makeNewStagedFile(&filePath, "some file content\n", &repositoryDir);
     makeCommit(COMMIT_MESSAGE, &repositoryDir);

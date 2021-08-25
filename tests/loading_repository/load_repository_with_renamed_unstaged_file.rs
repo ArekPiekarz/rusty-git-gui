@@ -1,8 +1,8 @@
-use crate::common::file_changes_view_utils::makeRenamedFileChange;
+use crate::common::file_changes_view_utils::makeFileChange;
 use crate::common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
-    assertDiffViewIsEmpty,
+    assertDiffViewContains,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
 use crate::common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
@@ -19,7 +19,7 @@ fn loadRepositoryWithNewRenamedFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
-    let oldFilePath = PathBuf::from("file");
+    let oldFilePath = PathBuf::from("some_file");
     makeNewStagedFile(&oldFilePath, "some file content\n", &repositoryDir);
     makeCommit("Initial commit", &repositoryDir);
     let newFilePath = PathBuf::from("renamed_file");
@@ -34,8 +34,8 @@ fn loadRepositoryWithNewRenamedFile()
           Entry{path: newFilePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeRenamedFileChange("Renamed", &oldFilePath, &newFilePath)], &gui);
-    assertDiffViewIsEmpty(&gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Renamed", &newFilePath)], &gui);
+    assertDiffViewContains("renamed file\nold path: some_file\nnew path: renamed_file\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
@@ -47,14 +47,14 @@ r"Author: John Smith
 Email: john.smith@example.com
 Subject: Initial commit
 ---
- file | 1 +
+ some_file | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/file b/file
+diff --git a/some_file b/some_file
 new file mode 100644
 index 0000000..c2e7a8d
 --- /dev/null
-+++ b/file
++++ b/some_file
 @@ -0,0 +1 @@
 +some file content
 ";

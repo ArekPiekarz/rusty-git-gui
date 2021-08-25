@@ -1,7 +1,6 @@
-use crate::common::file_changes_view_utils::{makeFileChange, makeRenamedFileChange};
+use crate::common::file_changes_view_utils::makeFileChange;
 use crate::common::gui_assertions::{
     assertDiffViewContains,
-    assertDiffViewIsEmpty,
     assertStagedChangesViewIsEmpty,
     assertUnstagedChangesViewContains};
 use crate::common::gui_interactions::clickRefreshButton;
@@ -22,7 +21,7 @@ fn refreshRepositoryWithUntrackedFileAfterItChangesToRenamed()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
-    let filePath = PathBuf::from("file");
+    let filePath = PathBuf::from("some_file");
     makeNewUnstagedFile(&filePath, "unstaged file content\n", &repositoryDir);
     let gui = makeGui(&repositoryDir);
 
@@ -36,7 +35,7 @@ fn refreshRepositoryWithUntrackedFileAfterItChangesToRenamed()
 
     stageFile(&filePath, &repositoryDir);
     makeCommit("Initial commit", &repositoryDir);
-    let tempRenamedFilePath = PathBuf::from("tempRenamedFile");
+    let tempRenamedFilePath = PathBuf::from("temp_renamed_file");
     renameFile(&filePath, &tempRenamedFilePath, &repositoryDir);
     stageFile(&filePath, &repositoryDir);
     stageFile(&tempRenamedFilePath, &repositoryDir);
@@ -49,8 +48,8 @@ fn refreshRepositoryWithUntrackedFileAfterItChangesToRenamed()
           Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeRenamedFileChange("Renamed", &tempRenamedFilePath, &filePath)], &gui);
-    assertDiffViewIsEmpty(&gui);
+    assertUnstagedChangesViewContains(&[makeFileChange("Renamed", &filePath)], &gui);
+    assertDiffViewContains("renamed file\nold path: temp_renamed_file\nnew path: some_file\n", &gui);
     assertStagedChangesViewIsEmpty(&gui);
 }
 }
@@ -60,25 +59,25 @@ r#"Author: John Smith
 Email: john.smith@example.com
 Subject: Second commit
 ---
- file => tempRenamedFile | 0
+ some_file => temp_renamed_file | 0
  1 file changed, 0 insertions(+), 0 deletions(-)
 
-diff --git a/file b/tempRenamedFile
+diff --git a/some_file b/temp_renamed_file
 similarity index 100%
-rename from file
-rename to tempRenamedFile
+rename from some_file
+rename to temp_renamed_file
 Author: John Smith
 Email: john.smith@example.com
 Subject: Initial commit
 ---
- file | 1 +
+ some_file | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/file b/file
+diff --git a/some_file b/some_file
 new file mode 100644
 index 0000000..e2166a5
 --- /dev/null
-+++ b/file
++++ b/some_file
 @@ -0,0 +1 @@
 +unstaged file content
 "#;
