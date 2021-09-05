@@ -6,3 +6,4 @@ mod stage_modified_file_given_no_commits;
 mod stage_new_file;
 mod stage_new_file_given_it_was_deleted_before;
 mod stage_one_of_two_unstaged_files;
+mod stage_renamed_file;

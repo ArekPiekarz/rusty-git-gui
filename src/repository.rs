@@ -277,6 +277,10 @@ impl Repository
     {
         match fileChange.status.as_str() {
             "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
+            "WT_RENAMED" => {
+                self.addPathToIndex(&fileChange.path);
+                self.removePathFromIndex(&fileChange.oldPath.as_ref().unwrap());
+            }
             _ => self.addPathToIndex(&fileChange.path)
         }
 
