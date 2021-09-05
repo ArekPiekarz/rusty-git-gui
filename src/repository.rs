@@ -327,8 +327,13 @@ impl Repository
             let commitObject = match self.findHeadCommit() {
                 Some(commit) => Some(commit.into_object()),
                 None => None };
-            self.gitRepo.reset_default(commitObject.as_ref(), &[&fileChange.path])
-                .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
+            let mut paths = vec![&fileChange.path];
+            if let Some(oldPath) = &fileChange.oldPath {
+                paths.push(oldPath);
+            }
+            self.gitRepo.reset_default(commitObject.as_ref(), &paths)
+                .unwrap_or_else(|e| exit(&format!(
+                    "Failed to unstage {}: {:?}, cause: {}", getFileWord(&paths), paths, e)));
         }
 
         self.notifyOnRemovedFromStaged(fileChange);
@@ -674,6 +679,14 @@ fn extractRenamedPathFromStaged(statusEntry: &git2::StatusEntry) -> String
 fn extractRenamedPathFromUnstaged(statusEntry: &git2::StatusEntry) -> String
 {
     statusEntry.index_to_workdir().unwrap().new_file().path().unwrap().to_str().unwrap().into()
+}
+
+fn getFileWord(paths: &[&String]) -> &'static str
+{
+    match paths.len() {
+        1 => "file",
+        _ => "files"
+    }
 }
 
 type RenamedPathExtractor = fn(&git2::StatusEntry) -> String;
