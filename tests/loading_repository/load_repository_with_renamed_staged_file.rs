@@ -3,23 +3,24 @@ use crate::common::gui_assertions::{
     assertCommitButtonIsDisabled,
     assertCommitMessageViewIsEmpty,
     assertDiffViewContains,
-    assertStagedChangesViewIsEmpty,
-    assertUnstagedChangesViewContains};
+    assertDiffViewIsEmpty,
+    assertStagedChangesViewContains,
+    assertUnstagedChangesViewIsEmpty};
+use crate::common::gui_interactions::selectStagedChangeInRow;
 use crate::common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
 use crate::common::repository_status_utils::{
     FileChangeStatus::*,
     IndexStatus,
     RepositoryStatusEntry as Entry,
     WorkTreeStatus};
-use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, renameFile, setupTest};
+use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, renameFile, setupTest, stageFile};
 
 use rusty_fork::rusty_fork_test;
 use std::path::PathBuf;
 
-
 rusty_fork_test! {
 #[test]
-fn loadRepositoryWithNewRenamedFile()
+fn loadRepositoryWithStagedRenamedFile()
 {
     let repositoryDir = setupTest();
     let repositoryDir = repositoryDir.path().to_owned();
@@ -28,21 +29,23 @@ fn loadRepositoryWithNewRenamedFile()
     makeCommit("Initial commit", &repositoryDir);
     let newFilePath = PathBuf::from("renamed_file");
     renameFile(&oldFilePath, &newFilePath, &repositoryDir);
+    stageFile(&oldFilePath, &repositoryDir);
+    stageFile(&newFilePath, &repositoryDir);
 
     let gui = makeGui(&repositoryDir);
 
-    // note: my trials to force git status command to detect a rename were unfruitful,
-    // instead it shows separate deleted and new files
     assertRepositoryStatusIs(
-        &[Entry::new(&oldFilePath, WorkTreeStatus(Deleted), IndexStatus(Unmodified)),
-          Entry::new(&newFilePath, WorkTreeStatus(Untracked), IndexStatus(Untracked))],
+        &[Entry::renamed("some_file -> renamed_file", WorkTreeStatus(Unmodified), IndexStatus(Renamed))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
-    assertUnstagedChangesViewContains(&[makeFileChange("Renamed", &newFilePath)], &gui);
-    assertDiffViewContains("renamed file\nold path: some_file\nnew path: renamed_file\n", &gui);
-    assertStagedChangesViewIsEmpty(&gui);
+    assertUnstagedChangesViewIsEmpty(&gui);
+    assertDiffViewIsEmpty(&gui);
+    assertStagedChangesViewContains(&[makeFileChange("Renamed", &newFilePath)], &gui);
     assertCommitMessageViewIsEmpty(&gui);
     assertCommitButtonIsDisabled(&gui);
+
+    selectStagedChangeInRow(0, &gui);
+    assertDiffViewContains(RENAMED_FILE_DIFF, &gui);
 }
 }
 
@@ -61,4 +64,10 @@ index 0000000..c2e7a8d
 +++ b/some_file
 @@ -0,0 +1 @@
 +some file content
+";
+
+const RENAMED_FILE_DIFF: &str =
+r"renamed file
+old path: some_file
+new path: renamed_file
 ";

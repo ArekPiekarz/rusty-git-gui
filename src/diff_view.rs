@@ -86,7 +86,12 @@ impl DiffView
 
     fn onStagedChangeSelected(&mut self, fileChange: &FileChange)
     {
-        self.onFileChangeSelected(fileChange, self.stagedChangeDiffMaker, DisplayedFileChange::Staged);
+        match fileChange.status.as_str() {
+            "INDEX_RENAMED" => {
+                self.onFileChangeSelected(fileChange, makeDiffForStagedRenamedFile, DisplayedFileChange::Staged)
+            },
+            _ => self.onFileChangeSelected(fileChange, self.stagedChangeDiffMaker, DisplayedFileChange::Staged)
+        }
     }
 
     fn onFileChangeSelected(
@@ -217,6 +222,11 @@ fn makeDiffForStagedChange<'a>(fileChange: &FileChange, repository: &'a Reposito
 fn makeDiffForStagedChangeToAmend<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
 {
     repository.makeDiffToAmendForPath(&fileChange.path)
+}
+
+fn makeDiffForStagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>
+{
+    repository.makeDiffOfTreeToIndexForRenamedFile(fileChange.oldPath.as_ref().unwrap(), &fileChange.path)
 }
 
 fn makeDiffForUnstagedRenamedFile<'a>(fileChange: &FileChange, repository: &'a Repository) -> git2::Diff<'a>

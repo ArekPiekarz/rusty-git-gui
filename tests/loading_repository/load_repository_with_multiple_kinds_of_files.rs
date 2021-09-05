@@ -7,7 +7,11 @@ use crate::common::gui_assertions::{
     assertUnstagedChangesViewContains};
 use crate::common::gui_interactions::{selectStagedChangeInRow, selectUnstagedChangeInRow};
 use crate::common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{
     makeCommit,
     makeGui,
@@ -44,9 +48,9 @@ fn loadRepositoryWithMultipleKindsOfFiles()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: modifiedStagedFilePath.clone(),               workTreeStatus: Unmodified, indexStatus: Modified},
-          Entry{path: newStagedAndModifiedUnstagedFilePath.clone(), workTreeStatus: Modified,   indexStatus: Added},
-          Entry{path: newUnstagedFilePath.clone(),                  workTreeStatus: Untracked,  indexStatus: Untracked}],
+        &[Entry::new(&modifiedStagedFilePath,               WorkTreeStatus(Unmodified), IndexStatus(Modified)),
+          Entry::new(&newStagedAndModifiedUnstagedFilePath, WorkTreeStatus(Modified),   IndexStatus(Added)),
+          Entry::new(&newUnstagedFilePath,                  WorkTreeStatus(Untracked),  IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(

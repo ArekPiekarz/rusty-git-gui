@@ -9,7 +9,11 @@ use crate::common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeGui, makeNewStagedFile, setupTest};
 
 use rusty_fork::rusty_fork_test;
@@ -28,7 +32,7 @@ fn commitStagedChangesGivenNoPreviousCommits()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Added))],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
 

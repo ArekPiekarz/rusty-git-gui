@@ -7,7 +7,11 @@ use crate::common::gui_assertions::{
     assertUnstagedChangesViewIsEmpty};
 use crate::common::gui_interactions::activateUnstagedChangeInRow;
 use crate::common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{
     makeCommit,
     makeGui,
@@ -37,8 +41,8 @@ fn stageModifiedFileGivenItWasDeletedBefore()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Deleted},
-            Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Deleted)),
+          Entry::new(&filePath, WorkTreeStatus(Untracked),  IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
@@ -48,7 +52,7 @@ fn stageModifiedFileGivenItWasDeletedBefore()
     activateUnstagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Modified}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Modified))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);

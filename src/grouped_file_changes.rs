@@ -3,6 +3,8 @@
 use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
 
+
+#[derive(Debug)]
 pub struct GroupedFileChanges
 {
     pub unstaged: UnstagedChanges,

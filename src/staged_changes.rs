@@ -5,6 +5,7 @@ use crate::file_change::FileChange;
 use std::ops::{Deref, DerefMut};
 
 
+#[derive(Debug)]
 pub struct StagedChanges(pub Vec<FileChange>);
 
 impl StagedChanges

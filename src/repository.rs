@@ -173,6 +173,20 @@ impl Repository
     }
 
     #[must_use]
+    pub fn makeDiffOfTreeToIndexForRenamedFile(&self, oldPath: &str, newPath: &str) -> git2::Diff
+    {
+        let mut diffOptions = self.makeDiffOptions(oldPath);
+        diffOptions.pathspec(newPath);
+        let tree = self.findCurrentTree();
+        let mut diff = self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
+            .unwrap_or_else(|e| exit(&format!(
+                "Failed to get tree-to-index diff for paths: old: {}, new: {}, cause: {}", oldPath, newPath, e)));
+        let mut diffFindOptions = git2::DiffFindOptions::new();
+        diff.find_similar(Some(&mut diffFindOptions)).unwrap();
+        diff
+    }
+
+    #[must_use]
     pub fn makeDiffToAmend(&self, commit: &git2::Commit) -> git2::Diff
     {
         let mut diffOptions = git2::DiffOptions::new();
@@ -578,31 +592,38 @@ fn makeStatusOptions() -> git2::StatusOptions
         .include_ignored(false)
         .include_untracked(true)
         .recurse_untracked_dirs(true)
+        .renames_head_to_index(true)
         .renames_index_to_workdir(true);
     options
 }
 
 fn maybeAddToUnstaged(fileStatusEntry: &git2::StatusEntry, unstaged: &mut UnstagedChanges) -> bool
 {
-    maybeAddToFileChanges(fileStatusEntry, unstaged, &UNSTAGED_STATUSES)
+    maybeAddToFileChanges(
+        fileStatusEntry, unstaged, &UNSTAGED_STATUSES, git2::Status::WT_RENAMED, extractRenamedPathFromUnstaged)
 }
 
 fn maybeAddToStaged(fileStatusEntry: &git2::StatusEntry, staged: &mut StagedChanges) -> bool
 {
-    maybeAddToFileChanges(fileStatusEntry, staged, &STAGED_STATUSES)
+    maybeAddToFileChanges(
+        fileStatusEntry, staged, &STAGED_STATUSES, git2::Status::INDEX_RENAMED, extractRenamedPathFromStaged)
 }
 
 fn maybeAddToFileChanges(
     fileStatusEntry: &git2::StatusEntry,
     fileChanges: &mut Vec<FileChange>,
-    statusTypes: &[git2::Status]) -> bool
+    statusTypes: &[git2::Status],
+    renamedStatus: git2::Status,
+    renamedPathExtractor: RenamedPathExtractor)
+    -> bool
 {
     let statusFlags = fileStatusEntry.status();
     for statusType in statusTypes {
         if statusFlags.intersects(*statusType) {
-            match *statusType {
-                git2::Status::WT_RENAMED => fileChanges.push(makeRenamedFileChange(fileStatusEntry, *statusType)),
-                _ => fileChanges.push(makeFileChange(fileStatusEntry, *statusType))
+            if *statusType == renamedStatus {
+                fileChanges.push(makeRenamedFileChange(fileStatusEntry, *statusType, renamedPathExtractor));
+            } else {
+                fileChanges.push(makeFileChange(fileStatusEntry, *statusType));
             }
             return STATUS_FOUND;
         }
@@ -615,12 +636,13 @@ fn makeFileChange(statusEntry: &git2::StatusEntry, status: git2::Status) -> File
     FileChange{status: format!("{:?}", status), path: getFilePath(statusEntry), oldPath: None}
 }
 
-fn makeRenamedFileChange(statusEntry: &git2::StatusEntry, status: git2::Status) -> FileChange
+fn makeRenamedFileChange(statusEntry: &git2::StatusEntry, status: git2::Status, pathExtractor: RenamedPathExtractor)
+    -> FileChange
 {
     let fileChange = makeFileChange(statusEntry, status);
     FileChange{
         status: fileChange.status,
-        path: statusEntry.index_to_workdir().unwrap().new_file().path().unwrap().to_str().unwrap().into(),
+        path: pathExtractor(statusEntry),
         oldPath: Some(fileChange.path)
     }
 }
@@ -640,5 +662,16 @@ fn findTreeOfParentOfCommit<'a>(commit: &git2::Commit<'a>) -> Option<git2::Tree<
     }
 }
 
+fn extractRenamedPathFromStaged(statusEntry: &git2::StatusEntry) -> String
+{
+    statusEntry.head_to_index().unwrap().new_file().path().unwrap().to_str().unwrap().into()
+}
+
+fn extractRenamedPathFromUnstaged(statusEntry: &git2::StatusEntry) -> String
+{
+    statusEntry.index_to_workdir().unwrap().new_file().path().unwrap().to_str().unwrap().into()
+}
+
+type RenamedPathExtractor = fn(&git2::StatusEntry) -> String;
 type Stager = fn(&mut Repository, &FileChange);
 type Unstager = fn(&mut Repository, &FileChange);

@@ -12,9 +12,12 @@ use crate::common::gui_interactions::{
     selectStagedChangeInRow,
     selectUnstagedChangeInRow};
 use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, setupTest};
-
 use crate::common::repository_assertions::{assertRepositoryStatusIs, assertRepositoryStatusIsEmpty};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 
 use rusty_fork::rusty_fork_test;
 use std::path::PathBuf;
@@ -43,8 +46,8 @@ fn unstageNewFileInAmendMode()
     activateStagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Deleted},
-          Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Deleted)),
+          Entry::new(&filePath, WorkTreeStatus(Untracked),  IndexStatus(Untracked))],
         &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);

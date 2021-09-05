@@ -14,7 +14,11 @@ use crate::common::repository_assertions::{
     assertRepositoryLogIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
 
 use rusty_fork::rusty_fork_test;
@@ -36,7 +40,7 @@ fn amendCommitByChangingFile()
     selectCommitAmendCheckbox(&gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Modified}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Modified))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG_BEFORE_COMMIT_AMEND, &repositoryDir);
     assertCommitAmendCheckboxIsSelected(&gui);

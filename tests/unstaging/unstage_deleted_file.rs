@@ -8,7 +8,11 @@ use crate::common::gui_assertions::{
     assertUnstagedChangesViewIsEmpty};
 use crate::common::gui_interactions::{activateStagedChangeInRow, selectUnstagedChangeInRow};
 use crate::common::repository_assertions::{assertRepositoryLogIs, assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, removeFile, setupTest, stageFile};
 
 use rusty_fork::rusty_fork_test;
@@ -30,7 +34,7 @@ fn unstageDeletedFile()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Deleted}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Deleted))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewIsEmpty(&gui);
@@ -40,7 +44,7 @@ fn unstageDeletedFile()
     activateStagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Deleted, indexStatus: Unmodified}],
+        &[Entry::new(&filePath, WorkTreeStatus(Deleted), IndexStatus(Unmodified))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);

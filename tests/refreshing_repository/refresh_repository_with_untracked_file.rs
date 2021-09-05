@@ -5,7 +5,11 @@ use crate::common::gui_assertions::{
     assertUnstagedChangesViewContains};
 use crate::common::gui_interactions::clickRefreshButton;
 use crate::common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeGui, makeNewUnstagedFile, setupTest};
 
 use rusty_fork::rusty_fork_test;
@@ -23,7 +27,7 @@ fn refreshRepositoryWithUntrackedFile()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&filePath, WorkTreeStatus(Untracked), IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
@@ -33,7 +37,7 @@ fn refreshRepositoryWithUntrackedFile()
     clickRefreshButton(&gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&filePath, WorkTreeStatus(Untracked), IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);

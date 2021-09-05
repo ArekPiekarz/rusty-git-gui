@@ -13,7 +13,11 @@ use crate::common::gui_interactions::{
 use crate::common::repository_assertions::{
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{
     makeCommit,
     makeGui,
@@ -44,8 +48,8 @@ fn stageNewFileForAmendWhichInNormalModeWasStagedForRemoval()
     assertStagedChangesViewContains(&[makeFileChange("Deleted", &filePath)], &gui);
     selectCommitAmendCheckbox(&gui);
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Unmodified, indexStatus: Deleted},
-          Entry{path: filePath.clone(), workTreeStatus: Untracked,  indexStatus: Untracked}],
+        &[Entry::new(&filePath, WorkTreeStatus(Unmodified), IndexStatus(Deleted)),
+          Entry::new(&filePath, WorkTreeStatus(Untracked),  IndexStatus(Untracked))],
         &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
     assertStagedChangesViewIsEmpty(&gui);

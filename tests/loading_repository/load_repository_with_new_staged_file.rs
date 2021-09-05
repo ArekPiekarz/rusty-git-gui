@@ -8,7 +8,11 @@ use crate::common::gui_assertions::{
     assertUnstagedChangesViewIsEmpty};
 use crate::common::gui_interactions::selectStagedChangeInRow;
 use crate::common::repository_assertions::{assertRepositoryHasNoCommits, assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeGui, makeNewStagedFile, setupTest};
 
 use rusty_fork::rusty_fork_test;
@@ -27,7 +31,7 @@ fn loadRepositoryWithNewStagedFile()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: newStagedFilePath.clone(), workTreeStatus: Unmodified, indexStatus: Added}],
+        &[Entry::new(&newStagedFilePath, WorkTreeStatus(Unmodified), IndexStatus(Added))],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertStagedChangesViewContains(&[makeFileChange("New", &newStagedFilePath)], &gui);

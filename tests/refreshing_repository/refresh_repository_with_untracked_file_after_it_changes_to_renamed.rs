@@ -8,7 +8,11 @@ use crate::common::repository_assertions::{
     assertRepositoryHasNoCommits,
     assertRepositoryLogIs,
     assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeCommit, makeGui, makeNewUnstagedFile, renameFile, setupTest, stageFile};
 
 use rusty_fork::rusty_fork_test;
@@ -26,7 +30,7 @@ fn refreshRepositoryWithUntrackedFileAfterItChangesToRenamed()
     let gui = makeGui(&repositoryDir);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&filePath, WorkTreeStatus(Untracked), IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &filePath)], &gui);
@@ -44,8 +48,8 @@ fn refreshRepositoryWithUntrackedFileAfterItChangesToRenamed()
     clickRefreshButton(&gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: tempRenamedFilePath.clone(), workTreeStatus: Deleted, indexStatus: Unmodified},
-          Entry{path: filePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&tempRenamedFilePath, WorkTreeStatus(Deleted),   IndexStatus(Unmodified)),
+          Entry::new(&filePath,            WorkTreeStatus(Untracked), IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryLogIs(REPOSITORY_LOG, &repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("Renamed", &filePath)], &gui);

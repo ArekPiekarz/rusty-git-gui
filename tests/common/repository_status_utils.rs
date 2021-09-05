@@ -2,7 +2,7 @@
 // For details see https://git-scm.com/docs/git-status#_short_format
 
 use itertools::Itertools;
-use std::path::PathBuf;
+use std::path::Path;
 
 const POSITION_OF_INDEX_STATUS: usize = 0;
 const POSITION_OF_WORK_TREE_STATUS: usize = 1;
@@ -26,13 +26,23 @@ impl RepositoryStatus
 #[derive(Debug, PartialEq)]
 pub struct RepositoryStatusEntry
 {
-    pub path: PathBuf,
+    pub path: String,  // it can be a normal path or for renamed files "old path -> new path"
     pub workTreeStatus: FileChangeStatus,
     pub indexStatus: FileChangeStatus
 }
 
 impl RepositoryStatusEntry
 {
+    pub fn new(path: &Path, workTreeStatus: WorkTreeStatus, indexStatus: IndexStatus) -> Self
+    {
+        Self{path: path.to_str().unwrap().into(), workTreeStatus: workTreeStatus.0, indexStatus: indexStatus.0}
+    }
+
+    pub fn renamed(paths: &str, workTreeStatus: WorkTreeStatus, indexStatus: IndexStatus) -> Self
+    {
+        Self{path: paths.into(), workTreeStatus: workTreeStatus.0, indexStatus: indexStatus.0}
+    }
+
     pub fn from(line: &str) -> Self
     {
         // Example of text: "AM fileName"
@@ -46,6 +56,9 @@ impl RepositoryStatusEntry
         }
     }
 }
+
+pub struct IndexStatus(pub FileChangeStatus);
+pub struct WorkTreeStatus(pub FileChangeStatus);
 
 #[derive(Debug, PartialEq)]
 pub enum FileChangeStatus

@@ -16,7 +16,11 @@ use crate::common::repository_assertions::{
     assertGitDiffUnstagedIs,
     assertRepositoryStatusIs,
     assertRepositoryStatusIsEmpty};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeCommit, makeGui, makeNewStagedFile, modifyFile, setupTest, stageFile};
 
 use rusty_fork::rusty_fork_test;
@@ -47,7 +51,7 @@ fn unstageModifiedFileInAmendMode()
     activateStagedChangeInRow(0, &gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: filePath.clone(), workTreeStatus: Modified, indexStatus: Modified}],
+        &[Entry::new(&filePath, WorkTreeStatus(Modified), IndexStatus(Modified))],
         &repositoryDir);
     assertGitDiffUnstagedIs(GIT_DIFF_UNSTAGED, &repositoryDir);
     assertGitDiffStagedIs(GIT_DIFF_STAGED, &repositoryDir);

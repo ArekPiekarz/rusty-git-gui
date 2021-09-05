@@ -9,4 +9,5 @@ mod load_repository_with_new_staged_file;
 mod load_repository_with_new_unstaged_empty_file;
 mod load_repository_with_new_unstaged_file;
 mod load_repository_with_new_unstaged_file_in_subdirectory;
+mod load_repository_with_renamed_staged_file;
 mod load_repository_with_renamed_unstaged_file;

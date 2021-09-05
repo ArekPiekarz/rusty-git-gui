@@ -10,7 +10,11 @@ use crate::common::repository_assertions::{
     assertRepositoryHasNoCommits,
     assertRepositoryIsEmpty,
     assertRepositoryStatusIs};
-use crate::common::repository_status_utils::{FileChangeStatus::*, RepositoryStatusEntry as Entry};
+use crate::common::repository_status_utils::{
+    FileChangeStatus::*,
+    IndexStatus,
+    RepositoryStatusEntry as Entry,
+    WorkTreeStatus};
 use crate::common::setup::{makeGui, makeNewUnstagedFile, setupTest};
 
 use rusty_fork::rusty_fork_test;
@@ -32,7 +36,7 @@ fn refreshEmptyRepositoryAfterNewFileIsCreated()
     clickRefreshButton(&gui);
 
     assertRepositoryStatusIs(
-        &[Entry{path: newUnstagedFilePath.clone(), workTreeStatus: Untracked, indexStatus: Untracked}],
+        &[Entry::new(&newUnstagedFilePath, WorkTreeStatus(Untracked), IndexStatus(Untracked))],
         &repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
     assertUnstagedChangesViewContains(&[makeFileChange("New", &newUnstagedFilePath)], &gui);
