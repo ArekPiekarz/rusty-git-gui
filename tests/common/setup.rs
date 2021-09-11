@@ -117,7 +117,7 @@ fn makeTemporaryDirectory() -> TempDir
 
 fn initializeGitRepository(repositoryDir: &Path)
 {
-    initializeGitRepositoryWith(&["git", "init"], repositoryDir);
+    initializeGitRepositoryWith(&["git", "init", "--initial-branch", "main"], repositoryDir);
     initializeGitRepositoryWith(&["git", "config", "user.name", "John Smith"], repositoryDir);
     initializeGitRepositoryWith(&["git", "config", "user.email", "john.smith@example.com"], repositoryDir);
 }

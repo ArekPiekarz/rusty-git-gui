@@ -113,8 +113,18 @@ impl Repository
     #[must_use]
     pub fn isEmpty(&self) -> bool
     {
-        self.gitRepo.is_empty()
-            .unwrap_or_else(|e| exit(&format!("Failed to check if repository is empty: {}", e)))
+        // git2::Repository::is_empty() incorrectly returns false for non-master initial branch,
+        // so in that case additionally check if we can find HEAD.
+        // See this bug report: https://github.com/rust-lang/git2-rs/issues/668
+
+        match self.gitRepo.is_empty().unwrap() {
+            true => true,
+            false => match self.gitRepo.head() {
+                Ok(_) => false,
+                Err(e) if e.class() == git2::ErrorClass::Reference && e.code() == git2::ErrorCode::UnbornBranch => true,
+                Err(e) => panic!("{}", e)
+            }
+       }
     }
 
     pub fn getLastCommitMessage(&self) -> Result<Option<String>,()>

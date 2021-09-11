@@ -16,7 +16,7 @@ pub fn assertRepositoryHasNoCommits(repositoryDir: &Path)
 {
     assertFailedCommandErrorOutput(
         &["git", "log"],
-        "fatal: your current branch 'master' does not have any commits yet\n",
+        "fatal: your current branch 'main' does not have any commits yet\n",
         repositoryDir);
 }
 
