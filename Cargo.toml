@@ -6,9 +6,9 @@ edition = "2018"
 resolver = "2"
 
 [dependencies]
-anyhow = { version = "1.0.43", default-features = false, features = ["backtrace", "std"] }
+anyhow = { version = "1.0.44", default-features = false, features = ["backtrace", "std"] }
 color-backtrace = { version = "0.5.1", default-features = false, optional = true }
-dirs = { version = "3.0.2", default-features = false }
+dirs = { version = "4.0.0", default-features = false }
 git2 = { version = "0.13.22", default-features = false }
 gtk = { version = "0.14.1", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.10.1", default-features = false, features = ["use_std"] }
