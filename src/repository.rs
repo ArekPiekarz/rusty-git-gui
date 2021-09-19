@@ -264,6 +264,18 @@ impl Repository
         self.notifyOnRefreshed();
     }
 
+    pub fn iterateCommits(&self, mut handler: impl FnMut(&git2::Commit))
+    {
+        let mut revwalk = self.gitRepo.revwalk().unwrap();
+        revwalk.push_head().unwrap();
+        revwalk.simplify_first_parent().unwrap();
+        revwalk.set_sorting(git2::Sort::TOPOLOGICAL).unwrap();
+        for oid in revwalk {
+            let commit = self.gitRepo.find_commit(oid.unwrap()).unwrap();
+            handler(&commit);
+        }
+    }
+
 
     // private
 

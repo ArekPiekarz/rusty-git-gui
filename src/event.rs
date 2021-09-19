@@ -60,6 +60,7 @@ pub enum Source
     CommitAmendCheckbox,
     CommitButton,
     CommitMessageView,
+    CommitLogViewWidget,
     DiffView,
     RefreshButton,
     Repository,

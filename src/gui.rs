@@ -1,6 +1,7 @@
 use crate::commit_amend_checkbox::CommitAmendCheckbox;
 use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
+use crate::commit_log::CommitLog;
 use crate::commit_message_reader::CommitMessageReader;
 use crate::commit_message_view::CommitMessageView;
 use crate::diff_and_commit_paned::setupDiffAndCommitPaned;
@@ -21,6 +22,8 @@ use crate::unstaged_changes_view::{makeUnstagedChangesView, UnstagedChangesView}
 use gtk::glib;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::commit_log_model::CommitLogModel;
+use crate::commit_log_view::CommitLogView;
 
 
 pub struct Gui
@@ -64,7 +67,11 @@ impl Gui
             &guiElementProvider, Rc::clone(&repository), sender.clone());
         let commitMessageReader = CommitMessageReader::new(&guiElementProvider);
         let commitButton = CommitButton::new(
-            &guiElementProvider, commitMessageReader, Rc::clone(&repository), sender);
+            &guiElementProvider, commitMessageReader, Rc::clone(&repository), sender.clone());
+
+        let commitLog = CommitLog::new(&repository.borrow());
+        let _commitLogModel = CommitLogModel::new(&commitLog, &guiElementProvider);
+        let _commitLogView = CommitLogView::new(&guiElementProvider, sender);
 
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);
@@ -121,6 +128,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitButton,         E::AmendCommitRequested(_)) => repository.handle(source, &event),
         (S::CommitButton,         E::Clicked)                 => commitButton.handle(source, &event),
         (S::CommitButton,         E::CommitRequested(_))      => repository.handle(source, &event),
+        (S::CommitLogViewWidget,  E::SelectionChanged(_))     => (),
         (S::CommitMessageView,    E::BufferChanged)           => commitMessageView.handle(source, &event),
         (S::CommitMessageView,    E::Emptied)                 => commitButton.handle(source, &event),
         (S::CommitMessageView,    E::Filled)                  => commitButton.handle(source, &event),
