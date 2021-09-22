@@ -48,18 +48,9 @@ impl CommitLog
 
 fn getSummary(commit: &git2::Commit) -> String
 {
-    match commit.summary() {
-        Some(summary) => summary.into(),
-        None => getSummaryFromRaw(commit)
-    }
-}
-
-fn getSummaryFromRaw(commit: &git2::Commit) -> String
-{
-    match commit.summary_bytes() {
-        Some(bytes) => String::from_utf8_lossy(bytes).into(),
-        None => "<UNKNOWN SUMMARY>".into()
-    }
+    // Only consider using git2::Commit::summary() again if this bug in libgit2 is fixed, which sometimes causes
+    // the output to be too long: https://github.com/libgit2/libgit2/issues/6065
+    String::from_utf8_lossy(commit.message_bytes()).lines().next().unwrap_or_default().trim().into()
 }
 
 pub struct CommitInfo
