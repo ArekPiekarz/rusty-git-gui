@@ -35,6 +35,10 @@ pub enum Event
     CommitAmendEnabled,
     CommitAmendDisabled,
 
+    // commit log
+    CommitSelected(git2::Oid),
+    CommitUnselected,
+
     // text view
     BufferChanged,
     Filled,
@@ -59,8 +63,10 @@ pub enum Source
 {
     CommitAmendCheckbox,
     CommitButton,
-    CommitMessageView,
+    CommitDiffViewWidget,
+    CommitLogView,
     CommitLogViewWidget,
+    CommitMessageView,
     DiffView,
     RefreshButton,
     Repository,

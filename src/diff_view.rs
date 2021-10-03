@@ -200,7 +200,7 @@ impl DiffView
 
     fn makeFormattedDiff(&self, fileChange: &FileChange, diffMaker: DiffMaker) -> String
     {
-        let mut diffFormatter = DiffFormatter::new(fileChange);
+        let mut diffFormatter = DiffFormatter::newForFileChange(fileChange);
         let repository = self.repository.borrow();
         let diff = (diffMaker)(fileChange, &repository);
         diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))

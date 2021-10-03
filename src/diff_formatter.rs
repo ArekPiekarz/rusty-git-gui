@@ -1,19 +1,24 @@
 use crate::file_change::FileChange;
 
 const FORMATTING_SUCCEEDED: bool = true;
-const IGNORE_FILE_HEADER: () = ();
 
 
 pub struct DiffFormatter
 {
-    text: String
+    text: String,
+    mode: FormatterMode
 }
 
 impl DiffFormatter
 {
-    pub fn new(fileChange: &FileChange) -> Self
+    pub fn newForCommit() -> Self
     {
-        Self{text: formatDiffHeader(fileChange)}
+        Self{text: String::new(), mode: FormatterMode::Commit}
+    }
+
+    pub fn newForFileChange(fileChange: &FileChange) -> Self
+    {
+        Self{text: formatDiffHeader(fileChange), mode: FormatterMode::FileChange}
     }
 
     pub fn format(&mut self, line: &git2::DiffLine) -> bool
@@ -21,7 +26,7 @@ impl DiffFormatter
         let lineContent = String::from_utf8_lossy(line.content());
         match line.origin() {
             prefix @ ('+' | '-' | ' ') => self.addContent(prefix, &lineContent),
-            'F' => IGNORE_FILE_HEADER,
+            'F' => self.handleFileHeader(&lineContent),
              _  => self.addHunkInfo(&lineContent)
         };
         FORMATTING_SUCCEEDED
@@ -41,10 +46,24 @@ impl DiffFormatter
         self.text.push_str(&format!("{}{}", prefix, line));
     }
 
+    fn handleFileHeader(&mut self, line : &str)
+    {
+        match self.mode {
+            FormatterMode::Commit => self.text.push_str(line),
+            FormatterMode::FileChange => ()
+        }
+    }
+
     fn addHunkInfo(&mut self, line : &str)
     {
         self.text.push_str(line);
     }
+}
+
+enum FormatterMode
+{
+    Commit,
+    FileChange
 }
 
 fn formatDiffHeader(fileChange: &FileChange) -> String

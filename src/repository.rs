@@ -153,7 +153,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfIndexToWorkdir(&self, path: &str) -> git2::Diff
     {
-        let mut diffOptions = self.makeDiffOptions(path);
+        let mut diffOptions = self.makeDiffOptionsForPath(path);
         self.gitRepo.diff_index_to_workdir(CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(
                 &format!("Failed to get index-to-workdir diff for path {}: {}", path, e)))
@@ -162,7 +162,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfTreeToIndex(&self, path: &str) -> git2::Diff
     {
-        let mut diffOptions = self.makeDiffOptions(path);
+        let mut diffOptions = self.makeDiffOptionsForPath(path);
         let tree = self.findCurrentTree();
         self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(&format!("Failed to get tree-to-index diff for path {}: {}", path, e)))
@@ -171,7 +171,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfIndexToWorkdirForRenamedFile(&self, oldPath: &str, newPath: &str) -> git2::Diff
     {
-        let mut diffOptions = self.makeDiffOptions(oldPath);
+        let mut diffOptions = self.makeDiffOptionsForPath(oldPath);
         diffOptions.pathspec(newPath);
         let mut diff = self.gitRepo.diff_index_to_workdir(CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(
@@ -185,7 +185,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffOfTreeToIndexForRenamedFile(&self, oldPath: &str, newPath: &str) -> git2::Diff
     {
-        let mut diffOptions = self.makeDiffOptions(oldPath);
+        let mut diffOptions = self.makeDiffOptionsForPath(oldPath);
         diffOptions.pathspec(newPath);
         let tree = self.findCurrentTree();
         let mut diff = self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
@@ -274,6 +274,19 @@ impl Repository
             let commit = self.gitRepo.find_commit(oid.unwrap()).unwrap();
             handler(&commit);
         }
+    }
+
+    pub fn findCommit(&self, id: git2::Oid) -> Result<git2::Commit, git2::Error>
+    {
+        self.gitRepo.find_commit(id)
+    }
+
+    pub fn makeDiffOfCommitAndParent(&self, commit: &git2::Commit) -> git2::Diff
+    {
+        let tree = commit.tree().unwrap();
+        let parentTreeOpt = findTreeOfParentOfCommit(&commit);
+        let mut diffOptions = self.makeDiffOptions();
+        self.gitRepo.diff_tree_to_tree(parentTreeOpt.as_ref(), Some(&tree), Some(&mut diffOptions)).unwrap()
     }
 
 
@@ -552,7 +565,16 @@ impl Repository
             .unwrap_or_else(|e| exit(&format!("Failed to find tree for id {}: {}", treeId, e)))
     }
 
-    fn makeDiffOptions(&self, path: &str) -> git2::DiffOptions
+    fn makeDiffOptions(&self) -> git2::DiffOptions
+    {
+        let mut diffOptions = git2::DiffOptions::new();
+        diffOptions
+            .context_lines(self.diffContextSize)
+            .indent_heuristic(true);
+        diffOptions
+    }
+
+    fn makeDiffOptionsForPath(&self, path: &str) -> git2::DiffOptions
     {
         let mut diffOptions = git2::DiffOptions::new();
         diffOptions

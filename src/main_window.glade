@@ -403,6 +403,9 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="model">Commit log store</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
                         <child>
                           <object class="GtkTreeViewColumn">
                             <property name="resizable">True</property>
@@ -433,9 +436,20 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkTextView">
+                  <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="shadow-type">in</property>
+                    <child>
+                      <object class="GtkTextView" id="Commit diff view">
+                        <property name="name">Commit diff view</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="cursor-visible">False</property>
+                        <property name="monospace">True</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="resize">True</property>

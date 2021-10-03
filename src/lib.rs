@@ -28,6 +28,8 @@ mod application_window;
 mod color;
 mod commit_amend_checkbox;
 mod commit_button;
+mod commit_diff;
+mod commit_diff_view;
 mod commit_log;
 mod commit_log_column;
 mod commit_log_model;

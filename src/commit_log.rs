@@ -20,6 +20,11 @@ impl CommitLog
         newSelf
     }
 
+    pub fn getCommit(&self, row: usize) -> Option<&CommitInfo>
+    {
+        self.commits.get(row)
+    }
+
     pub fn getCommits(&self) -> &[CommitInfo]
     {
         &self.commits
