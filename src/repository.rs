@@ -209,10 +209,7 @@ impl Repository
     #[must_use]
     pub fn makeDiffToAmendForPath(&self, path: &str) -> git2::Diff
     {
-        let mut diffOptions = git2::DiffOptions::new();
-        diffOptions
-            .pathspec(path)
-            .indent_heuristic(true);
+        let mut diffOptions = self.makeDiffOptionsForPath(path);
         let tree = self.findTreeOfParentOfHeadCommit();
         self.gitRepo.diff_tree_to_index(tree.as_ref(), CURRENT_INDEX, Some(&mut diffOptions))
             .unwrap_or_else(|e| exit(&format!(
