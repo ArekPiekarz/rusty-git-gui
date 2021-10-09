@@ -75,7 +75,7 @@ impl Gui
         let commitLog = CommitLog::new(&repository.borrow());
         let _commitLogModel = CommitLogModel::new(&commitLog, &guiElementProvider);
         let commitLogView = CommitLogView::new(commitLog, &guiElementProvider, sender.clone());
-        let commitDiffView = CommitDiffView::new(repository.clone(), &guiElementProvider, sender);
+        let commitDiffView = CommitDiffView::new(Rc::clone(&repository), &guiElementProvider, sender);
 
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);

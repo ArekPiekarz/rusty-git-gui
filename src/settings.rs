@@ -15,6 +15,7 @@ type SettingsSaver = Box<dyn Fn(&Settings)>;
 
 impl Settings
 {
+    #[must_use]
     pub fn new() -> Self
     {
         let configFilePath = dirs::config_dir().unwrap().join("rusty-git-gui/config.ini");

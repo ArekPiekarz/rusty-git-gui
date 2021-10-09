@@ -88,7 +88,7 @@ impl DiffView
     {
         match fileChange.status.as_str() {
             "INDEX_RENAMED" => {
-                self.onFileChangeSelected(fileChange, makeDiffForStagedRenamedFile, DisplayedFileChange::Staged)
+                self.onFileChangeSelected(fileChange, makeDiffForStagedRenamedFile, DisplayedFileChange::Staged);
             },
             _ => self.onFileChangeSelected(fileChange, self.stagedChangeDiffMaker, DisplayedFileChange::Staged)
         }

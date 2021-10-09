@@ -320,10 +320,10 @@ fn validateCssError(error: &glib::Error)
         Some(cssProviderError) => {
             if let gtk::CssProviderError::Syntax = cssProviderError {
                 if error.to_string() != "<data>:1:19not a number" {
-                    panic!("Unexpected CSS provider error message: {}", error)
+                    panic!("Unexpected CSS provider error message: {}", error);
                 }
             } else {
-                panic!("Unexpected CSS provider error kind: {}", error)
+                panic!("Unexpected CSS provider error kind: {}", error);
             }
         },
         None => panic!("Unexpected CSS error: {}", error) }

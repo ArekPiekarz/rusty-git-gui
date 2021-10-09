@@ -76,7 +76,7 @@ impl CommitMessageView
     fn onCommitAmendEnabled(&mut self)
     {
         self.stashedMessage = self.getText();
-        self.setText(&self.repository.borrow().getLastCommitMessage().unwrap().unwrap());
+        self.setText(&self.repository.borrow().getLastCommitMessage().unwrap());
     }
 
     fn onCommitAmendDisabled(&mut self)

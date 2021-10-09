@@ -124,18 +124,13 @@ impl Repository
                 Err(e) if e.class() == git2::ErrorClass::Reference && e.code() == git2::ErrorCode::UnbornBranch => true,
                 Err(e) => panic!("{}", e)
             }
-       }
+        }
     }
 
-    pub fn getLastCommitMessage(&self) -> Result<Option<String>,()>
+    #[must_use]
+    pub fn getLastCommitMessage(&self) -> Option<String>
     {
-        match self.findHeadCommit() {
-            Some(commit) => match commit.message() {
-                Some(message) => Ok(Some(message.into())),
-                None => Err(())
-            }
-            None => Ok(None)
-        }
+        self.findHeadCommit().map(|commit| String::from_utf8_lossy(commit.message_bytes()).into())
     }
 
     fn collectLastCommitChanges(&self) -> Vec<FileChange>
@@ -278,10 +273,11 @@ impl Repository
         self.gitRepo.find_commit(id)
     }
 
+    #[must_use]
     pub fn makeDiffOfCommitAndParent(&self, commit: &git2::Commit) -> git2::Diff
     {
         let tree = commit.tree().unwrap();
-        let parentTreeOpt = findTreeOfParentOfCommit(&commit);
+        let parentTreeOpt = findTreeOfParentOfCommit(commit);
         let mut diffOptions = self.makeDiffOptions();
         self.gitRepo.diff_tree_to_tree(parentTreeOpt.as_ref(), Some(&tree), Some(&mut diffOptions)).unwrap()
     }
@@ -311,7 +307,7 @@ impl Repository
             "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
             "WT_RENAMED" => {
                 self.addPathToIndex(&fileChange.path);
-                self.removePathFromIndex(&fileChange.oldPath.as_ref().unwrap());
+                self.removePathFromIndex(fileChange.oldPath.as_ref().unwrap());
             }
             _ => self.addPathToIndex(&fileChange.path)
         }
@@ -356,9 +352,7 @@ impl Repository
     pub fn unstageNormally(&mut self, fileChange: &FileChange)
     {
         {
-            let commitObject = match self.findHeadCommit() {
-                Some(commit) => Some(commit.into_object()),
-                None => None };
+            let commitObject = self.findHeadCommit().map(git2::Commit::into_object);
             let mut paths = vec![&fileChange.path];
             if let Some(oldPath) = &fileChange.oldPath {
                 paths.push(oldPath);
@@ -386,10 +380,7 @@ impl Repository
     {
         {
             let parent = self.findParentOfHeadCommit();
-            let parentObject = match parent {
-                Some(parent) => Some(parent.into_object()),
-                None => None
-            };
+            let parentObject = parent.map(git2::Commit::into_object);
             self.gitRepo.reset_default(parentObject.as_ref(), &[&fileChange.path])
                 .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
         }
@@ -499,7 +490,7 @@ impl Repository
             Some(newFileChange) => {
                 if oldFileChange.status != newFileChange.status {
                     self.notifyOnUpdatedInStaged(
-                        &FileChangeUpdate {old: oldFileChange.clone(), new: (*newFileChange).clone()})
+                        &FileChangeUpdate {old: oldFileChange.clone(), new: (*newFileChange).clone()});
                 }
             }
             None => self.notifyOnRemovedFromStaged(oldFileChange)
@@ -509,7 +500,7 @@ impl Repository
     fn finishStagingWhenFileWasNotYetStaged(&self, fileChange: Option<&FileChange>)
     {
         if let Some(fileChange) = fileChange {
-            self.notifyOnAddedToStaged(fileChange)
+            self.notifyOnAddedToStaged(fileChange);
         }
     }
 
@@ -519,7 +510,7 @@ impl Repository
             Some(newFileChange) => {
                 if oldFileChange.status != newFileChange.status {
                     self.notifyOnUpdatedInUnstaged(
-                        &FileChangeUpdate {old: oldFileChange.clone(), new: (*newFileChange).clone()})
+                        &FileChangeUpdate {old: oldFileChange.clone(), new: (*newFileChange).clone()});
                 }
             }
             None => self.notifyOnRemovedFromUnstaged(oldFileChange)
@@ -529,7 +520,7 @@ impl Repository
     fn finishUnstagingWhenFileWasNotYetUnstaged(&self, fileChange: Option<&FileChange>)
     {
         if let Some(fileChange) = fileChange {
-            self.notifyOnAddedToUnstaged(fileChange)
+            self.notifyOnAddedToUnstaged(fileChange);
         }
     }
 
@@ -706,10 +697,7 @@ fn getFilePath(statusEntry: &git2::StatusEntry) -> String
 
 fn findTreeOfParentOfCommit<'a>(commit: &git2::Commit<'a>) -> Option<git2::Tree<'a>>
 {
-    match commit.parents().next() {
-        Some(parent) => Some(parent.tree().unwrap()),
-        None => None
-    }
+    commit.parents().next().map(|parent| parent.tree().unwrap())
 }
 
 fn extractRenamedPathFromStaged(statusEntry: &git2::StatusEntry) -> String
@@ -722,7 +710,7 @@ fn extractRenamedPathFromUnstaged(statusEntry: &git2::StatusEntry) -> String
     statusEntry.index_to_workdir().unwrap().new_file().path().unwrap().to_str().unwrap().into()
 }
 
-fn getFileWord(paths: &[&String]) -> &'static str
+const fn getFileWord(paths: &[&String]) -> &'static str
 {
     match paths.len() {
         1 => "file",

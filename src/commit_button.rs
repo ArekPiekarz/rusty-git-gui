@@ -117,7 +117,7 @@ impl CommitButton
 
     fn onClicked(&mut self)
     {
-        self.commit()
+        self.commit();
     }
 
     fn update(&self)

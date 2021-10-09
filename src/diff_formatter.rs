@@ -11,7 +11,7 @@ pub struct DiffFormatter
 
 impl DiffFormatter
 {
-    pub fn newForCommit() -> Self
+    pub const fn newForCommit() -> Self
     {
         Self{text: String::new(), mode: FormatterMode::Commit}
     }

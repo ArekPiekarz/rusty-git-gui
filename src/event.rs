@@ -87,5 +87,5 @@ pub type Receiver = glib::Receiver<(Source, Event)>;
 #[track_caller]
 pub fn handleUnknown(source: Source, event: &Event)
 {
-    panic!("Unknown source and event: {:?}, {:?}", source, event)
+    panic!("Unknown source and event: {:?}, {:?}", source, event);
 }

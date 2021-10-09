@@ -14,6 +14,7 @@ impl CommitLogColumn
     }
 }
 
+#[allow(clippy::as_conversions)]
 impl From<CommitLogColumn> for u32
 {
     fn from(value: CommitLogColumn) -> Self

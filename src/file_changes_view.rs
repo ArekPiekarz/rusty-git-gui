@@ -69,8 +69,8 @@ impl<StoreType> FileChangesView<StoreType>
             &FileChangesColumn::asArrayOfI32());
 
         Self{
-            store,
             view,
+            store,
             onRowActivatedAction,
             source,
             sender
@@ -165,10 +165,8 @@ impl<StoreType> FileChangesView<StoreType>
 
     fn onRefreshed(&self)
     {
-        let fileChangeOpt = match self.view.getSelection().getSelectedRow() {
-            Some(row) => Some(self.store.borrow().getFileChange(row).clone()),
-            None => None
-        };
+        let fileChangeOpt = self.view.getSelection().getSelectedRow()
+            .map(|row| self.store.borrow().getFileChange(row).clone());
         self.notifyOnRefreshed(fileChangeOpt);
     }
 }
