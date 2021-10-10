@@ -5,27 +5,29 @@ const FORMATTING_SUCCEEDED: bool = true;
 
 pub struct DiffFormatter
 {
-    text: String,
+    output: FormattedDiff,
     mode: FormatterMode
 }
 
 impl DiffFormatter
 {
-    pub const fn newForCommit() -> Self
+    pub fn newForCommit() -> Self
     {
-        Self{text: String::new(), mode: FormatterMode::Commit}
+        Self{output: FormattedDiff::default(), mode: FormatterMode::Commit}
     }
 
     pub fn newForFileChange(fileChange: &FileChange) -> Self
     {
-        Self{text: formatDiffHeader(fileChange), mode: FormatterMode::FileChange}
+        Self{output: formatDiffHeader(fileChange), mode: FormatterMode::FileChange}
     }
 
     pub fn format(&mut self, line: &git2::DiffLine) -> bool
     {
         let lineContent = String::from_utf8_lossy(line.content());
         match line.origin() {
-            prefix @ ('+' | '-' | ' ') => self.addContent(prefix, &lineContent),
+            ' ' => self.addNormalLine(&lineContent),
+            '+' => self.addAddedLine(&lineContent),
+            '-' => self.addRemovedLine(&lineContent),
             'F' => self.handleFileHeader(&lineContent),
              _  => self.addHunkInfo(&lineContent)
         };
@@ -33,30 +35,47 @@ impl DiffFormatter
     }
 
     #[allow(clippy::missing_const_for_fn)] // buggy - self cannot be destructed in const fn
-    pub fn takeText(self) -> String
+    pub fn takeOutput(self) -> FormattedDiff
     {
-        self.text
+        self.output
     }
 
 
     // private
 
-    fn addContent(&mut self, prefix: char, line : &str)
+    fn addNormalLine(&mut self, line: &str)
     {
-        self.text.push_str(&format!("{}{}", prefix, line));
+        self.output.text.push_str(&format!(" {}", line));
+        self.output.lineFormats.push(LineFormat::NormalLine);
+    }
+
+    fn addAddedLine(&mut self, line: &str)
+    {
+        self.output.text.push_str(&format!("+{}", line));
+        self.output.lineFormats.push(LineFormat::AddedLine);
+    }
+
+    fn addRemovedLine(&mut self, line: &str)
+    {
+        self.output.text.push_str(&format!("-{}", line));
+        self.output.lineFormats.push(LineFormat::RemovedLine);
     }
 
     fn handleFileHeader(&mut self, line : &str)
     {
         match self.mode {
-            FormatterMode::Commit => self.text.push_str(line),
+            FormatterMode::Commit => {
+                self.output.text.push_str(line);
+                self.output.lineFormats.extend(vec![LineFormat::FileHeader; line.lines().count()]);
+            },
             FormatterMode::FileChange => ()
         }
     }
 
     fn addHunkInfo(&mut self, line : &str)
     {
-        self.text.push_str(line);
+        self.output.text.push_str(line);
+        self.output.lineFormats.push(LineFormat::HunkHeader);
     }
 }
 
@@ -66,10 +85,39 @@ enum FormatterMode
     FileChange
 }
 
-fn formatDiffHeader(fileChange: &FileChange) -> String
+pub struct FormattedDiff
+{
+    pub text: String,
+    pub lineFormats: Vec<LineFormat>
+}
+
+impl Default for FormattedDiff
+{
+    fn default() -> Self
+    {
+        Self{text: String::new(), lineFormats: vec![]}
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum LineFormat
+{
+    TopHeader,
+    FileHeader,
+    HunkHeader,
+    NormalLine,
+    AddedLine,
+    RemovedLine
+}
+
+fn formatDiffHeader(fileChange: &FileChange) -> FormattedDiff
 {
     match &fileChange.oldPath {
-        Some(oldPath) => format!("renamed file\nold path: {}\nnew path: {}\n", oldPath, fileChange.path),
-        None => String::new()
+        Some(oldPath) => {
+            let text = format!("renamed file\nold path: {}\nnew path: {}\n", oldPath, fileChange.path);
+            let lineFormats = vec![LineFormat::TopHeader; 3];
+            FormattedDiff{text, lineFormats}
+        },
+        None => FormattedDiff::default()
     }
 }

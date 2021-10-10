@@ -1,4 +1,4 @@
-use crate::commit_diff::{makeCommitSummary, makeFormattedDiff};
+use crate::commit_diff::formatCommitDiff;
 use crate::diff_colorizer::DiffColorizer;
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
@@ -51,8 +51,8 @@ impl CommitDiffView
         let repository = self.repository.borrow();
         let commit = repository.findCommit(*commitId).unwrap();
         let commitDiff = repository.makeDiffOfCommitAndParent(&commit);
-        let textDiff = makeCommitSummary(&commit) + &makeFormattedDiff(&commitDiff);
-        self.diffColorizer.colorize(&self.textView, &textDiff);
+        let formattedDiff = formatCommitDiff(&commit, &commitDiff);
+        self.diffColorizer.colorize(&self.textView, &formattedDiff);
     }
 
     fn onCommitUnselected(&self)

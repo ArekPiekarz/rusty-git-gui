@@ -1,5 +1,5 @@
 use crate::diff_colorizer::DiffColorizer;
-use crate::diff_formatter::DiffFormatter;
+use crate::diff_formatter::{DiffFormatter, FormattedDiff};
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::error_handling::exit;
 use crate::file_change::FileChange;
@@ -113,14 +113,14 @@ impl DiffView
     {
         let oldDiff = self.widget.getText();
         let newDiff = self.makeFormattedDiff(fileChange, diffMaker);
-        let changeset = similar::TextDiff::configure().diff_lines(&oldDiff, &newDiff);
+        let changeset = similar::TextDiff::configure().diff_lines(&oldDiff, &newDiff.text);
         let changeset: Vec<_> = changeset.iter_all_changes().map(
             |change| match change.tag() {
                 similar::ChangeTag::Equal => LineDiff::Equal(change.to_string_lossy()),
                 similar::ChangeTag::Delete => LineDiff::Delete(change.to_string_lossy()),
                 similar::ChangeTag::Insert => LineDiff::Insert(change.to_string_lossy())
             }).collect();
-        self.diffColorizer.update(&self.widget, changeset);
+        self.diffColorizer.update(&self.widget, changeset, &newDiff.lineFormats);
         self.displayState = newDisplayState;
     }
 
@@ -198,14 +198,14 @@ impl DiffView
         self.displayState = DisplayedFileChange::None;
     }
 
-    fn makeFormattedDiff(&self, fileChange: &FileChange, diffMaker: DiffMaker) -> String
+    fn makeFormattedDiff(&self, fileChange: &FileChange, diffMaker: DiffMaker) -> FormattedDiff
     {
         let mut diffFormatter = DiffFormatter::newForFileChange(fileChange);
         let repository = self.repository.borrow();
         let diff = (diffMaker)(fileChange, &repository);
         diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line))
             .unwrap_or_else(|e| exit(&format!("Failed to format diff: {}", e)));
-        diffFormatter.takeText()
+        diffFormatter.takeOutput()
     }
 }
 
