@@ -24,12 +24,16 @@ impl DiffFormatter
     pub fn format(&mut self, line: &git2::DiffLine) -> bool
     {
         let lineContent = String::from_utf8_lossy(line.content());
-        match line.origin() {
-            ' ' => self.addNormalLine(&lineContent),
-            '+' => self.addAddedLine(&lineContent),
-            '-' => self.addRemovedLine(&lineContent),
-            'F' => self.handleFileHeader(&lineContent),
-             _  => self.addHunkInfo(&lineContent)
+        match line.origin_value() {
+            git2::DiffLineType::Context      => self.formatContextLine(&lineContent),
+            git2::DiffLineType::Addition     => self.formatAddedLine(&lineContent),
+            git2::DiffLineType::Deletion     => self.formatRemovedLine(&lineContent),
+            git2::DiffLineType::ContextEOFNL => self.formatSameNoNewLineAtEnd(&lineContent),
+            git2::DiffLineType::AddEOFNL     => self.formatAddedNewLineAtEnd(&lineContent),
+            git2::DiffLineType::DeleteEOFNL  => self.formatRemovedNewLineAtEnd(&lineContent),
+            git2::DiffLineType::FileHeader   => self.formatFileHeader(&lineContent),
+            git2::DiffLineType::HunkHeader   => self.formatHunkHeader(&lineContent),
+            git2::DiffLineType::Binary       => self.formatBinaryLine(&lineContent)
         };
         FORMATTING_SUCCEEDED
     }
@@ -43,25 +47,43 @@ impl DiffFormatter
 
     // private
 
-    fn addNormalLine(&mut self, line: &str)
+    fn formatContextLine(&mut self, line: &str)
     {
         self.output.text.push_str(&format!(" {}", line));
-        self.output.lineFormats.push(LineFormat::NormalLine);
+        self.output.lineFormats.push(LineFormat::ContextLine);
     }
 
-    fn addAddedLine(&mut self, line: &str)
+    fn formatAddedLine(&mut self, line: &str)
     {
         self.output.text.push_str(&format!("+{}", line));
         self.output.lineFormats.push(LineFormat::AddedLine);
     }
 
-    fn addRemovedLine(&mut self, line: &str)
+    fn formatRemovedLine(&mut self, line: &str)
     {
         self.output.text.push_str(&format!("-{}", line));
         self.output.lineFormats.push(LineFormat::RemovedLine);
     }
 
-    fn handleFileHeader(&mut self, line : &str)
+    fn formatSameNoNewLineAtEnd(&mut self, line: &str)
+    {
+        self.output.text.push_str(line);
+        self.output.lineFormats.push(LineFormat::SameNoNewLineAtEnd);
+    }
+
+    fn formatAddedNewLineAtEnd(&mut self, line: &str)
+    {
+        self.output.text.push_str(line);
+        self.output.lineFormats.push(LineFormat::AddedNewLineAtEnd);
+    }
+
+    fn formatRemovedNewLineAtEnd(&mut self, line: &str)
+    {
+        self.output.text.push_str(line);
+        self.output.lineFormats.push(LineFormat::RemovedNewLineAtEnd);
+    }
+
+    fn formatFileHeader(&mut self, line : &str)
     {
         match self.mode {
             FormatterMode::Commit => {
@@ -72,10 +94,16 @@ impl DiffFormatter
         }
     }
 
-    fn addHunkInfo(&mut self, line : &str)
+    fn formatHunkHeader(&mut self, line : &str)
     {
         self.output.text.push_str(line);
         self.output.lineFormats.push(LineFormat::HunkHeader);
+    }
+
+    fn formatBinaryLine(&mut self, line: &str)
+    {
+        self.output.text.push_str(line);
+        self.output.lineFormats.push(LineFormat::BinaryLine);
     }
 }
 
@@ -105,9 +133,13 @@ pub enum LineFormat
     TopHeader,
     FileHeader,
     HunkHeader,
-    NormalLine,
+    ContextLine,
     AddedLine,
-    RemovedLine
+    RemovedLine,
+    SameNoNewLineAtEnd,
+    AddedNewLineAtEnd,
+    RemovedNewLineAtEnd,
+    BinaryLine
 }
 
 fn formatDiffHeader(fileChange: &FileChange) -> FormattedDiff

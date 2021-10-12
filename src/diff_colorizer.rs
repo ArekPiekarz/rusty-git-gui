@@ -75,12 +75,16 @@ impl DiffColorizer
         for (lineNumber, lineFormat) in lineFormats.iter().enumerate() {
             let lineNumber: LineNumber = lineNumber.into();
             match lineFormat {
-                LineFormat::NormalLine  => self.applyTagToNormalLine(textView, lineNumber),
-                LineFormat::AddedLine   => self.applyTagToAddedLine(textView, lineNumber),
-                LineFormat::RemovedLine => self.applyTagToRemovedLine(textView, lineNumber),
-                LineFormat::HunkHeader  => self.applyTagToHunkHeader(textView, lineNumber),
-                LineFormat::FileHeader  => self.applyTagToFileHeader(textView, lineNumber),
-                LineFormat::TopHeader   => self.applyTagToNormalLine(textView, lineNumber)
+                LineFormat::TopHeader           => self.applyTagToNormalLine(textView, lineNumber),
+                LineFormat::FileHeader          => self.applyTagToFileHeader(textView, lineNumber),
+                LineFormat::HunkHeader          => self.applyTagToHunkHeader(textView, lineNumber),
+                LineFormat::ContextLine         => self.applyTagToNormalLine(textView, lineNumber),
+                LineFormat::AddedLine           => self.applyTagToAddedLine(textView, lineNumber),
+                LineFormat::RemovedLine         => self.applyTagToRemovedLine(textView, lineNumber),
+                LineFormat::SameNoNewLineAtEnd  => self.applyTagToSameNoNewLineAtEnd(textView, lineNumber),
+                LineFormat::AddedNewLineAtEnd   => self.applyTagToAddedNewLineAtEnd(textView, lineNumber),
+                LineFormat::RemovedNewLineAtEnd => self.applyTagToRemovedNewLineAtEnd(textView, lineNumber),
+                LineFormat::BinaryLine          => self.applyTagToBinaryLine(textView, lineNumber)
             }
         }
     }
@@ -188,6 +192,58 @@ impl DiffColorizer
         }
     }
 
+    fn applyTagToSameNoNewLineAtEnd(&mut self, textView: &TextView, lineNumber: LineNumber)
+    {
+        self.applyTagToMetaLine(MetaTagKind::Context, textView, lineNumber);
+    }
+
+    fn applyTagToAddedNewLineAtEnd(&mut self, textView: &TextView, lineNumber: LineNumber)
+    {
+        self.applyTagToMetaLine(MetaTagKind::Addition, textView, lineNumber);
+    }
+
+    fn applyTagToRemovedNewLineAtEnd(&mut self, textView: &TextView, lineNumber: LineNumber)
+    {
+        self.applyTagToMetaLine(MetaTagKind::Deletion, textView, lineNumber);
+    }
+
+    fn applyTagToBinaryLine(&mut self, textView: &TextView, lineNumber: LineNumber)
+    {
+        self.applyTagToMetaLine(MetaTagKind::Context, textView, lineNumber);
+    }
+
+    fn applyTagToMetaLine(&mut self, tagKind: MetaTagKind, textView: &TextView, lineNumber: LineNumber)
+    {
+        // For some reason the meta information from git2 for addition and deletion of new lines at the end of files
+        // seems to be switched, so we switch colors for them.
+        let tag = match tagKind {
+            MetaTagKind::Context  => &self.hunkHeaderTag,
+            MetaTagKind::Addition => &self.removedLineTag,
+            MetaTagKind::Deletion => &self.addedLineTag
+        };
+
+        match self.state {
+            State::Normal => {
+                textView.applyTagUntilLineEnd(tag, lineNumber);
+            },
+            State::Added => {
+                textView.applyTag(&self.addedLineTag, self.tagStartLine, lineNumber);
+                textView.applyTagUntilLineEnd(tag, lineNumber);
+                self.state = State::Normal;
+            },
+            State::Removed => {
+                textView.applyTag(&self.removedLineTag, self.tagStartLine, lineNumber);
+                textView.applyTagUntilLineEnd(tag, lineNumber);
+                self.state = State::Normal;
+            },
+            State::FileHeader => {
+                textView.applyTag(&self.fileHeaderTag, self.tagStartLine, lineNumber);
+                textView.applyTagUntilLineEnd(tag, lineNumber);
+                self.state = State::Normal;
+            }
+        }
+    }
+
     fn closeLastOpenTag(&self, textView: &TextView)
     {
         match self.state {
@@ -197,6 +253,13 @@ impl DiffColorizer
             State::FileHeader => textView.applyTagUntilEnd(&self.fileHeaderTag, self.tagStartLine)
         }
     }
+}
+
+enum MetaTagKind
+{
+    Context,
+    Addition,
+    Deletion
 }
 
 fn updateDiff(textView: &TextView, differences: Vec<LineDiff>)

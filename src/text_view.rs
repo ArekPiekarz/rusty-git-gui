@@ -132,6 +132,11 @@ impl TextView
         self.buffer.apply_tag(tag, &startIter, &endIter);
     }
 
+    pub fn applyTagUntilLineEnd(&self, tag: &gtk::TextTag, line: LineNumber)
+    {
+        self.applyTagUntilMatchEnd(tag, line, "\n");
+    }
+
     pub fn removeTags(&self)
     {
         self.buffer.remove_all_tags(&self.buffer.start_iter(), &self.buffer.end_iter());
