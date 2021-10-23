@@ -12,7 +12,6 @@ use gtk::prelude::TreeModelExt as _;
 use gtk::prelude::TreeSelectionExt as _;
 use gtk::prelude::TreeViewExt as _;
 use gtk::prelude::WidgetExt as _;
-use std::convert::TryFrom as _;
 
 const NO_PARENT: Option<&gtk::TreeIter> = None;
 

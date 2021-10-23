@@ -1,4 +1,3 @@
-use std::convert::TryInto as _;
 use std::num::FpCategory::{Infinite, Nan, Normal, Subnormal, Zero};
 
 pub trait ToI32
