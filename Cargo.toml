@@ -11,7 +11,7 @@ color-backtrace = { version = "0.5.1", default-features = false, optional = true
 dirs = { version = "4.0.0", default-features = false }
 git2 = { version = "0.13.25", default-features = false }
 gtk = { version = "0.14.3", default-features = false, features = ["v3_22"] }
-itertools = { version = "0.10.1", default-features = false, features = ["use_std"] }
+itertools = { version = "0.10.3", default-features = false, features = ["use_std"] }
 rust-ini = { version = "0.17.0", default-features = false }
 similar = {version = "2.1.0", default-features = false, features = ["text"] }
 termcolor = { version = "1.1.2", default-features = false, optional = true }
