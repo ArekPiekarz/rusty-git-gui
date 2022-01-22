@@ -6,7 +6,6 @@ use crate::number_casts::ToI32 as _;
 use crate::tree_model_utils::toRow;
 use crate::tree_selection::TreeSelection;
 
-use gtk::prelude::CellLayoutExt as _;
 use gtk::prelude::TreeModelExt as _;
 use gtk::prelude::TreeViewExt as _;
 use gtk::prelude::WidgetExt as _;
