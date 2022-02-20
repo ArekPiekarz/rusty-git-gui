@@ -1,7 +1,7 @@
-use crate::date_time::ZERO_NANOSECONDS;
+use crate::date_time::makeDateTime;
 use crate::diff_formatter::{DiffFormatter, FormattedDiff, LineFormat};
 
-use chrono::TimeZone as _;
+use time::format_description::well_known::Rfc2822;
 
 
 pub fn formatCommitDiff(commit: &git2::Commit, diff: &git2::Diff) -> FormattedDiff
@@ -26,7 +26,7 @@ fn makeCommitSummary(commit: &git2::Commit) -> FormattedDiff
         commit.id(),
         commit.author().name().unwrap(),
         commit.author().email().unwrap(),
-        chrono::Local.timestamp(commit.time().seconds(), ZERO_NANOSECONDS).to_rfc2822(),
+        formatDateTime(&commit.time()),
         tabulateCommitMessage(&getMessage(commit)));
     let lineFormats = vec![LineFormat::TopHeader; text.lines().count()];
     FormattedDiff{text, lineFormats}
@@ -35,6 +35,11 @@ fn makeCommitSummary(commit: &git2::Commit) -> FormattedDiff
 fn getMessage(commit: &git2::Commit) -> String
 {
     String::from_utf8_lossy(commit.message_bytes()).into()
+}
+
+fn formatDateTime(inputTime: &git2::Time) -> String
+{
+    makeDateTime(inputTime).format(&Rfc2822).unwrap()
 }
 
 fn tabulateCommitMessage(message: &str) -> String

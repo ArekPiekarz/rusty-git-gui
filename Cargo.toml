@@ -6,7 +6,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.54", default-features = false, features = ["backtrace", "std"] }
-chrono = { version = "0.4.19", default-features = false, features = ["clock"] }
 color-backtrace = { version = "0.5.1", default-features = false, optional = true }
 dirs = { version = "4.0.0", default-features = false }
 git2 = { version = "0.13.25", default-features = false }
@@ -15,6 +14,7 @@ itertools = { version = "0.10.3", default-features = false, features = ["use_std
 rust-ini = { version = "0.17.0", default-features = false }
 similar = {version = "2.1.0", default-features = false, features = ["text"] }
 termcolor = { version = "1.1.2", default-features = false, optional = true }
+time = { version = "0.3.7", default-features = false, features = ["formatting", "macros"] }
 
 [dev-dependencies]
 gtk-test = {version = "0.15.0", default-features = false }

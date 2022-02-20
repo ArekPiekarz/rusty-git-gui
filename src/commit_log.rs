@@ -1,7 +1,7 @@
-use crate::date_time::{LocalDateTime, ZERO_NANOSECONDS};
+use crate::date_time::makeDateTime;
 use crate::repository::Repository;
 
-use chrono::TimeZone as _;
+use time::OffsetDateTime;
 
 const INVALID_UTF8: &str = "<invalid UTF-8>";
 
@@ -42,7 +42,7 @@ impl CommitLog
         repo.iterateCommits(|commit| {
             let summary = getSummary(commit);
             let signature = commit.author();
-            let date = chrono::Local.timestamp(signature.when().seconds(), ZERO_NANOSECONDS);
+            let date = makeDateTime(&commit.time());
             let author = signature.name().unwrap_or(INVALID_UTF8).into();
             let email = signature.email().unwrap_or(INVALID_UTF8).into();
             let id = commit.id();
@@ -62,7 +62,7 @@ pub struct CommitInfo
 {
     pub id: git2::Oid,
     pub summary: String,
-    pub date: LocalDateTime,
+    pub date: OffsetDateTime,
     pub author: String,
     pub email: String,
 }
