@@ -6,7 +6,7 @@ use time::format_description::well_known::Rfc2822;
 
 pub fn formatCommitDiff(commit: &git2::Commit, diff: &git2::Diff) -> FormattedDiff
 {
-    let commitSummary = makeCommitSummary(&commit);
+    let commitSummary = makeCommitSummary(commit);
     let mut diffFormatter = DiffFormatter::newForCommit();
     diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| diffFormatter.format(&line)).unwrap();
     let formattedDiff = diffFormatter.takeOutput();

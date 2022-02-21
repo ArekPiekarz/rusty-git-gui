@@ -113,18 +113,11 @@ enum FormatterMode
     FileChange
 }
 
+#[derive(Default)]
 pub struct FormattedDiff
 {
     pub text: String,
     pub lineFormats: Vec<LineFormat>
-}
-
-impl Default for FormattedDiff
-{
-    fn default() -> Self
-    {
-        Self{text: String::new(), lineFormats: vec![]}
-    }
 }
 
 #[derive(Clone, Debug)]

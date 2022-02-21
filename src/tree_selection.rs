@@ -21,7 +21,7 @@ impl TreeSelection
     pub fn getSelectedRow(&self) -> Option<usize>
     {
         let (rowPaths, _model) = self.selection.selected_rows();
-        rowPaths.get(0).map(|rowPath| toRow(rowPath))
+        rowPaths.get(0).map(toRow)
     }
 
     pub fn selectByIterator(&self, iterator: &gtk::TreeIter)

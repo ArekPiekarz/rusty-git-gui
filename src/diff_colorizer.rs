@@ -255,6 +255,7 @@ impl DiffColorizer
     }
 }
 
+#[derive(Clone, Copy)]
 enum MetaTagKind
 {
     Context,

@@ -323,7 +323,7 @@ fn validateCssError(error: &glib::Error)
 {
     match error.kind::<gtk::CssProviderError>() {
         Some(cssProviderError) => {
-            if let gtk::CssProviderError::Syntax = cssProviderError {
+            if cssProviderError == gtk::CssProviderError::Syntax {
                 if error.to_string() != "<data>:1:19not a number" {
                     panic!("Unexpected CSS provider error message: {}", error);
                 }
