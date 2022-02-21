@@ -28,4 +28,3 @@ use_color_backtrace = ["color-backtrace", "termcolor"]
 [profile.release]
 codegen-units = 1
 lto = "fat"
-panic = "abort"
