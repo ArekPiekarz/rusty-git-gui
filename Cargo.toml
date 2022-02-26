@@ -5,10 +5,10 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-anyhow = { version = "1.0.54", default-features = false, features = ["backtrace", "std"] }
+anyhow = { version = "1.0.55", default-features = false, features = ["backtrace", "std"] }
 color-backtrace = { version = "0.5.1", default-features = false, optional = true }
 dirs = { version = "4.0.0", default-features = false }
-git2 = { version = "0.13.25", default-features = false }
+git2 = { version = "0.14.0", default-features = false }
 gtk = { version = "0.15.4", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.10.3", default-features = false, features = ["use_std"] }
 rust-ini = { version = "0.18.0", default-features = false }
