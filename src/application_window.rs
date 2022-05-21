@@ -29,7 +29,7 @@ impl ApplicationWindow
 
     pub fn show(&self)
     {
-        self.window.show_all();
+        self.window.show();
     }
 
     pub fn setOpacity(&self, value: f64)

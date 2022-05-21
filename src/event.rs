@@ -56,6 +56,12 @@ pub enum Event
 
     // tree selection
     SelectionChanged(gtk::TreeSelection),
+
+    // stack
+    StackChildChanged(String),
+
+    // text entry
+    TextEntered(String)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -64,12 +70,15 @@ pub enum Source
     CommitAmendCheckbox,
     CommitButton,
     CommitDiffViewWidget,
+    CommitLogAuthorFilterEntry,
     CommitLogView,
     CommitLogViewWidget,
     CommitMessageView,
     DiffView,
+    MainStack,
     RefreshButton,
     Repository,
+    ShowCommitLogFiltersButton,
     StagedChangesStore,
     StagedChangesView,
     UnstagedChangesStore,

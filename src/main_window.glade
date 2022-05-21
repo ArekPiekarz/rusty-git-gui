@@ -14,6 +14,9 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkTreeModelFilter" id="Commit log store filter">
+    <property name="child-model">Commit log store</property>
+  </object>
   <object class="GtkTextBuffer" id="Commit message view buffer"/>
   <object class="GtkTextBuffer" id="Diff view buffer"/>
   <object class="GtkListStore" id="Staged changes store">
@@ -43,19 +46,79 @@
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkStackSwitcher">
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="stack">stack</property>
+            <child>
+              <object class="GtkStackSwitcher">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="stack">Main stack</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkStack" id="Tool bar stack">
+                <property name="name">Tool bar stack</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkToolbar" id="Current changes tool bar">
+                    <property name="name">Current changes tool bar</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="name">Current changes tool bar</property>
+                    <property name="title" translatable="yes">Current changes tool bar</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolbar" id="Commit log tool bar">
+                    <property name="name">Commit log tool bar</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkToggleToolButton" id="Show commit log filters button">
+                        <property name="name">Show commit log filters button</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Show filters</property>
+                        <property name="use-underline">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="name">Commit log tool bar</property>
+                    <property name="title" translatable="yes">Commit log tool bar</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
+            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
-          <object class="GtkStack" id="stack">
+          <object class="GtkStack" id="Main stack">
+            <property name="name">Main stack</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
@@ -385,75 +448,126 @@
               </packing>
             </child>
             <child>
-              <object class="GtkPaned">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
+                <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
-                <property name="position">110</property>
-                <property name="position-set">True</property>
-                <property name="wide-handle">True</property>
                 <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="shadow-type">in</property>
+                  <!-- n-columns=2 n-rows=1 -->
+                  <object class="GtkGrid" id="Commit log filters grid">
+                    <property name="name">Commit log filters grid</property>
+                    <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkTreeView" id="Commit log view">
-                        <property name="name">Commit log view</property>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-left">4</property>
+                        <property name="margin-top">4</property>
+                        <property name="margin-bottom">4</property>
+                        <property name="label" translatable="yes">Author:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="Commit log author filter entry">
+                        <property name="name">Commit log author filter entry</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="model">Commit log store</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn">
-                            <property name="resizable">True</property>
-                            <property name="title" translatable="yes">Summary</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn">
-                            <property name="title" translatable="yes">Date</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn">
-                            <property name="title" translatable="yes">Author</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn">
-                            <property name="title" translatable="yes">Email</property>
-                          </object>
-                        </child>
+                        <property name="hexpand">True</property>
                       </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
-                    <property name="resize">True</property>
-                    <property name="shrink">True</property>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkPaned">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="shadow-type">in</property>
+                    <property name="orientation">vertical</property>
+                    <property name="position">110</property>
+                    <property name="position-set">True</property>
+                    <property name="wide-handle">True</property>
                     <child>
-                      <object class="GtkTextView" id="Commit diff view">
-                        <property name="name">Commit diff view</property>
+                      <object class="GtkScrolledWindow">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="editable">False</property>
-                        <property name="cursor-visible">False</property>
-                        <property name="monospace">True</property>
+                        <property name="shadow-type">in</property>
+                        <child>
+                          <object class="GtkTreeView" id="Commit log view">
+                            <property name="name">Commit log view</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="model">Commit log store filter</property>
+                            <property name="search-column">0</property>
+                            <child internal-child="selection">
+                              <object class="GtkTreeSelection"/>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="resizable">True</property>
+                                <property name="title" translatable="yes">Summary</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="title" translatable="yes">Date</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="title" translatable="yes">Author</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="title" translatable="yes">Email</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
+                      <packing>
+                        <property name="resize">True</property>
+                        <property name="shrink">True</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="shadow-type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="Commit diff view">
+                            <property name="name">Commit diff view</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="editable">False</property>
+                            <property name="cursor-visible">False</property>
+                            <property name="monospace">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="resize">True</property>
+                        <property name="shrink">True</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
-                    <property name="resize">True</property>
-                    <property name="shrink">True</property>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
@@ -467,7 +581,7 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
