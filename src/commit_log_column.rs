@@ -3,7 +3,8 @@ pub enum CommitLogColumn
     Summary,
     Date,
     Author,
-    Email
+    Email,
+    OriginalRow
 }
 
 impl CommitLogColumn

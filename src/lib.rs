@@ -71,6 +71,7 @@ mod line_number;
 mod main_paned;
 mod main_stack;
 mod number_casts;
+mod original_row;
 mod paned;
 mod refresh_button;
 mod show_commit_log_filters_button;

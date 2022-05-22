@@ -1007,6 +1007,7 @@ dependencies = [
  "tempfile",
  "termcolor",
  "time",
+ "to_trait",
 ]
 
 [[package]]
@@ -1150,6 +1151,12 @@ name = "tinyvec_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
+
+[[package]]
+name = "to_trait"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81260b398bc68b8d413bd06b8030eb9e96f5007980b9cc763527942a442d5b16"
 
 [[package]]
 name = "toml"

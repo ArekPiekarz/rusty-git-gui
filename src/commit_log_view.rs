@@ -2,10 +2,11 @@ use crate::commit_log::CommitLog;
 use crate::commit_log_column::CommitLogColumn;
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
+use crate::original_row::OriginalRow;
 use crate::tree_view::TreeView;
-use crate::tree_model_utils::toRow;
 
-use gtk::prelude::TreeSelectionExt as _;
+use gtk::traits::TreeModelExt;
+use gtk::traits::TreeSelectionExt;
 
 pub struct CommitLogView
 {
@@ -42,12 +43,13 @@ impl CommitLogView
 
     fn handleSelectionChanged(&self, selection: &gtk::TreeSelection)
     {
-        let (rows, _model) = selection.selected_rows();
-        match rows.get(0) {
-            Some(rowPath) => {
-                let commitId = self.commitLog.getCommit(toRow(rowPath)).unwrap().id;
+        match selection.selected() {
+            Some((model, iter)) => {
+                let row = model.value(&iter, CommitLogColumn::OriginalRow.into()).get::<OriginalRow>().unwrap()
+                    .try_into().unwrap();
+                let commitId = self.commitLog.getCommit(row).unwrap().id;
                 self.sender.send((Source::CommitLogView, Event::CommitSelected(commitId))).unwrap();
-            }
+            },
             None => self.sender.send((Source::CommitLogView, Event::CommitUnselected)).unwrap()
         }
     }
