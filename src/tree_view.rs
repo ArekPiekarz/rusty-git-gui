@@ -3,6 +3,7 @@ use crate::event::{Event, Sender, Source};
 use crate::event_constants::FORWARD_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::number_casts::ToI32 as _;
+use crate::selections_comparer::SelectionsComparer;
 use crate::tree_model_utils::toRow;
 use crate::tree_selection::TreeSelection;
 
@@ -24,16 +25,17 @@ pub struct TreeView
 
 impl TreeView
 {
-    pub fn new(
+    pub(crate) fn new(
         guiElementProvider: &GuiElementProvider,
         widgetName: &str,
+        selectionsComparer: Option<Box<dyn SelectionsComparer>>,
         sender: Sender,
         source: Source,
         columns: &[i32])
         -> Self
     {
         let widget = guiElementProvider.get::<gtk::TreeView>(widgetName);
-        let selection = TreeSelection::new(widget.selection(), sender.clone(), source);
+        let selection = TreeSelection::new(widget.selection(), selectionsComparer, sender.clone(), source);
         let newSelf = Self{widget, selection};
         newSelf.setupColumns(columns);
         newSelf.connectWidget(sender, source);
@@ -45,9 +47,14 @@ impl TreeView
         self.widget.model().unwrap()
     }
 
-    pub const fn getSelection(&self) -> &TreeSelection
+    pub(crate) const fn getSelection(&self) -> &TreeSelection
     {
         &self.selection
+    }
+
+    pub(crate) fn getSelectionMut(&mut self) -> &mut TreeSelection
+    {
+        &mut self.selection
     }
 
     pub fn getRowAtPosition(&self, x: f64, y: f64) -> Option<usize>

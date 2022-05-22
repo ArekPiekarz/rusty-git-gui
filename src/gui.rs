@@ -82,7 +82,7 @@ impl Gui
             &guiElementProvider, commitMessageReader, Rc::clone(&repository), sender.clone());
 
         let commitLogFiltersView = CommitLogFiltersView::new(&guiElementProvider);
-        let commitLogModelFilter = CommitLogModelFilter::new(&guiElementProvider);
+        let commitLogModelFilter = CommitLogModelFilter::new(&guiElementProvider, sender.clone());
         let commitLog = CommitLog::new(&repository.borrow());
         let _commitLogModel = CommitLogModel::new(&commitLog, &guiElementProvider);
         let commitLogView = CommitLogView::new(commitLog, &guiElementProvider, sender.clone());
@@ -161,6 +161,8 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitButton,               E::CommitRequested(_))      => repository.handle(source, &event),
         (S::CommitDiffViewWidget,       E::ZoomRequested(_))        => commitDiffView.handle(source, &event),
         (S::CommitLogAuthorFilterEntry, E::TextEntered(_))          => commitLogModelFilter.handle(source, &event),
+        (S::CommitLogModelFilter,       E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
+        (S::CommitLogModelFilter,       E::RefilterEnded)           => commitLogView.handle(source, &event),
         (S::CommitLogView,              E::CommitSelected(_))       => commitDiffView.handle(source, &event),
         (S::CommitLogView,              E::CommitUnselected)        => commitDiffView.handle(source, &event),
         (S::CommitLogViewWidget,        E::RightClicked(_))         => (),

@@ -3,6 +3,7 @@ use crate::file_change::FileChange;
 use crate::file_changes_column::FileChangesColumn;
 use crate::gui_element_provider::GuiElementProvider;
 use crate::ifile_changes_store::IFileChangesStore;
+use crate::selections_comparer::SelectionsComparer;
 use crate::tree_model_utils::toRow;
 use crate::tree_view::TreeView;
 
@@ -21,6 +22,7 @@ const LEFT_MENU_ITEM_ATTACH: u32 = 0;
 const RIGHT_MENU_ITEM_ATTACH: u32 = 1;
 const TOP_MENU_ITEM_ATTACH: u32 = 0;
 const BOTTOM_MENU_ITEM_ATTACH: u32 = 1;
+const NO_SELECTIONS_COMPARER: Option<Box<dyn SelectionsComparer>> = None;
 
 
 pub struct FileChangesView<StoreType>
@@ -64,6 +66,7 @@ impl<StoreType> FileChangesView<StoreType>
         let view = TreeView::new(
             guiElementProvider,
             widgetName,
+            NO_SELECTIONS_COMPARER,
             sender.clone(),
             source,
             &FileChangesColumn::asArrayOfI32());

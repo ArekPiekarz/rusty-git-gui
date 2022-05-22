@@ -57,6 +57,10 @@ pub enum Event
     // tree selection
     SelectionChanged(gtk::TreeSelection),
 
+    // model filter
+    RefilterRequested,
+    RefilterEnded,
+
     // stack
     StackChildChanged(String),
 
@@ -71,6 +75,7 @@ pub enum Source
     CommitButton,
     CommitDiffViewWidget,
     CommitLogAuthorFilterEntry,
+    CommitLogModelFilter,
     CommitLogView,
     CommitLogViewWidget,
     CommitMessageView,
