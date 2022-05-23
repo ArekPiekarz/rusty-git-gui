@@ -45,7 +45,7 @@ impl CommitLogModelFilter
 
     fn onCommitAuthorFilterChanged(&self, filter: &str)
     {
-        *self.authorFilter.borrow_mut() = filter.into();
+        *self.authorFilter.borrow_mut() = filter.to_lowercase();
         self.sender.send((Source::CommitLogModelFilter, Event::RefilterRequested)).unwrap();
     }
 
@@ -66,6 +66,6 @@ fn setupFilterFunction(modelFilter: &gtk::TreeModelFilter, authorFilter: AuthorF
 
         let author = model.value(iter, CommitLogColumn::Author.into());
         let author = author.get::<&str>().unwrap();
-        author == *authorFilter
+        author.to_lowercase().contains(authorFilter)
     });
 }
