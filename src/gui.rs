@@ -3,7 +3,7 @@ use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
 use crate::commit_diff_view::CommitDiffView;
 use crate::commit_log::CommitLog;
-use crate::commit_log_author_filter_entry::setupCommitLogAuthorFilterEntry;
+use crate::commit_log_author_filter_entry::{setupCommitLogAuthorFilterEntry, setupCommitLogAuthorFilterRegexButton};
 use crate::commit_log_filters_view::CommitLogFiltersView;
 use crate::commit_log_model::CommitLogModel;
 use crate::commit_log_model_filter::CommitLogModelFilter;
@@ -92,7 +92,8 @@ impl Gui
         let toolBarStack = ToolBarStack::new(&guiElementProvider);
 
         setupShowCommitLogFiltersButton(&guiElementProvider, sender.clone());
-        setupCommitLogAuthorFilterEntry(&guiElementProvider, sender);
+        setupCommitLogAuthorFilterEntry(&guiElementProvider, sender.clone());
+        setupCommitLogAuthorFilterRegexButton(&guiElementProvider, sender);
 
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);
@@ -153,55 +154,56 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
     use Source as S;
     use Event as E;
     attach(receiver, move |(source, event)| { match (source, &event) {
-        (S::CommitAmendCheckbox,        E::CommitAmendDisabled)     => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
-        (S::CommitAmendCheckbox,        E::CommitAmendEnabled)      => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
-        (S::CommitAmendCheckbox,        E::Toggled)                 => commitAmendCheckbox.handle(source, &event),
-        (S::CommitButton,               E::AmendCommitRequested(_)) => repository.handle(source, &event),
-        (S::CommitButton,               E::Clicked)                 => commitButton.handle(source, &event),
-        (S::CommitButton,               E::CommitRequested(_))      => repository.handle(source, &event),
-        (S::CommitDiffViewWidget,       E::ZoomRequested(_))        => commitDiffView.handle(source, &event),
-        (S::CommitLogAuthorFilterEntry, E::TextEntered(_))          => commitLogModelFilter.handle(source, &event),
-        (S::CommitLogModelFilter,       E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
-        (S::CommitLogModelFilter,       E::RefilterEnded)           => commitLogView.handle(source, &event),
-        (S::CommitLogView,              E::CommitSelected(_))       => commitDiffView.handle(source, &event),
-        (S::CommitLogView,              E::CommitUnselected)        => commitDiffView.handle(source, &event),
-        (S::CommitLogViewWidget,        E::RightClicked(_))         => (),
-        (S::CommitLogViewWidget,        E::RowActivated(_))         => (),
-        (S::CommitLogViewWidget,        E::SelectionChanged(_))     => commitLogView.handle(source, &event),
-        (S::CommitMessageView,          E::BufferChanged)           => commitMessageView.handle(source, &event),
-        (S::CommitMessageView,          E::Emptied)                 => commitButton.handle(source, &event),
-        (S::CommitMessageView,          E::Filled)                  => commitButton.handle(source, &event),
-        (S::CommitMessageView,          E::ZoomRequested(_))        => commitMessageView.handle(source, &event),
-        (S::DiffView,                   E::ZoomRequested(_))        => diffView.handle(source, &event),
-        (S::MainStack,                  E::StackChildChanged(_))    => toolBarStack.handle(source, &event),
-        (S::RefreshButton,              E::Clicked)                 => refreshButton.handle(source, &event),
-        (S::RefreshButton,              E::RefreshRequested)        => repository.handle(source, &event),
-        (S::Repository,                 E::AddedToStaged(_))        => (&stagedChangesStore, &mut commitButton).handle(source, &event),
-        (S::Repository,                 E::AddedToUnstaged(_))      => unstagedChangesStore.handle(source, &event),
-        (S::Repository,                 E::AmendedCommit)           => (&stagedChangesStore, &mut commitAmendCheckbox).handle(source, &event),
-        (S::Repository,                 E::Committed)               => (&stagedChangesStore, &mut commitMessageView, &mut commitAmendCheckbox).handle(source, &event),
-        (S::Repository,                 E::RemovedFromStaged(_))    => (&stagedChangesStore, &mut commitButton).handle(source, &event),
-        (S::Repository,                 E::RemovedFromUnstaged(_))  => unstagedChangesStore.handle(source, &event),
-        (S::Repository,                 E::Refreshed)               => (&unstagedChangesStore, &stagedChangesStore).handle(source, &event),
-        (S::Repository,                 E::UpdatedInStaged(_))      => stagedChangesStore.handle(source, &event),
-        (S::Repository,                 E::UpdatedInUnstaged(_))    => unstagedChangesStore.handle(source, &event),
-        (S::ShowCommitLogFiltersButton, E::Toggled)                 => commitLogFiltersView.handle(source, &event),
-        (S::StagedChangesStore,         E::Refreshed)               => stagedChangesView.handle(source, &event),
-        (S::StagedChangesView,          E::FileChangeRefreshed(_))  => diffView.handle(source, &event),
-        (S::StagedChangesView,          E::FileChangeSelected(_))   => (&mut diffView, &mut unstagedChangesView).handle(source, &event),
-        (S::StagedChangesView,          E::FileChangeUnselected)    => diffView.handle(source, &event),
-        (S::StagedChangesView,          E::RightClicked(_))         => stagedChangesView.handle(source, &event),
-        (S::StagedChangesView,          E::RowActivated(_))         => stagedChangesView.handle(source, &event),
-        (S::StagedChangesView,          E::SelectionChanged(_))     => stagedChangesView.handle(source, &event),
-        (S::StagedChangesView,          E::UnstageRequested(_))     => repository.handle(source, &event),
-        (S::UnstagedChangesStore,       E::Refreshed)               => unstagedChangesView.handle(source, &event),
-        (S::UnstagedChangesView,        E::FileChangeRefreshed(_))  => diffView.handle(source, &event),
-        (S::UnstagedChangesView,        E::FileChangeSelected(_))   => (&mut diffView, &mut stagedChangesView).handle(source, &event),
-        (S::UnstagedChangesView,        E::FileChangeUnselected)    => diffView.handle(source, &event),
-        (S::UnstagedChangesView,        E::RightClicked(_))         => unstagedChangesView.handle(source, &event),
-        (S::UnstagedChangesView,        E::RowActivated(_))         => unstagedChangesView.handle(source, &event),
-        (S::UnstagedChangesView,        E::SelectionChanged(_))     => unstagedChangesView.handle(source, &event),
-        (S::UnstagedChangesView,        E::StageRequested(_))       => repository.handle(source, &event),
+        (S::CommitAmendCheckbox,              E::CommitAmendDisabled)     => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
+        (S::CommitAmendCheckbox,              E::CommitAmendEnabled)      => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
+        (S::CommitAmendCheckbox,              E::Toggled)                 => commitAmendCheckbox.handle(source, &event),
+        (S::CommitButton,                     E::AmendCommitRequested(_)) => repository.handle(source, &event),
+        (S::CommitButton,                     E::Clicked)                 => commitButton.handle(source, &event),
+        (S::CommitButton,                     E::CommitRequested(_))      => repository.handle(source, &event),
+        (S::CommitDiffViewWidget,             E::ZoomRequested(_))        => commitDiffView.handle(source, &event),
+        (S::CommitLogAuthorFilterEntry,       E::TextEntered(_))          => commitLogModelFilter.handle(source, &event),
+        (S::CommitLogAuthorFilterRegexButton, E::Toggled)                 => commitLogModelFilter.handle(source, &event),
+        (S::CommitLogModelFilter,             E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
+        (S::CommitLogModelFilter,             E::RefilterEnded)           => commitLogView.handle(source, &event),
+        (S::CommitLogView,                    E::CommitSelected(_))       => commitDiffView.handle(source, &event),
+        (S::CommitLogView,                    E::CommitUnselected)        => commitDiffView.handle(source, &event),
+        (S::CommitLogViewWidget,              E::RightClicked(_))         => (),
+        (S::CommitLogViewWidget,              E::RowActivated(_))         => (),
+        (S::CommitLogViewWidget,              E::SelectionChanged(_))     => commitLogView.handle(source, &event),
+        (S::CommitMessageView,                E::BufferChanged)           => commitMessageView.handle(source, &event),
+        (S::CommitMessageView,                E::Emptied)                 => commitButton.handle(source, &event),
+        (S::CommitMessageView,                E::Filled)                  => commitButton.handle(source, &event),
+        (S::CommitMessageView,                E::ZoomRequested(_))        => commitMessageView.handle(source, &event),
+        (S::DiffView,                         E::ZoomRequested(_))        => diffView.handle(source, &event),
+        (S::MainStack,                        E::StackChildChanged(_))    => toolBarStack.handle(source, &event),
+        (S::RefreshButton,                    E::Clicked)                 => refreshButton.handle(source, &event),
+        (S::RefreshButton,                    E::RefreshRequested)        => repository.handle(source, &event),
+        (S::Repository,                       E::AddedToStaged(_))        => (&stagedChangesStore, &mut commitButton).handle(source, &event),
+        (S::Repository,                       E::AddedToUnstaged(_))      => unstagedChangesStore.handle(source, &event),
+        (S::Repository,                       E::AmendedCommit)           => (&stagedChangesStore, &mut commitAmendCheckbox).handle(source, &event),
+        (S::Repository,                       E::Committed)               => (&stagedChangesStore, &mut commitMessageView, &mut commitAmendCheckbox).handle(source, &event),
+        (S::Repository,                       E::RemovedFromStaged(_))    => (&stagedChangesStore, &mut commitButton).handle(source, &event),
+        (S::Repository,                       E::RemovedFromUnstaged(_))  => unstagedChangesStore.handle(source, &event),
+        (S::Repository,                       E::Refreshed)               => (&unstagedChangesStore, &stagedChangesStore).handle(source, &event),
+        (S::Repository,                       E::UpdatedInStaged(_))      => stagedChangesStore.handle(source, &event),
+        (S::Repository,                       E::UpdatedInUnstaged(_))    => unstagedChangesStore.handle(source, &event),
+        (S::ShowCommitLogFiltersButton,       E::Toggled)                 => commitLogFiltersView.handle(source, &event),
+        (S::StagedChangesStore,               E::Refreshed)               => stagedChangesView.handle(source, &event),
+        (S::StagedChangesView,                E::FileChangeRefreshed(_))  => diffView.handle(source, &event),
+        (S::StagedChangesView,                E::FileChangeSelected(_))   => (&mut diffView, &mut unstagedChangesView).handle(source, &event),
+        (S::StagedChangesView,                E::FileChangeUnselected)    => diffView.handle(source, &event),
+        (S::StagedChangesView,                E::RightClicked(_))         => stagedChangesView.handle(source, &event),
+        (S::StagedChangesView,                E::RowActivated(_))         => stagedChangesView.handle(source, &event),
+        (S::StagedChangesView,                E::SelectionChanged(_))     => stagedChangesView.handle(source, &event),
+        (S::StagedChangesView,                E::UnstageRequested(_))     => repository.handle(source, &event),
+        (S::UnstagedChangesStore,             E::Refreshed)               => unstagedChangesView.handle(source, &event),
+        (S::UnstagedChangesView,              E::FileChangeRefreshed(_))  => diffView.handle(source, &event),
+        (S::UnstagedChangesView,              E::FileChangeSelected(_))   => (&mut diffView, &mut stagedChangesView).handle(source, &event),
+        (S::UnstagedChangesView,              E::FileChangeUnselected)    => diffView.handle(source, &event),
+        (S::UnstagedChangesView,              E::RightClicked(_))         => unstagedChangesView.handle(source, &event),
+        (S::UnstagedChangesView,              E::RowActivated(_))         => unstagedChangesView.handle(source, &event),
+        (S::UnstagedChangesView,              E::SelectionChanged(_))     => unstagedChangesView.handle(source, &event),
+        (S::UnstagedChangesView,              E::StageRequested(_))       => repository.handle(source, &event),
         (source, event) => handleUnknown(source, event) }
 
         glib::Continue(true)

@@ -75,6 +75,7 @@ pub enum Source
     CommitButton,
     CommitDiffViewWidget,
     CommitLogAuthorFilterEntry,
+    CommitLogAuthorFilterRegexButton,
     CommitLogModelFilter,
     CommitLogView,
     CommitLogViewWidget,
