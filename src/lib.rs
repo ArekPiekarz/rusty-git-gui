@@ -81,6 +81,7 @@ mod staged_changes;
 mod staged_changes_store;
 mod staged_changes_view;
 mod line_diff;
+mod text_filter;
 mod text_view;
 mod tool_bar_stack;
 mod tree_selection;

@@ -14,7 +14,7 @@ impl IEventHandler for CommitLogFiltersView
     fn handle(&mut self, source: Source, event: &Event)
     {
         match event {
-            Event::Toggled => self.onToggled(),
+            Event::Toggled(isEnabled) => self.onToggled(*isEnabled),
             _ => handleUnknown(source, event)
         }
     }
@@ -28,8 +28,8 @@ impl CommitLogFiltersView
         Self{widget}
     }
 
-    fn onToggled(&self)
+    fn onToggled(&self, isEnabled: bool)
     {
-        self.widget.set_visible(!self.widget.is_visible());
+        self.widget.set_visible(isEnabled);
     }
 }

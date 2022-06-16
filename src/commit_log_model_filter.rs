@@ -1,19 +1,18 @@
 use crate::commit_log_column::{CommitLogColumn};
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
+use crate::text_filter::TextFilter;
 
 use gtk::traits::TreeModelExt;
 use gtk::traits::TreeModelFilterExt;
-use regex::RegexBuilder;
 use std::cell::RefCell;
-use std::ops::Not;
 use std::rc::Rc;
 
 
 pub struct CommitLogModelFilter
 {
     modelFilter: gtk::TreeModelFilter,
-    authorFilter: Rc<RefCell<AuthorFilter>>,
+    authorFilter: Rc<RefCell<TextFilter>>,
     sender: Sender
 }
 
@@ -24,7 +23,7 @@ impl IEventHandler for CommitLogModelFilter
         match (source, event) {
             (_, Event::RefilterRequested)   => self.onRefilterRequested(),
             (_, Event::TextEntered(filter)) => self.onCommitAuthorFilterChanged(filter),
-            (Source::CommitLogAuthorFilterRegexButton, Event::Toggled) => self.onRegexToggled(),
+            (Source::CommitLogAuthorFilterRegexButton, Event::Toggled(isEnabled)) => self.onRegexToggled(*isEnabled),
             _ => handleUnknown(source, event)
         }
     }
@@ -36,7 +35,7 @@ impl CommitLogModelFilter
         -> Self
     {
         let modelFilter = guiElementProvider.get::<gtk::TreeModelFilter>("Commit log store filter");
-        let authorFilter = Rc::new(RefCell::new(AuthorFilter::new()));
+        let authorFilter = Rc::new(RefCell::new(TextFilter::new()));
         setupFilterFunction(&modelFilter, Rc::clone(&authorFilter));
         Self{modelFilter, authorFilter, sender}
     }
@@ -44,10 +43,21 @@ impl CommitLogModelFilter
 
     // private
 
-    fn onCommitAuthorFilterChanged(&self, filter: &str)
+    fn onCommitAuthorFilterChanged(&self, text: &str)
     {
-        self.authorFilter.borrow_mut().text = filter.to_lowercase();
-        self.requestRefilter();
+        match self.authorFilter.borrow_mut().setText(text) {
+            Ok(()) => self.requestRefilter(),
+            Err(e) => eprintln!("Invalid author filter regex: {}", e)
+        }
+
+    }
+
+    fn onRegexToggled(&self, isEnabled: bool)
+    {
+        match self.authorFilter.borrow_mut().enableRegex(isEnabled) {
+            Ok(()) => self.requestRefilter(),
+            Err(e) => eprintln!("Invalid author filter regex: {}", e)
+        }
     }
 
     fn onRefilterRequested(&self)
@@ -56,51 +66,22 @@ impl CommitLogModelFilter
         self.sender.send((Source::CommitLogModelFilter, Event::RefilterEnded)).unwrap();
     }
 
-    fn onRegexToggled(&self)
-    {
-        let mut authorFilter = self.authorFilter.borrow_mut();
-        authorFilter.useRegex = authorFilter.useRegex.not();
-        self.requestRefilter();
-    }
-
     fn requestRefilter(&self)
     {
         self.sender.send((Source::CommitLogModelFilter, Event::RefilterRequested)).unwrap();
     }
 }
 
-fn setupFilterFunction(modelFilter: &gtk::TreeModelFilter, authorFilter: Rc<RefCell<AuthorFilter>>)
+fn setupFilterFunction(modelFilter: &gtk::TreeModelFilter, authorFilter: Rc<RefCell<TextFilter>>)
 {
     modelFilter.set_visible_func(move |model, iter| {
         let authorFilter = &*authorFilter.borrow();
-        if authorFilter.text.is_empty() {
+        if authorFilter.isEmpty() {
             return true;
         }
 
         let author = model.value(iter, CommitLogColumn::Author.into());
         let author = author.get::<&str>().unwrap();
-        if authorFilter.useRegex {
-            match RegexBuilder::new(&authorFilter.text).case_insensitive(true).build() {
-                Ok(regex) => regex.is_match(author),
-                Err(_) => false
-            }
-
-        } else {
-            author.to_lowercase().contains(&authorFilter.text)
-        }
+        authorFilter.isMatch(author)
     });
-}
-
-struct AuthorFilter
-{
-    text: String,
-    useRegex: bool
-}
-
-impl AuthorFilter
-{
-    fn new() -> Self
-    {
-        Self{text: String::new(), useRegex: false}
-    }
 }

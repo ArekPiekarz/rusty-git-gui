@@ -28,8 +28,8 @@ pub enum Event
     // button
     Clicked,
 
-    // checkbox
-    Toggled,
+    // checkbox, tool button
+    Toggled(IsEnabled),
 
     // commit amend mode
     CommitAmendEnabled,
@@ -67,6 +67,8 @@ pub enum Event
     // text entry
     TextEntered(String)
 }
+
+type IsEnabled = bool;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Source

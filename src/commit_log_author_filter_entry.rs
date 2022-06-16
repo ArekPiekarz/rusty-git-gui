@@ -17,6 +17,6 @@ pub fn setupCommitLogAuthorFilterEntry(guiElementProvider: &GuiElementProvider, 
 pub(crate) fn setupCommitLogAuthorFilterRegexButton(guiElementProvider: &GuiElementProvider, sender: Sender)
 {
     let button = guiElementProvider.get::<gtk::ToggleButton>("Commit log author filter regex button");
-    button.connect_toggled(
-        move |_button| sender.send((Source::CommitLogAuthorFilterRegexButton, Event::Toggled)).unwrap());
+    button.connect_toggled(move |button|
+        sender.send((Source::CommitLogAuthorFilterRegexButton, Event::Toggled(button.is_active()))).unwrap());
 }

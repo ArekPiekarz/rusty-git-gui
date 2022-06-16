@@ -17,9 +17,9 @@ impl IEventHandler for CommitAmendCheckbox
     fn handle(&mut self, source: Source, event: &Event)
     {
         match event {
-            Event::AmendedCommit => self.onAmendedCommit(),
-            Event::Committed     => self.onCommitted(),
-            Event::Toggled       => self.onToggled(),
+            Event::AmendedCommit       => self.onAmendedCommit(),
+            Event::Committed           => self.onCommitted(),
+            Event::Toggled(isSelected) => self.onToggled(*isSelected),
             _ => handleUnknown(source, event)
         }
     }
@@ -44,12 +44,6 @@ impl CommitAmendCheckbox
 
 
     // private
-
-    #[must_use]
-    pub fn isSelected(&self) -> bool
-    {
-        self.widget.is_active()
-    }
 
     pub fn unselect(&self)
     {
@@ -77,8 +71,8 @@ impl CommitAmendCheckbox
     fn connectWidget(&self)
     {
         let eventSender = self.sender.clone();
-        self.widget.connect_toggled(move |_checkbox|
-            eventSender.send((Source::CommitAmendCheckbox, Event::Toggled)).unwrap());
+        self.widget.connect_toggled(move |checkbox|
+            eventSender.send((Source::CommitAmendCheckbox, Event::Toggled(checkbox.is_active()))).unwrap());
     }
 
     fn onAmendedCommit(&self)
@@ -93,9 +87,9 @@ impl CommitAmendCheckbox
         }
     }
 
-    fn onToggled(&self)
+    fn onToggled(&self, isSelected: bool)
     {
-        if self.isSelected() {
+        if isSelected {
             self.notifyOnSelected();
         } else {
             self.notifyOnUnselected();
