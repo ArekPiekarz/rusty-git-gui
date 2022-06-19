@@ -3,7 +3,7 @@ use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
 use crate::commit_diff_view::CommitDiffView;
 use crate::commit_log::CommitLog;
-use crate::commit_log_author_filter_entry::{setupCommitLogAuthorFilterEntry, setupCommitLogAuthorFilterRegexButton};
+use crate::commit_log_author_filter_entry::CommitLogAuthorFilterEntry;
 use crate::commit_log_filters_view::CommitLogFiltersView;
 use crate::commit_log_model::CommitLogModel;
 use crate::commit_log_model_filter::CommitLogModelFilter;
@@ -54,6 +54,7 @@ struct GuiObjects
     commitLogModelFilter: CommitLogModelFilter,
     commitLogView: CommitLogView,
     commitDiffView: CommitDiffView,
+    commitLogAuthorFilterEntry: CommitLogAuthorFilterEntry,
 }
 
 impl Gui
@@ -92,8 +93,7 @@ impl Gui
         let toolBarStack = ToolBarStack::new(&guiElementProvider);
 
         setupShowCommitLogFiltersButton(&guiElementProvider, sender.clone());
-        setupCommitLogAuthorFilterEntry(&guiElementProvider, sender.clone());
-        setupCommitLogAuthorFilterRegexButton(&guiElementProvider, sender);
+        let commitLogAuthorFilterEntry = CommitLogAuthorFilterEntry::new(&guiElementProvider, sender);
 
         let mut settings = Settings::new();
         setupPanes(&guiElementProvider, &mut settings);
@@ -115,7 +115,8 @@ impl Gui
             commitLogModelFilter,
             commitLogView,
             commitDiffView,
-            toolBarStack
+            toolBarStack,
+            commitLogAuthorFilterEntry
         };
         setupDispatching(guiObjects, repository, receiver);
         newSelf
@@ -150,6 +151,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
     let mut commitLogModelFilter = gui.commitLogModelFilter;
     let mut commitLogView = gui.commitLogView;
     let mut commitDiffView = gui.commitDiffView;
+    let mut commitLogAuthorFilterEntry = gui.commitLogAuthorFilterEntry;
 
     use Source as S;
     use Event as E;
@@ -165,6 +167,8 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitLogAuthorFilterRegexButton, E::Toggled(_))              => commitLogModelFilter.handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterEnded)           => commitLogView.handle(source, &event),
+        (S::CommitLogModelFilter,             E::InvalidTextInputted)     => commitLogAuthorFilterEntry.handle(source, &event),
+        (S::CommitLogModelFilter,             E::ValidTextInputted)       => commitLogAuthorFilterEntry.handle(source, &event),
         (S::CommitLogView,                    E::CommitSelected(_))       => commitDiffView.handle(source, &event),
         (S::CommitLogView,                    E::CommitUnselected)        => commitDiffView.handle(source, &event),
         (S::CommitLogViewWidget,              E::RightClicked(_))         => (),

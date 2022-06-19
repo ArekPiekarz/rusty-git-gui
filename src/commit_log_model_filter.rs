@@ -3,6 +3,7 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::text_filter::TextFilter;
 
+use anyhow::Result;
 use gtk::traits::TreeModelExt;
 use gtk::traits::TreeModelFilterExt;
 use std::cell::RefCell;
@@ -13,7 +14,8 @@ pub struct CommitLogModelFilter
 {
     modelFilter: gtk::TreeModelFilter,
     authorFilter: Rc<RefCell<TextFilter>>,
-    sender: Sender
+    sender: Sender,
+    state: State
 }
 
 impl IEventHandler for CommitLogModelFilter
@@ -23,7 +25,7 @@ impl IEventHandler for CommitLogModelFilter
         match (source, event) {
             (_, Event::RefilterRequested)   => self.onRefilterRequested(),
             (_, Event::TextEntered(filter)) => self.onCommitAuthorFilterChanged(filter),
-            (Source::CommitLogAuthorFilterRegexButton, Event::Toggled(isEnabled)) => self.onRegexToggled(*isEnabled),
+            (Source::CommitLogAuthorFilterRegexButton, Event::Toggled(shouldEnable)) => self.onRegexToggled(*shouldEnable),
             _ => handleUnknown(source, event)
         }
     }
@@ -37,27 +39,52 @@ impl CommitLogModelFilter
         let modelFilter = guiElementProvider.get::<gtk::TreeModelFilter>("Commit log store filter");
         let authorFilter = Rc::new(RefCell::new(TextFilter::new()));
         setupFilterFunction(&modelFilter, Rc::clone(&authorFilter));
-        Self{modelFilter, authorFilter, sender}
+        Self{modelFilter, authorFilter, sender, state: State::Success}
     }
 
 
     // private
 
-    fn onCommitAuthorFilterChanged(&self, text: &str)
+    fn onCommitAuthorFilterChanged(&mut self, text: &str)
     {
-        match self.authorFilter.borrow_mut().setText(text) {
-            Ok(()) => self.requestRefilter(),
-            Err(e) => eprintln!("Invalid author filter regex: {}", e)
-        }
-
+        let result = self.authorFilter.borrow_mut().setText(text);
+        self.handleChangeResult(result);
     }
 
-    fn onRegexToggled(&self, isEnabled: bool)
+    fn onRegexToggled(&mut self, shouldEnable: bool)
     {
-        match self.authorFilter.borrow_mut().enableRegex(isEnabled) {
-            Ok(()) => self.requestRefilter(),
-            Err(e) => eprintln!("Invalid author filter regex: {}", e)
+        let result = self.authorFilter.borrow_mut().setRegexEnabled(shouldEnable);
+        self.handleChangeResult(result);
+    }
+
+    fn handleChangeResult(&mut self, result: Result<()>)
+    {
+        match result {
+            Ok(()) => self.onChangeSucceeded(),
+            Err(_) => self.onChangeFailed()
         }
+    }
+
+    fn onChangeSucceeded(&mut self)
+    {
+        if self.state == State::Failure {
+            self.state = State::Success;
+            self.sendValidTextInputted();
+        }
+        self.requestRefilter();
+    }
+
+    fn onChangeFailed(&mut self)
+    {
+        if self.state == State::Success {
+            self.state = State::Failure;
+            self.sendInvalidTextInputted();
+        }
+    }
+
+    fn requestRefilter(&self)
+    {
+        self.sender.send((Source::CommitLogModelFilter, Event::RefilterRequested)).unwrap();
     }
 
     fn onRefilterRequested(&self)
@@ -66,10 +93,22 @@ impl CommitLogModelFilter
         self.sender.send((Source::CommitLogModelFilter, Event::RefilterEnded)).unwrap();
     }
 
-    fn requestRefilter(&self)
+    fn sendValidTextInputted(&self)
     {
-        self.sender.send((Source::CommitLogModelFilter, Event::RefilterRequested)).unwrap();
+        self.sender.send((Source::CommitLogModelFilter, Event::ValidTextInputted)).unwrap();
     }
+
+    fn sendInvalidTextInputted(&self)
+    {
+        self.sender.send((Source::CommitLogModelFilter, Event::InvalidTextInputted)).unwrap();
+    }
+}
+
+#[derive(Eq, PartialEq)]
+enum State
+{
+    Success,
+    Failure
 }
 
 fn setupFilterFunction(modelFilter: &gtk::TreeModelFilter, authorFilter: Rc<RefCell<TextFilter>>)

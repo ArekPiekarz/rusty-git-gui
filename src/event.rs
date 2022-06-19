@@ -65,7 +65,9 @@ pub enum Event
     StackChildChanged(String),
 
     // text entry
-    TextEntered(String)
+    TextEntered(String),
+    InvalidTextInputted,
+    ValidTextInputted,
 }
 
 type IsEnabled = bool;

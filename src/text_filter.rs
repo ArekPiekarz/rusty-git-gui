@@ -47,7 +47,7 @@ impl TextFilter
         Ok(())
     }
 
-    pub(crate) fn enableRegex(&mut self, shouldEnable: bool) -> Result<()>
+    pub(crate) fn setRegexEnabled(&mut self, shouldEnable: bool) -> Result<()>
     {
         if shouldEnable {
             match &mut self.regexState {
