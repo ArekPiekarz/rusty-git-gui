@@ -1,6 +1,7 @@
 use crate::commit_message::CommitMessage;
 use crate::file_change::{FileChange, FileChangeUpdate};
 
+use anyhow::Error;
 use gtk::{gdk, glib};
 
 
@@ -66,7 +67,7 @@ pub enum Event
 
     // text entry
     TextEntered(String),
-    InvalidTextInputted,
+    InvalidTextInputted(Error),
     ValidTextInputted,
 }
 

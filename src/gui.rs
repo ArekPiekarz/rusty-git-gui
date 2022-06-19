@@ -167,7 +167,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitLogAuthorFilterRegexButton, E::Toggled(_))              => commitLogModelFilter.handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterEnded)           => commitLogView.handle(source, &event),
-        (S::CommitLogModelFilter,             E::InvalidTextInputted)     => commitLogAuthorFilterEntry.handle(source, &event),
+        (S::CommitLogModelFilter,             E::InvalidTextInputted(_))  => commitLogAuthorFilterEntry.handle(source, &event),
         (S::CommitLogModelFilter,             E::ValidTextInputted)       => commitLogAuthorFilterEntry.handle(source, &event),
         (S::CommitLogView,                    E::CommitSelected(_))       => commitDiffView.handle(source, &event),
         (S::CommitLogView,                    E::CommitUnselected)        => commitDiffView.handle(source, &event),

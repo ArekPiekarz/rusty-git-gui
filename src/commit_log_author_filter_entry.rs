@@ -1,6 +1,7 @@
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 
+use anyhow::Error;
 use gtk::EditableSignals;
 use gtk::prelude::IsA;
 use gtk::traits::CssProviderExt;
@@ -15,6 +16,7 @@ const VALID_INPUT_CSS: &[u8] = "".as_bytes();
 
 pub(crate) struct CommitLogAuthorFilterEntry
 {
+    widget: gtk::Entry,
     cssProvider: gtk::CssProvider
 }
 
@@ -23,8 +25,8 @@ impl IEventHandler for CommitLogAuthorFilterEntry
     fn handle(&mut self, source: Source, event: &Event)
     {
         match event {
-            Event::InvalidTextInputted => self.onInvalidRegexInputted(),
-            Event::ValidTextInputted => self.onValidRegexInputted(),
+            Event::InvalidTextInputted(error) => self.onInvalidRegexInputted(error),
+            Event::ValidTextInputted          => self.onValidRegexInputted(),
             _ => handleUnknown(source, event)
         }
     }
@@ -38,17 +40,19 @@ impl CommitLogAuthorFilterEntry
         let cssProvider = setupCss(&widget);
         connectWidget(&widget, sender.clone());
         setupRegexButton(guiElementProvider, sender);
-        Self{cssProvider}
+        Self{widget, cssProvider}
     }
 
-    fn onInvalidRegexInputted(&self)
+    fn onInvalidRegexInputted(&self, error: &Error)
     {
         self.cssProvider.load_from_data(INVALID_INPUT_CSS).unwrap();
+        self.widget.set_tooltip_text(Some(&error.to_string()));
     }
 
     fn onValidRegexInputted(&self)
     {
         self.cssProvider.load_from_data(VALID_INPUT_CSS).unwrap();
+        self.widget.set_tooltip_text(None);
     }
 }
 

@@ -3,7 +3,7 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::text_filter::TextFilter;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use gtk::traits::TreeModelExt;
 use gtk::traits::TreeModelFilterExt;
 use std::cell::RefCell;
@@ -61,7 +61,7 @@ impl CommitLogModelFilter
     {
         match result {
             Ok(()) => self.onChangeSucceeded(),
-            Err(_) => self.onChangeFailed()
+            Err(e) => self.onChangeFailed(e)
         }
     }
 
@@ -74,11 +74,11 @@ impl CommitLogModelFilter
         self.requestRefilter();
     }
 
-    fn onChangeFailed(&mut self)
+    fn onChangeFailed(&mut self, error: Error)
     {
         if self.state == State::Success {
             self.state = State::Failure;
-            self.sendInvalidTextInputted();
+            self.sendInvalidTextInputted(error);
         }
     }
 
@@ -98,9 +98,9 @@ impl CommitLogModelFilter
         self.sender.send((Source::CommitLogModelFilter, Event::ValidTextInputted)).unwrap();
     }
 
-    fn sendInvalidTextInputted(&self)
+    fn sendInvalidTextInputted(&self, error: Error)
     {
-        self.sender.send((Source::CommitLogModelFilter, Event::InvalidTextInputted)).unwrap();
+        self.sender.send((Source::CommitLogModelFilter, Event::InvalidTextInputted(error))).unwrap();
     }
 }
 
