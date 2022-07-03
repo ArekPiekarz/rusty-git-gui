@@ -1,29 +1,36 @@
+use crate::config::Config;
+use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::event_constants::FORWARD_EVENT;
 use crate::gui_element_provider::GuiElementProvider;
-use crate::settings::Settings;
 
 use gtk::prelude::GtkWindowExt as _;
 use gtk::prelude::WidgetExt as _;
-use std::rc::Rc;
-
-const SECTION: &str = "Application window";
-const IS_MAXIMIZED_KEY: &str = "isMaximized";
-const MAXIMIZE_BY_DEFAULT: bool = true;
 
 
-pub struct ApplicationWindow
+pub(crate) struct ApplicationWindow
 {
     window: gtk::ApplicationWindow
 }
 
+impl IEventHandler for ApplicationWindow
+{
+    fn handle(&mut self, source: Source, event: &Event)
+    {
+        match event {
+            Event::QuitRequested => self.onQuitRequested(),
+            _ => handleUnknown(source, event)
+        }
+    }
+}
+
 impl ApplicationWindow
 {
-    pub fn new(guiElementProvider: &GuiElementProvider, mut settings: Settings) -> Rc<Self>
+    pub fn new(guiElementProvider: &GuiElementProvider, config: &Config, sender: Sender) -> Self
     {
-        let newSelf = Rc::new(Self{window: guiElementProvider.get::<gtk::ApplicationWindow>("Main window")});
-        newSelf.loadSettings(&settings);
-        newSelf.setupSavingSettings(&mut settings);
-        newSelf.connectToWindowDeletion(settings);
+        let newSelf = Self{window: guiElementProvider.get::<gtk::ApplicationWindow>("Main window")};
+        newSelf.loadConfig(config);
+        newSelf.connectToMaximizationChanged(sender.clone());
+        newSelf.connectToWindowDeletion(sender);
         newSelf
     }
 
@@ -39,41 +46,33 @@ impl ApplicationWindow
 
     // private
 
-    fn loadSettings(&self, settings: &Settings)
+    fn loadConfig(&self, config: &Config)
     {
-        let isMaximized = settings.get(SECTION, IS_MAXIMIZED_KEY, MAXIMIZE_BY_DEFAULT);
-        if isMaximized {
+        if config.applicationWindow.isMaximized {
             self.window.maximize();
         } else {
             self.window.unmaximize();
         }
     }
 
-    fn saveSettings(&self, settings: &Settings)
+    fn connectToMaximizationChanged(&self, sender: Sender)
     {
-        settings.set(SECTION, IS_MAXIMIZED_KEY, self.window.is_maximized());
+        self.window.connect_is_maximized_notify(move |window|
+            sender.send((Source::ApplicationWindow, Event::MaximizationChanged(window.is_maximized()))).unwrap());
     }
 
-    fn setupSavingSettings(self: &Rc<Self>, settings: &mut Settings)
-    {
-        let weakSelf = Rc::downgrade(self);
-        settings.addSaver(Box::new(
-            move |settings| {
-                if let Some(rcSelf) = weakSelf.upgrade() {
-                    rcSelf.saveSettings(settings);
-                }
-            }
-        ));
-    }
-
-    fn connectToWindowDeletion(&self, settings: Settings)
+    fn connectToWindowDeletion(&self, sender: Sender)
     {
         self.window.connect_delete_event(move |_window, _event| {
-            settings.save();
-            if gtk::main_level() > 0 {
-                gtk::main_quit();
-            }
+            sender.send((Source::ApplicationWindow, Event::QuitRequested)).unwrap();
             FORWARD_EVENT
         });
+    }
+
+    fn onQuitRequested(&self)
+    {
+        if gtk::main_level() > 0 {
+            gtk::main_quit();
+        }
     }
 }

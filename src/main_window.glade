@@ -124,14 +124,14 @@
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkPaned" id="Main paned">
+              <object class="GtkPaned" id="Main pane">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="position">200</property>
                 <property name="position-set">True</property>
                 <property name="wide-handle">True</property>
                 <child>
-                  <object class="GtkPaned" id="File changes paned">
+                  <object class="GtkPaned" id="File changes pane">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="orientation">vertical</property>
@@ -257,7 +257,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkPaned" id="Diff and commit paned">
+                  <object class="GtkPaned" id="Diff and commit pane">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="orientation">vertical</property>

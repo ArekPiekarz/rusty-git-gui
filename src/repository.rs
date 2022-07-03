@@ -1,8 +1,8 @@
+use crate::config::Config;
 use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::error_handling::{exit, showErrorDialog};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::grouped_file_changes::GroupedFileChanges;
-use crate::settings::Settings;
 use crate::staged_changes::StagedChanges;
 use crate::unstaged_changes::UnstagedChanges;
 
@@ -27,7 +27,6 @@ const STATUS_NOT_FOUND : bool = false;
 const NO_AUTHOR_UPDATE: Option<&git2::Signature> = None;
 const NO_COMMITTER_UPDATE: Option<&git2::Signature> = None;
 const NO_MESSAGE_ENCODING_UPDATE: Option<&str> = None;
-const DEFAULT_DIFF_CONTEXT_SIZE: u32 = 3;
 
 
 pub struct Repository
@@ -60,7 +59,7 @@ impl IEventHandler for Repository
 impl Repository
 {
     #[must_use]
-    pub fn new(path: &Path, sender: Sender, settings: &Settings) -> Self
+    pub(crate) fn new(path: &Path, config: &Config, sender: Sender) -> Self
     {
         let mut newSelf = Self{
             gitRepo: openRepository(path),
@@ -68,7 +67,7 @@ impl Repository
             sender,
             stager: Self::stageNormally,
             unstager: Self::unstageNormally,
-            diffContextSize: settings.get("Repository", "diffContextSize", DEFAULT_DIFF_CONTEXT_SIZE)
+            diffContextSize: config.repository.diffContextSize
         };
         newSelf.collectCurrentFileChanges();
         newSelf

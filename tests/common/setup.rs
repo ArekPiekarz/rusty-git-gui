@@ -3,18 +3,13 @@ use crate::common::test_gui::TestGui;
 
 use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
 use rusty_git_gui::gui::Gui;
-use rusty_git_gui::main_context::makeChannel;
-use rusty_git_gui::repository::Repository;
-use rusty_git_gui::settings::Settings;
 
 use gtk::glib::object::Cast as _;
 use gtk::glib::ObjectExt as _;
-use std::cell::RefCell;
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::rc::Rc;
 use tempfile::{tempdir, TempDir};
 
 
@@ -29,11 +24,7 @@ pub fn setupTest() -> TempDir
 
 pub fn makeGui(repositoryDir: &Path) -> TestGui
 {
-    let (sender, receiver) = makeChannel();
-    let gui = Gui::new(
-        Rc::new(RefCell::new(Repository::new(&repositoryDir, sender.clone(), &Settings::new()))),
-        sender,
-        receiver);
+    let gui = Gui::new(repositoryDir);
     show(&gui);
     TestGui::new(getAppWindow())
 }

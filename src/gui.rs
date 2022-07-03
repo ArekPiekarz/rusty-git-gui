@@ -1,4 +1,5 @@
 use crate::commit_amend_checkbox::CommitAmendCheckbox;
+use crate::app_quitter::AppQuitter;
 use crate::application_window::ApplicationWindow;
 use crate::commit_button::CommitButton;
 use crate::commit_diff_view::CommitDiffView;
@@ -10,17 +11,19 @@ use crate::commit_log_model_filter::CommitLogModelFilter;
 use crate::commit_log_view::CommitLogView;
 use crate::commit_message_reader::CommitMessageReader;
 use crate::commit_message_view::CommitMessageView;
-use crate::diff_and_commit_paned::setupDiffAndCommitPaned;
+use crate::config::Config;
+use crate::config_path::ConfigPath;
+use crate::config_store::ConfigStore;
+use crate::diff_and_commit_pane::setupDiffAndCommitPane;
 use crate::diff_view::DiffView;
 use crate::event::{Event, handleUnknown, IEventHandler, Receiver, Sender, Source};
-use crate::file_changes_paned::setupFileChangesPaned;
+use crate::file_changes_pane::setupFileChangesPane;
 use crate::gui_element_provider::GuiElementProvider;
-use crate::main_context::attach;
-use crate::main_paned::setupMainPaned;
+use crate::main_context::{attach, makeChannel};
+use crate::main_pane::setupMainPane;
 use crate::main_stack::setupMainStack;
 use crate::refresh_button::RefreshButton;
 use crate::repository::Repository;
-use crate::settings::Settings;
 use crate::show_commit_log_filters_button::setupShowCommitLogFiltersButton;
 use crate::staged_changes_store::StagedChangesStore;
 use crate::staged_changes_view::{makeStagedChangesView, StagedChangesView};
@@ -30,16 +33,18 @@ use crate::unstaged_changes_view::{makeUnstagedChangesView, UnstagedChangesView}
 
 use gtk::glib;
 use std::cell::RefCell;
+use std::path::Path;
 use std::rc::Rc;
 
 
 pub struct Gui
 {
-    applicationWindow: Rc<ApplicationWindow>,
+    applicationWindow: ApplicationWindow
 }
 
 struct GuiObjects
 {
+    configStore: ConfigStore,
     toolBarStack: ToolBarStack,
     unstagedChangesView: UnstagedChangesView,
     stagedChangesView: StagedChangesView,
@@ -55,12 +60,17 @@ struct GuiObjects
     commitLogView: CommitLogView,
     commitDiffView: CommitDiffView,
     commitLogAuthorFilterEntry: CommitLogAuthorFilterEntry,
+    appQuitter: AppQuitter
 }
 
 impl Gui
 {
-    pub fn new(repository: Rc<RefCell<Repository>>, sender: Sender, receiver: Receiver) -> Self
+    pub fn new(repositoryDir: &Path) -> Self
     {
+        let configStore = ConfigStore::new(&ConfigPath::default());
+        let config = configStore.getConfig();
+        let (sender, receiver) = makeChannel();
+        let repository = Rc::new(RefCell::new(Repository::new(repositoryDir, config, sender.clone())));
         let guiElementProvider = GuiElementProvider::new(include_str!("main_window.glade"));
 
         let unstagedChangesStore = Rc::new(RefCell::new(UnstagedChangesStore::new(
@@ -93,15 +103,16 @@ impl Gui
         let toolBarStack = ToolBarStack::new(&guiElementProvider);
 
         setupShowCommitLogFiltersButton(&guiElementProvider, sender.clone());
-        let commitLogAuthorFilterEntry = CommitLogAuthorFilterEntry::new(&guiElementProvider, sender);
+        let commitLogAuthorFilterEntry = CommitLogAuthorFilterEntry::new(&guiElementProvider, sender.clone());
 
-        let mut settings = Settings::new();
-        setupPanes(&guiElementProvider, &mut settings);
-        let applicationWindow = ApplicationWindow::new(&guiElementProvider, settings);
+        setupPanes(&guiElementProvider, config, sender.clone());
+        let appQuitter = AppQuitter::new();
+        let applicationWindow = ApplicationWindow::new(&guiElementProvider, config, sender);
         showFirstFileChange(&unstagedChangesView);
 
         let newSelf = Self{applicationWindow};
         let guiObjects = GuiObjects{
+            configStore,
             unstagedChangesView,
             stagedChangesView,
             diffView,
@@ -116,7 +127,8 @@ impl Gui
             commitLogView,
             commitDiffView,
             toolBarStack,
-            commitLogAuthorFilterEntry
+            commitLogAuthorFilterEntry,
+            appQuitter
         };
         setupDispatching(guiObjects, repository, receiver);
         newSelf
@@ -137,6 +149,7 @@ impl Gui
 #[allow(clippy::match_same_arms)]
 fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, receiver: Receiver)
 {
+    let mut configStore = gui.configStore;
     let mut toolBarStack = gui.toolBarStack;
     let mut unstagedChangesView = gui.unstagedChangesView;
     let mut stagedChangesView = gui.stagedChangesView;
@@ -152,10 +165,13 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
     let mut commitLogView = gui.commitLogView;
     let mut commitDiffView = gui.commitDiffView;
     let mut commitLogAuthorFilterEntry = gui.commitLogAuthorFilterEntry;
+    let mut appQuitter = gui.appQuitter;
 
     use Source as S;
     use Event as E;
     attach(receiver, move |(source, event)| { match (source, &event) {
+        (S::ApplicationWindow,                E::MaximizationChanged(_))  => configStore.handle(source, &event),
+        (S::ApplicationWindow,                E::QuitRequested)           => (&mut configStore, &mut appQuitter).handle(source, &event),
         (S::CommitAmendCheckbox,              E::CommitAmendDisabled)     => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
         (S::CommitAmendCheckbox,              E::CommitAmendEnabled)      => (&repository, &mut commitMessageView, &mut commitButton, &mut diffView).handle(source, &event),
         (S::CommitAmendCheckbox,              E::Toggled(_))              => commitAmendCheckbox.handle(source, &event),
@@ -178,7 +194,10 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitMessageView,                E::Emptied)                 => commitButton.handle(source, &event),
         (S::CommitMessageView,                E::Filled)                  => commitButton.handle(source, &event),
         (S::CommitMessageView,                E::ZoomRequested(_))        => commitMessageView.handle(source, &event),
+        (S::DiffAndCommitPane,                E::PositionChanged(_))      => configStore.handle(source, &event),
         (S::DiffView,                         E::ZoomRequested(_))        => diffView.handle(source, &event),
+        (S::FileChangesPane,                  E::PositionChanged(_))      => configStore.handle(source, &event),
+        (S::MainPane,                         E::PositionChanged(_))      => configStore.handle(source, &event),
         (S::MainStack,                        E::StackChildChanged(_))    => toolBarStack.handle(source, &event),
         (S::RefreshButton,                    E::Clicked)                 => refreshButton.handle(source, &event),
         (S::RefreshButton,                    E::RefreshRequested)        => repository.handle(source, &event),
@@ -214,11 +233,11 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
     });
 }
 
-fn setupPanes(guiElementProvider: &GuiElementProvider, settings: &mut Settings)
+fn setupPanes(guiElementProvider: &GuiElementProvider, config: &Config, sender: Sender)
 {
-    setupMainPaned(guiElementProvider, settings);
-    setupFileChangesPaned(guiElementProvider, settings);
-    setupDiffAndCommitPaned(guiElementProvider, settings);
+    setupMainPane(guiElementProvider, config, sender.clone());
+    setupFileChangesPane(guiElementProvider, config, sender.clone());
+    setupDiffAndCommitPane(guiElementProvider, config, sender);
 }
 
 fn showFirstFileChange(unstagedChangesView: &UnstagedChangesView)

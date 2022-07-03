@@ -1,5 +1,6 @@
 use crate::commit_message::CommitMessage;
 use crate::file_change::{FileChange, FileChangeUpdate};
+use crate::pane::PanePosition;
 
 use anyhow::Error;
 use gtk::{gdk, glib};
@@ -8,6 +9,10 @@ use gtk::{gdk, glib};
 #[derive(Debug)]
 pub enum Event
 {
+    // application window
+    MaximizationChanged(IsMaximized),
+    QuitRequested,
+
     // repository
     AddedToStaged(FileChange),
     AddedToUnstaged(FileChange),
@@ -62,6 +67,9 @@ pub enum Event
     RefilterRequested,
     RefilterEnded,
 
+    // pane
+    PositionChanged(PanePosition),
+
     // stack
     StackChildChanged(String),
 
@@ -72,10 +80,12 @@ pub enum Event
 }
 
 type IsEnabled = bool;
+type IsMaximized = bool;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Source
 {
+    ApplicationWindow,
     CommitAmendCheckbox,
     CommitButton,
     CommitDiffViewWidget,
@@ -85,7 +95,10 @@ pub enum Source
     CommitLogView,
     CommitLogViewWidget,
     CommitMessageView,
+    DiffAndCommitPane,
     DiffView,
+    FileChangesPane,
+    MainPane,
     MainStack,
     RefreshButton,
     Repository,

@@ -6,32 +6,17 @@
 #![deny(unused_must_use)]
 
 use rusty_git_gui::app_setup::{findRepositoryDir, setupGtk, setupPanicHandler};
-use rusty_git_gui::event::Sender;
 use rusty_git_gui::gui::Gui;
-use rusty_git_gui::main_context::makeChannel;
-use rusty_git_gui::repository::Repository;
-use rusty_git_gui::settings::Settings;
 
-use anyhow::{Context, Result};
-use std::cell::RefCell;
-use std::rc::Rc;
+use anyhow::Result;
 
 
-fn main()
+fn main() -> Result<()>
 {
     setupPanicHandler();
     setupGtk();
-    let (sender, receiver) = makeChannel();
-    let repository = makeRepository(sender.clone()).unwrap();
-    let gui = Gui::new(repository, sender, receiver);
+    let gui = Gui::new(&findRepositoryDir()?);
     gui.show();
     gtk::main();
-}
-
-fn makeRepository(sender: Sender) -> Result<Rc<RefCell<Repository>>>
-{
-    Ok(Rc::new(RefCell::new(Repository::new(
-        &findRepositoryDir().context("Failed to start the application.")?,
-        sender,
-        &Settings::new()))))
+    Ok(())
 }
