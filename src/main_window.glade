@@ -455,7 +455,7 @@
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <!-- n-columns=3 n-rows=1 -->
+                  <!-- n-columns=4 n-rows=1 -->
                   <object class="GtkGrid" id="Commit log filters grid">
                     <property name="name">Commit log filters grid</property>
                     <property name="can-focus">False</property>
@@ -493,6 +493,20 @@
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Regular expressions</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="Commit log author filter case button">
+                        <property name="label" translatable="yes">Aa</property>
+                        <property name="name">Commit log author filter case button</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Case sensitivity</property>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>

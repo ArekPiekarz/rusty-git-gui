@@ -90,6 +90,7 @@ pub enum Source
     CommitButton,
     CommitDiffViewWidget,
     CommitLogAuthorFilterEntry,
+    CommitLogAuthorFilterCaseButton,
     CommitLogAuthorFilterRegexButton,
     CommitLogModelFilter,
     CommitLogView,

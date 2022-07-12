@@ -180,6 +180,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitButton,                     E::CommitRequested(_))      => repository.handle(source, &event),
         (S::CommitDiffViewWidget,             E::ZoomRequested(_))        => commitDiffView.handle(source, &event),
         (S::CommitLogAuthorFilterEntry,       E::TextEntered(_))          => commitLogModelFilter.handle(source, &event),
+        (S::CommitLogAuthorFilterCaseButton,  E::Toggled(_))              => commitLogModelFilter.handle(source, &event),
         (S::CommitLogAuthorFilterRegexButton, E::Toggled(_))              => commitLogModelFilter.handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterEnded)           => commitLogView.handle(source, &event),

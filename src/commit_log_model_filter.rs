@@ -25,6 +25,7 @@ impl IEventHandler for CommitLogModelFilter
         match (source, event) {
             (_, Event::RefilterRequested)   => self.onRefilterRequested(),
             (_, Event::TextEntered(filter)) => self.onCommitAuthorFilterChanged(filter),
+            (Source::CommitLogAuthorFilterCaseButton,  Event::Toggled(shouldEnable)) => self.onCaseSensitivityToggled(*shouldEnable),
             (Source::CommitLogAuthorFilterRegexButton, Event::Toggled(shouldEnable)) => self.onRegexToggled(*shouldEnable),
             _ => handleUnknown(source, event)
         }
@@ -48,6 +49,12 @@ impl CommitLogModelFilter
     fn onCommitAuthorFilterChanged(&mut self, text: &str)
     {
         let result = self.authorFilter.borrow_mut().setText(text);
+        self.handleChangeResult(result);
+    }
+
+    fn onCaseSensitivityToggled(&mut self, shouldEnable: bool)
+    {
+        let result = self.authorFilter.borrow_mut().setCaseSensitivityEnabled(shouldEnable);
         self.handleChangeResult(result);
     }
 
