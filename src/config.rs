@@ -11,6 +11,8 @@ pub(crate) struct Config
     #[serde(default)]
     pub repository: Repository,
     #[serde(default)]
+    pub mainStack: MainStack,
+    #[serde(default)]
     pub mainPane: MainPane,
     #[serde(default)]
     pub fileChangesPane: FileChangesPane,
@@ -43,6 +45,20 @@ impl Default for Repository
     fn default() -> Self
     {
         Self{diffContextSize: 3}
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub(crate) struct MainStack
+{
+    pub activePage: String
+}
+
+impl Default for MainStack
+{
+    fn default() -> Self
+    {
+        Self{activePage: "Current changes".into()}
     }
 }
 

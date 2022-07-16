@@ -14,7 +14,7 @@ impl IEventHandler for ToolBarStack
     fn handle(&mut self, source: Source, event: &Event)
     {
         match event {
-            Event::StackChildChanged(name) => self.onStackChildChanged(name),
+            Event::ActivePageChanged(name) => self.onActivePageChanged(name),
             _ => handleUnknown(source, event)
         }
     }
@@ -28,7 +28,7 @@ impl ToolBarStack
         Self{widget}
     }
 
-    fn onStackChildChanged(&self, name: &str)
+    fn onActivePageChanged(&self, name: &str)
     {
         match name {
             "Current changes" => self.widget.set_visible_child_name("Current changes tool bar"),

@@ -99,7 +99,7 @@ impl Gui
         let commitLogView = CommitLogView::new(commitLog, &guiElementProvider, sender.clone());
         let commitDiffView = CommitDiffView::new(Rc::clone(&repository), &guiElementProvider, sender.clone());
 
-        setupMainStack(&guiElementProvider, sender.clone());
+        setupMainStack(&guiElementProvider, config, sender.clone());
         let toolBarStack = ToolBarStack::new(&guiElementProvider);
 
         setupShowCommitLogFiltersButton(&guiElementProvider, sender.clone());
@@ -199,7 +199,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::DiffView,                         E::ZoomRequested(_))        => diffView.handle(source, &event),
         (S::FileChangesPane,                  E::PositionChanged(_))      => configStore.handle(source, &event),
         (S::MainPane,                         E::PositionChanged(_))      => configStore.handle(source, &event),
-        (S::MainStack,                        E::StackChildChanged(_))    => toolBarStack.handle(source, &event),
+        (S::MainStack,                        E::ActivePageChanged(_))    => (&mut toolBarStack, &mut configStore).handle(source, &event),
         (S::RefreshButton,                    E::Clicked)                 => refreshButton.handle(source, &event),
         (S::RefreshButton,                    E::RefreshRequested)        => repository.handle(source, &event),
         (S::Repository,                       E::AddedToStaged(_))        => (&stagedChangesStore, &mut commitButton).handle(source, &event),

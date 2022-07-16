@@ -25,6 +25,7 @@ impl IEventHandler for ConfigStore
             (S::MainPane,          E::PositionChanged(position))        => self.onMainPanePositionChanged(*position),
             (_,                    E::MaximizationChanged(isMaximized)) => self.onMaximizationChanged(*isMaximized),
             (_,                    E::QuitRequested)                    => self.onQuitRequested(),
+            (_,                    E::ActivePageChanged(name))          => self.onMainStackActivePageChanged(name),
             _ => handleUnknown(source, event)
         }
     }
@@ -84,6 +85,11 @@ impl ConfigStore
     fn onQuitRequested(&self)
     {
         self.saveToFile();
+    }
+
+    fn onMainStackActivePageChanged(&mut self, name: &str)
+    {
+        self.config.mainStack.activePage = name.into();
     }
 
     fn saveToFile(&self)

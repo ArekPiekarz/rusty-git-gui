@@ -71,7 +71,7 @@ pub enum Event
     PositionChanged(PanePosition),
 
     // stack
-    StackChildChanged(String),
+    ActivePageChanged(String),
 
     // text entry
     TextEntered(String),
