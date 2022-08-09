@@ -5,9 +5,14 @@ use crate::commit_button::CommitButton;
 use crate::commit_diff_view::CommitDiffView;
 use crate::commit_log::CommitLog;
 use crate::commit_log_author_filter_entry::CommitLogAuthorFilterEntry;
+use crate::commit_log_filters::CommitLogFilters;
+use crate::commit_log_filters_combo_box::CommitLogFiltersComboBox;
 use crate::commit_log_filters_view::CommitLogFiltersView;
 use crate::commit_log_model::CommitLogModel;
 use crate::commit_log_model_filter::CommitLogModelFilter;
+use crate::commit_log_save_filter_button::setupCommitLogSaveFilterButton;
+use crate::commit_log_save_filter_dialog::CommitLogSaveFilterDialog;
+use crate::commit_log_show_filter_button::setupCommitLogShowFilterButton;
 use crate::commit_log_view::CommitLogView;
 use crate::commit_message_reader::CommitMessageReader;
 use crate::commit_message_view::CommitMessageView;
@@ -24,7 +29,6 @@ use crate::main_pane::setupMainPane;
 use crate::main_stack::setupMainStack;
 use crate::refresh_button::RefreshButton;
 use crate::repository::Repository;
-use crate::show_commit_log_filters_button::setupShowCommitLogFiltersButton;
 use crate::staged_changes_store::StagedChangesStore;
 use crate::staged_changes_view::{makeStagedChangesView, StagedChangesView};
 use crate::tool_bar_stack::ToolBarStack;
@@ -55,11 +59,14 @@ struct GuiObjects
     commitAmendCheckbox: CommitAmendCheckbox,
     unstagedChangesStore: Rc<RefCell<UnstagedChangesStore>>,
     stagedChangesStore: Rc<RefCell<StagedChangesStore>>,
+    commitLogFilters: CommitLogFilters,
+    commitLogFiltersComboBox: CommitLogFiltersComboBox,
     commitLogFiltersView: CommitLogFiltersView,
     commitLogModelFilter: CommitLogModelFilter,
     commitLogView: CommitLogView,
     commitDiffView: CommitDiffView,
     commitLogAuthorFilterEntry: CommitLogAuthorFilterEntry,
+    commitLogSaveFilterDialog: CommitLogSaveFilterDialog,
     appQuitter: AppQuitter
 }
 
@@ -92,6 +99,8 @@ impl Gui
         let commitButton = CommitButton::new(
             &guiElementProvider, commitMessageReader, Rc::clone(&repository), sender.clone());
 
+        let commitLogFilters = CommitLogFilters::new(&config, sender.clone());
+        let commitLogFiltersComboBox = CommitLogFiltersComboBox::new(&guiElementProvider, &config, sender.clone());
         let commitLogFiltersView = CommitLogFiltersView::new(&guiElementProvider);
         let commitLogModelFilter = CommitLogModelFilter::new(&guiElementProvider, sender.clone());
         let commitLog = CommitLog::new(&repository.borrow());
@@ -102,8 +111,10 @@ impl Gui
         setupMainStack(&guiElementProvider, config, sender.clone());
         let toolBarStack = ToolBarStack::new(&guiElementProvider);
 
-        setupShowCommitLogFiltersButton(&guiElementProvider, sender.clone());
+        setupCommitLogSaveFilterButton(&guiElementProvider, sender.clone());
+        setupCommitLogShowFilterButton(&guiElementProvider, sender.clone());
         let commitLogAuthorFilterEntry = CommitLogAuthorFilterEntry::new(&guiElementProvider, sender.clone());
+        let commitLogSaveFilterDialog = CommitLogSaveFilterDialog::new(sender.clone());
 
         setupPanes(&guiElementProvider, config, sender.clone());
         let appQuitter = AppQuitter::new();
@@ -122,12 +133,15 @@ impl Gui
             commitAmendCheckbox,
             unstagedChangesStore,
             stagedChangesStore,
+            commitLogFilters,
+            commitLogFiltersComboBox,
             commitLogFiltersView,
             commitLogModelFilter,
             commitLogView,
             commitDiffView,
             toolBarStack,
             commitLogAuthorFilterEntry,
+            commitLogSaveFilterDialog,
             appQuitter
         };
         setupDispatching(guiObjects, repository, receiver);
@@ -160,11 +174,14 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
     let mut commitAmendCheckbox = gui.commitAmendCheckbox;
     let mut unstagedChangesStore = Rc::clone(&gui.unstagedChangesStore);
     let mut stagedChangesStore = Rc::clone(&gui.stagedChangesStore);
+    let mut commitLogFilters = gui.commitLogFilters;
+    let mut commitLogFiltersComboBox = gui.commitLogFiltersComboBox;
     let mut commitLogFiltersView = gui.commitLogFiltersView;
     let mut commitLogModelFilter = gui.commitLogModelFilter;
     let mut commitLogView = gui.commitLogView;
     let mut commitDiffView = gui.commitDiffView;
     let mut commitLogAuthorFilterEntry = gui.commitLogAuthorFilterEntry;
+    let mut commitLogSaveFilterDialog = gui.commitLogSaveFilterDialog;
     let mut appQuitter = gui.appQuitter;
 
     use Source as S;
@@ -179,13 +196,22 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::CommitButton,                     E::Clicked)                 => commitButton.handle(source, &event),
         (S::CommitButton,                     E::CommitRequested(_))      => repository.handle(source, &event),
         (S::CommitDiffViewWidget,             E::ZoomRequested(_))        => commitDiffView.handle(source, &event),
-        (S::CommitLogAuthorFilterEntry,       E::TextEntered(_))          => commitLogModelFilter.handle(source, &event),
-        (S::CommitLogAuthorFilterCaseButton,  E::Toggled(_))              => commitLogModelFilter.handle(source, &event),
-        (S::CommitLogAuthorFilterRegexButton, E::Toggled(_))              => commitLogModelFilter.handle(source, &event),
+        (S::CommitLogAuthorFilterCaseButton,  E::Toggled(_))              => (&mut commitLogModelFilter, &mut commitLogFilters).handle(source, &event),
+        (S::CommitLogAuthorFilterEntry,       E::TextEntered(_))          => (&mut commitLogModelFilter, &mut commitLogFilters).handle(source, &event),
+        (S::CommitLogAuthorFilterRegexButton, E::Toggled(_))              => (&mut commitLogModelFilter, &mut commitLogFilters).handle(source, &event),
+        (S::CommitLogFilters,                 E::ActiveFilterSwitched(_)) => commitLogFiltersView.handle(source, &event),
+        (S::CommitLogFilters,                 E::FilterAdded(_))          => commitLogFiltersComboBox.handle(source, &event),
+        (S::CommitLogFilters,                 E::FiltersUpdated(_))       => configStore.handle(source, &event),
+        (S::CommitLogFiltersComboBox,         E::ActiveFilterChosen(_))   => commitLogFilters.handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterRequested)       => (&mut commitLogView, &mut commitLogModelFilter).handle(source, &event),
         (S::CommitLogModelFilter,             E::RefilterEnded)           => commitLogView.handle(source, &event),
         (S::CommitLogModelFilter,             E::InvalidTextInputted(_))  => commitLogAuthorFilterEntry.handle(source, &event),
         (S::CommitLogModelFilter,             E::ValidTextInputted)       => commitLogAuthorFilterEntry.handle(source, &event),
+        (S::CommitLogSaveFilterButton,        E::OpenDialogRequested)     => commitLogSaveFilterDialog.handle(source, &event),
+        (S::CommitLogSaveFilterDialog,        E::FilterNameChosen(_))     => commitLogFilters.handle(source, &event),
+        (S::CommitLogSaveFilterDialogWidget,  E::DialogResponded(_))      => commitLogSaveFilterDialog.handle(source, &event),
+        (S::CommitLogSaveFilterDialogWidget,  E::TextEntered(_))          => commitLogSaveFilterDialog.handle(source, &event),
+        (S::CommitLogShowFilterButton,        E::Toggled(_))              => commitLogFiltersView.handle(source, &event),
         (S::CommitLogView,                    E::CommitSelected(_))       => commitDiffView.handle(source, &event),
         (S::CommitLogView,                    E::CommitUnselected)        => commitDiffView.handle(source, &event),
         (S::CommitLogViewWidget,              E::RightClicked(_))         => (),
@@ -211,7 +237,6 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::Repository,                       E::Refreshed)               => (&unstagedChangesStore, &stagedChangesStore).handle(source, &event),
         (S::Repository,                       E::UpdatedInStaged(_))      => stagedChangesStore.handle(source, &event),
         (S::Repository,                       E::UpdatedInUnstaged(_))    => unstagedChangesStore.handle(source, &event),
-        (S::ShowCommitLogFiltersButton,       E::Toggled(_))              => commitLogFiltersView.handle(source, &event),
         (S::StagedChangesStore,               E::Refreshed)               => stagedChangesView.handle(source, &event),
         (S::StagedChangesView,                E::FileChangeRefreshed(_))  => diffView.handle(source, &event),
         (S::StagedChangesView,                E::FileChangeSelected(_))   => (&mut diffView, &mut unstagedChangesView).handle(source, &event),

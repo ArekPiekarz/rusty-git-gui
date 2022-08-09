@@ -38,7 +38,7 @@ impl CommitLogAuthorFilterEntry
     {
         let widget = guiElementProvider.get::<gtk::Entry>("Commit log author filter entry");
         let cssProvider = setupCss(&widget);
-        connectWidget(&widget, sender.clone());
+        connectEntry(&widget, sender.clone());
         setupCaseSensitivityButton(guiElementProvider, sender.clone());
         setupRegexButton(guiElementProvider, sender);
         Self{widget, cssProvider}
@@ -65,12 +65,11 @@ fn setupCss<WidgetType>(widget: &WidgetType) -> gtk::CssProvider
     cssProvider
 }
 
-fn connectWidget(widget: &gtk::Entry, sender: Sender)
+fn connectEntry(entry: &gtk::Entry, sender: Sender)
 {
-    widget.connect_changed(move |widget| {
-        sender.send((Source::CommitLogAuthorFilterEntry, Event::TextEntered(widget.text().into()))).unwrap();
+    entry.connect_changed(move |entry| {
+        sender.send((Source::CommitLogAuthorFilterEntry, Event::TextEntered(entry.text().into()))).unwrap();
     });
-
 }
 
 fn setupCaseSensitivityButton(guiElementProvider: &GuiElementProvider, sender: Sender)

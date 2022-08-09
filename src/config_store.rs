@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{CommitLogFilters, Config};
 use crate::config_path::ConfigPath;
 use crate::event::{Event, handleUnknown, IEventHandler, Source};
 use crate::pane::PanePosition;
@@ -23,9 +23,10 @@ impl IEventHandler for ConfigStore
             (S::DiffAndCommitPane, E::PositionChanged(position))        => self.onDiffAndCommitPanePositionChanged(*position),
             (S::FileChangesPane,   E::PositionChanged(position))        => self.onFileChangesnPanePositionChanged(*position),
             (S::MainPane,          E::PositionChanged(position))        => self.onMainPanePositionChanged(*position),
+            (_,                    E::ActivePageChanged(name))          => self.onMainStackActivePageChanged(name),
+            (_,                    E::FiltersUpdated(filters))          => self.onFiltersUpdated(filters),
             (_,                    E::MaximizationChanged(isMaximized)) => self.onMaximizationChanged(*isMaximized),
             (_,                    E::QuitRequested)                    => self.onQuitRequested(),
-            (_,                    E::ActivePageChanged(name))          => self.onMainStackActivePageChanged(name),
             _ => handleUnknown(source, event)
         }
     }
@@ -71,6 +72,11 @@ impl ConfigStore
             return;
         }
         self.config.mainPane.position = position;
+    }
+
+    fn onFiltersUpdated(&mut self, filters: &CommitLogFilters)
+    {
+        self.config.commitLogFilters = filters.clone();
     }
 
     fn onMaximizationChanged(&mut self, isMaximized: bool)

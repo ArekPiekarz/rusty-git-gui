@@ -5,7 +5,6 @@ use rusty_git_gui::app_setup::{setupGtk, setupPanicHandler};
 use rusty_git_gui::gui::Gui;
 
 use gtk::glib::object::Cast as _;
-use gtk::glib::ObjectExt as _;
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
 use std::path::Path;
@@ -88,17 +87,12 @@ pub fn renameFile(oldFilePath: &Path, newFilePath: &Path, repositoryDir: &Path)
 
 fn getAppWindow() -> gtk::ApplicationWindow
 {
-    let mut topLevelWindows = gtk::Window::list_toplevels();
-
-    match topLevelWindows.len() {
-        1 => topLevelWindows.remove(0).downcast::<gtk::ApplicationWindow>().unwrap(),
-        2 => {
-            let tooltipWindow = topLevelWindows[1].downcast_ref::<gtk::Window>().unwrap();
-            assert_eq!(tooltipWindow.type_().name(), "GtkTooltipWindow");
-            topLevelWindows.remove(0).downcast::<gtk::ApplicationWindow>().unwrap()
-        },
-        count => panic!("Wrong number of windows, expected 1 or 2, got {}: {:?}", count, topLevelWindows)
+    for window in gtk::Window::list_toplevels() {
+        if let Ok(appWindow) = window.downcast::<gtk::ApplicationWindow>() {
+            return appWindow;
+        }
     }
+    panic!("Application window not found in: {:?}", gtk::Window::list_toplevels());
 }
 
 fn makeTemporaryDirectory() -> TempDir

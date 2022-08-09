@@ -1,4 +1,5 @@
 use crate::commit_message::CommitMessage;
+use crate::config::{AuthorFilter, CommitLogFilters};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::pane::PanePosition;
 
@@ -7,7 +8,7 @@ use gtk::{gdk, glib};
 
 
 #[derive(Debug)]
-pub enum Event
+pub(crate) enum Event
 {
     // application window
     MaximizationChanged(IsMaximized),
@@ -77,10 +78,20 @@ pub enum Event
     TextEntered(String),
     InvalidTextInputted(Error),
     ValidTextInputted,
+
+    // commit log filters
+    ActiveFilterChosen(FilterIndex),
+    ActiveFilterSwitched(AuthorFilter),
+    FilterNameChosen(String),
+    FilterAdded(String),
+    FiltersUpdated(CommitLogFilters),
+    OpenDialogRequested,
+    DialogResponded(gtk::ResponseType),
 }
 
 type IsEnabled = bool;
 type IsMaximized = bool;
+pub(crate) type FilterIndex = usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Source
@@ -92,7 +103,13 @@ pub enum Source
     CommitLogAuthorFilterEntry,
     CommitLogAuthorFilterCaseButton,
     CommitLogAuthorFilterRegexButton,
+    CommitLogFilters,
+    CommitLogFiltersComboBox,
     CommitLogModelFilter,
+    CommitLogSaveFilterButton,
+    CommitLogSaveFilterDialog,
+    CommitLogSaveFilterDialogWidget,
+    CommitLogShowFilterButton,
     CommitLogView,
     CommitLogViewWidget,
     CommitMessageView,
@@ -103,14 +120,13 @@ pub enum Source
     MainStack,
     RefreshButton,
     Repository,
-    ShowCommitLogFiltersButton,
     StagedChangesStore,
     StagedChangesView,
     UnstagedChangesStore,
     UnstagedChangesView
 }
 
-pub trait IEventHandler
+pub(crate) trait IEventHandler
 {
     fn handle(&mut self, source: Source, event: &Event);
 }
@@ -119,7 +135,7 @@ pub type Sender = glib::Sender<(Source, Event)>;
 pub type Receiver = glib::Receiver<(Source, Event)>;
 
 #[track_caller]
-pub fn handleUnknown(source: Source, event: &Event)
+pub(crate) fn handleUnknown(source: Source, event: &Event)
 {
     panic!("Unknown source and event: {:?}, {:?}", source, event);
 }

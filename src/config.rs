@@ -18,6 +18,8 @@ pub(crate) struct Config
     pub fileChangesPane: FileChangesPane,
     #[serde(default)]
     pub diffAndCommitPane: DiffAndCommitPane,
+    #[serde(default)]
+    pub commitLogFilters: CommitLogFilters
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -102,4 +104,40 @@ impl Default for DiffAndCommitPane
     {
         Self{position: 450}
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub(crate) struct CommitLogFilters
+{
+    pub active: usize,
+    pub filters: Vec<CommitLogFilter>
+}
+
+impl Default for CommitLogFilters
+{
+    fn default() -> Self
+    {
+        Self{
+            active: 0,
+            filters: vec![CommitLogFilter{
+                name: "No filter".into(),
+                authorFilter: AuthorFilter::default()
+            }]
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub(crate) struct CommitLogFilter
+{
+    pub name: String,
+    pub authorFilter: AuthorFilter
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub(crate) struct AuthorFilter
+{
+    pub pattern: String,
+    pub caseSensitive: bool,
+    pub usesRegex: bool
 }
