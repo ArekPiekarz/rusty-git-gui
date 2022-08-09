@@ -5,17 +5,17 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-anyhow = { version = "1.0.58", default-features = false, features = ["backtrace", "std"] }
+anyhow = { version = "1.0.60", default-features = false, features = ["backtrace", "std"] }
 color-backtrace = { version = "0.5.1", default-features = false, optional = true }
 dirs = { version = "4.0.0", default-features = false }
-git2 = { version = "0.14.4", default-features = false }
+git2 = { version = "0.15.0", default-features = false }
 gtk = { version = "0.15.5", default-features = false, features = ["v3_22"] }
 itertools = { version = "0.10.3", default-features = false, features = ["use_std"] }
 regex = "1.6.0"
-serde = { version ="1.0.139", default-features = false, features = ["derive"] }
-similar = {version = "2.1.0", default-features = false, features = ["text"] }
+serde = { version ="1.0.143", default-features = false, features = ["derive"] }
+similar = {version = "2.2.0", default-features = false, features = ["text"] }
 termcolor = { version = "1.1.3", default-features = false, optional = true }
-time = { version = "0.3.11", default-features = false, features = ["formatting", "macros"] }
+time = { version = "0.3.13", default-features = false, features = ["formatting", "macros"] }
 to_trait = { version = "0.1.1", default-features = false }
 toml = { version = "0.5.9", default-features = false }
 
