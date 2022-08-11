@@ -5,7 +5,7 @@ authors = ["Arkadiusz Piekarz <piekarzarkadiusz@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-anyhow = { version = "1.0.60", default-features = false, features = ["backtrace", "std"] }
+anyhow = { version = "1.0.61", default-features = false, features = ["backtrace", "std"] }
 color-backtrace = { version = "0.5.1", default-features = false, optional = true }
 dirs = { version = "4.0.0", default-features = false }
 git2 = { version = "0.15.0", default-features = false }
