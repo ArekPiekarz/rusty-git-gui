@@ -1,2 +1,2 @@
-pub type FilePathStr = str;
-pub type FilePathString = String;
+pub(crate) type FilePathStr = str;
+pub(crate) type FilePathString = String;

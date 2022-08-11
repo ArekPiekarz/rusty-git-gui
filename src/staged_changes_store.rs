@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct StagedChangesStore
+pub(crate) struct StagedChangesStore
 {
     store: FileChangesStore,
     repository: Rc<RefCell<Repository>>

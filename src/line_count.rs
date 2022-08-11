@@ -1,7 +1,7 @@
 use std::ops::AddAssign;
 
 
-pub struct LineCount(pub usize);
+pub(crate) struct LineCount(pub usize);
 
 impl AddAssign::<usize> for LineCount
 {

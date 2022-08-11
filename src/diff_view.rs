@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct DiffView
+pub(crate) struct DiffView
 {
     widget: TextView,
     repository: Rc<RefCell<Repository>>,

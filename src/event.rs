@@ -94,7 +94,7 @@ type IsMaximized = bool;
 pub(crate) type FilterIndex = usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Source
+pub(crate) enum Source
 {
     ApplicationWindow,
     CommitAmendCheckbox,
@@ -131,8 +131,8 @@ pub(crate) trait IEventHandler
     fn handle(&mut self, source: Source, event: &Event);
 }
 
-pub type Sender = glib::Sender<(Source, Event)>;
-pub type Receiver = glib::Receiver<(Source, Event)>;
+pub(crate) type Sender = glib::Sender<(Source, Event)>;
+pub(crate) type Receiver = glib::Receiver<(Source, Event)>;
 
 #[track_caller]
 pub(crate) fn handleUnknown(source: Source, event: &Event)

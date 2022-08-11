@@ -6,7 +6,7 @@ use gtk::prelude::ToggleButtonExt as _;
 use gtk::prelude::WidgetExt as _;
 
 
-pub struct CommitAmendCheckbox
+pub(crate) struct CommitAmendCheckbox
 {
     widget: gtk::CheckButton,
     sender: Sender
@@ -45,7 +45,7 @@ impl CommitAmendCheckbox
 
     // private
 
-    pub fn unselect(&self)
+    fn unselect(&self)
     {
         self.widget.set_active(false);
     }

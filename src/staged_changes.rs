@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 
 
 #[derive(Debug)]
-pub struct StagedChanges(pub Vec<FileChange>);
+pub(crate) struct StagedChanges(pub Vec<FileChange>);
 
 impl StagedChanges
 {

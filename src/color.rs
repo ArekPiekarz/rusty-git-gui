@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Clone, Copy)]
-pub struct Color(pub &'static str);
+pub(crate) struct Color(pub &'static str);
 
 impl Display for Color
 {

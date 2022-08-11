@@ -16,7 +16,7 @@ use gtk::prelude::WidgetExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub type OnRowActivatedAction = Box<dyn Fn(&FileChange)>;
+pub(crate) type OnRowActivatedAction = Box<dyn Fn(&FileChange)>;
 
 const LEFT_MENU_ITEM_ATTACH: u32 = 0;
 const RIGHT_MENU_ITEM_ATTACH: u32 = 1;
@@ -25,7 +25,7 @@ const BOTTOM_MENU_ITEM_ATTACH: u32 = 1;
 const NO_SELECTIONS_COMPARER: Option<Box<dyn SelectionsComparer>> = None;
 
 
-pub struct FileChangesView<StoreType>
+pub(crate) struct FileChangesView<StoreType>
 {
     view: TreeView,
     store: Rc<RefCell<StoreType>>,

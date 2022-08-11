@@ -5,7 +5,7 @@ use crate::unstaged_changes::UnstagedChanges;
 
 
 #[derive(Debug)]
-pub struct GroupedFileChanges
+pub(crate) struct GroupedFileChanges
 {
     pub unstaged: UnstagedChanges,
     pub staged: StagedChanges

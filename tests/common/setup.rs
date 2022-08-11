@@ -12,7 +12,7 @@ use std::process::{Command, Stdio};
 use tempfile::{tempdir, TempDir};
 
 
-pub fn setupTest() -> TempDir
+pub(crate) fn setupTest() -> TempDir
 {
     setupPanicHandler();
     setupGtk();
@@ -21,31 +21,31 @@ pub fn setupTest() -> TempDir
     repositoryDir
 }
 
-pub fn makeGui(repositoryDir: &Path) -> TestGui
+pub(crate) fn makeGui(repositoryDir: &Path) -> TestGui
 {
     let gui = Gui::new(repositoryDir);
     show(&gui);
     TestGui::new(getAppWindow())
 }
 
-pub fn makeNewUnstagedFile(filePath: &Path, content: &str, repositoryDir: &Path)
+pub(crate) fn makeNewUnstagedFile(filePath: &Path, content: &str, repositoryDir: &Path)
 {
     let mut file = makeNewWritableFile(&repositoryDir.join(filePath));
     file.write(content.as_bytes()).unwrap();
 }
 
-pub fn makeNewUnstagedEmptyFile(filePath: &Path, repositoryDir: &Path)
+pub(crate) fn makeNewUnstagedEmptyFile(filePath: &Path, repositoryDir: &Path)
 {
     makeNewWritableFile(&repositoryDir.join(filePath));
 }
 
-pub fn makeNewStagedFile(filePath: &Path, content: &str, repositoryDir: &Path)
+pub(crate) fn makeNewStagedFile(filePath: &Path, content: &str, repositoryDir: &Path)
 {
     makeNewUnstagedFile(filePath, content, repositoryDir);
     stageFile(filePath, repositoryDir);
 }
 
-pub fn stageFile(filePath: &Path, repositoryDir: &Path)
+pub(crate) fn stageFile(filePath: &Path, repositoryDir: &Path)
 {
     let status = Command::new("git").args(&["add", filePath.to_str().unwrap()])
         .current_dir(&repositoryDir).status().unwrap();
@@ -53,7 +53,7 @@ pub fn stageFile(filePath: &Path, repositoryDir: &Path)
                r#"Failed to stage file "{}", command finished with {}"#, filePath.to_string_lossy(), status);
 }
 
-pub fn makeCommit(message: &str, repositoryDir: &Path)
+pub(crate) fn makeCommit(message: &str, repositoryDir: &Path)
 {
     let status = Command::new("git").args(&["commit", "-m", message])
         .current_dir(&repositoryDir).stdout(Stdio::null()).status().unwrap();
@@ -61,23 +61,23 @@ pub fn makeCommit(message: &str, repositoryDir: &Path)
                r#"Failed to create a commit with message "{}", command finished with {}"#, message, status);
 }
 
-pub fn modifyFile(filePath: &Path, newContent: &str, repositoryDir: &Path)
+pub(crate) fn modifyFile(filePath: &Path, newContent: &str, repositoryDir: &Path)
 {
     let mut file = openExistingFileForWriting(&repositoryDir.join(filePath));
     file.write(newContent.as_bytes()).unwrap();
 }
 
-pub fn makeSubdirectory(subdir: &Path, repositoryDir: &Path)
+pub(crate) fn makeSubdirectory(subdir: &Path, repositoryDir: &Path)
 {
     std::fs::create_dir(repositoryDir.join(subdir)).unwrap()
 }
 
-pub fn removeFile(filePath: &Path, repositoryDir: &Path)
+pub(crate) fn removeFile(filePath: &Path, repositoryDir: &Path)
 {
     std::fs::remove_file(repositoryDir.join(filePath)).unwrap();
 }
 
-pub fn renameFile(oldFilePath: &Path, newFilePath: &Path, repositoryDir: &Path)
+pub(crate) fn renameFile(oldFilePath: &Path, newFilePath: &Path, repositoryDir: &Path)
 {
     std::fs::rename(repositoryDir.join(oldFilePath), repositoryDir.join(newFilePath)).unwrap();
 }

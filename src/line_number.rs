@@ -5,7 +5,7 @@ use std::ops::AddAssign;
 
 
 #[derive(Clone, Copy)]
-pub struct LineNumber(pub usize);
+pub(crate) struct LineNumber(pub usize);
 
 impl Add::<LineCount> for LineNumber
 {

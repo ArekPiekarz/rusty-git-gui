@@ -1,5 +1,5 @@
 #[derive(Debug, Eq, PartialEq)]
-pub struct FileChangesViewEntry
+pub(crate) struct FileChangesViewEntry
 {
     pub status: String,
     pub path: String,

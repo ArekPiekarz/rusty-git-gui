@@ -1,6 +1,6 @@
 use std::num::FpCategory::{Infinite, Nan, Normal, Subnormal, Zero};
 
-pub trait ToI32
+pub(crate) trait ToI32
 {
     fn toI32(&self) -> i32;
 }

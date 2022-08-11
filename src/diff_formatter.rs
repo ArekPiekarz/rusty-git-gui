@@ -3,7 +3,7 @@ use crate::file_change::FileChange;
 const FORMATTING_SUCCEEDED: bool = true;
 
 
-pub struct DiffFormatter
+pub(crate) struct DiffFormatter
 {
     output: FormattedDiff,
     mode: FormatterMode
@@ -114,14 +114,14 @@ enum FormatterMode
 }
 
 #[derive(Default)]
-pub struct FormattedDiff
+pub(crate) struct FormattedDiff
 {
     pub text: String,
     pub lineFormats: Vec<LineFormat>
 }
 
 #[derive(Clone, Debug)]
-pub enum LineFormat
+pub(crate) enum LineFormat
 {
     TopHeader,
     FileHeader,

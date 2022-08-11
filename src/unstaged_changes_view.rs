@@ -7,9 +7,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub type UnstagedChangesView = FileChangesView<UnstagedChangesStore>;
+pub(crate) type UnstagedChangesView = FileChangesView<UnstagedChangesStore>;
 
-pub fn makeUnstagedChangesView(
+pub(crate) fn makeUnstagedChangesView(
     guiElementProvider: &GuiElementProvider,
     sender: Sender,
     store: Rc<RefCell<UnstagedChangesStore>>)

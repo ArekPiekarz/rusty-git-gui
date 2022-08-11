@@ -7,13 +7,13 @@ use gtk::prelude::MessageDialogExt as _;
 const NO_WINDOW_PARENT: Option<&gtk::Window> = None;
 
 
-pub fn exit(errorMessage: &str) -> !
+pub(crate) fn exit(errorMessage: &str) -> !
 {
     showErrorDialog(errorMessage);
     panic!("{}", errorMessage);
 }
 
-pub fn showErrorDialog(message: &str)
+pub(crate) fn showErrorDialog(message: &str)
 {
     let dialog = makeDialog(message);
     dialog.run();

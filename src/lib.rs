@@ -26,12 +26,7 @@
 
 
 pub mod app_setup;
-pub mod error_handling;
-pub mod event;
-pub mod file_changes_view_entry;
 pub mod gui;
-pub mod main_context;
-pub mod tree_model_utils;
 
 mod app_quitter;
 mod application_window;
@@ -64,18 +59,22 @@ mod diff_and_commit_pane;
 mod diff_colorizer;
 mod diff_formatter;
 mod diff_view;
+mod error_handling;
+mod event;
 mod event_constants;
 mod file_change;
 mod file_changes_column;
 mod file_changes_pane;
 mod file_changes_store;
 mod file_changes_view;
+mod file_changes_view_entry;
 mod file_path;
 mod grouped_file_changes;
 mod gui_element_provider;
 mod ifile_changes_store;
 mod line_count;
 mod line_number;
+mod main_context;
 mod main_pane;
 mod main_stack;
 mod number_casts;
@@ -91,6 +90,7 @@ mod line_diff;
 mod text_filter;
 mod text_view;
 mod tool_bar_stack;
+mod tree_model_utils;
 mod tree_selection;
 mod tree_view;
 mod unstaged_changes;

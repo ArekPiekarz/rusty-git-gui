@@ -1,8 +1,7 @@
-use crate::common::file_changes_model_utils::PATH_COLUMN;
+use crate::common::file_changes_model_utils::{PATH_COLUMN, Row};
 use crate::common::test_gui::TestGui;
 
 use rusty_git_gui::gui::Gui;
-use rusty_git_gui::tree_model_utils::Row;
 
 use gtk::prelude::ButtonExt as _;
 use gtk::prelude::TextBufferExt as _;
@@ -16,51 +15,51 @@ use gtk::prelude::WidgetExt as _;
 const NO_PARENT: Option<&gtk::TreeIter> = None;
 
 
-pub fn show(gui: &Gui)
+pub(crate) fn show(gui: &Gui)
 {
     gui.show();
     gui.setOpacity(0.0);
     processEvents();
 }
 
-pub fn selectUnstagedChangeInRow(row: Row, gui: &TestGui)
+pub(crate) fn selectUnstagedChangeInRow(row: Row, gui: &TestGui)
 {
     selectFileChange(row, &gui.findUnstagedChangesView());
 }
 
-pub fn selectStagedChangeInRow(row: Row, gui: &TestGui)
+pub(crate) fn selectStagedChangeInRow(row: Row, gui: &TestGui)
 {
     selectFileChange(row, &gui.findStagedChangesView());
 }
 
-pub fn activateUnstagedChangeInRow(row: Row, gui: &TestGui)
+pub(crate) fn activateUnstagedChangeInRow(row: Row, gui: &TestGui)
 {
     activateFileChangeInRow(row, &gui.findUnstagedChangesView());
 }
 
-pub fn activateStagedChangeInRow(row: Row, gui: &TestGui)
+pub(crate) fn activateStagedChangeInRow(row: Row, gui: &TestGui)
 {
     activateFileChangeInRow(row, &gui.findStagedChangesView());
 }
 
-pub fn setCommitMessage(message: &str, gui: &TestGui)
+pub(crate) fn setCommitMessage(message: &str, gui: &TestGui)
 {
     let view = gui.findCommitMessageView();
     view.buffer().unwrap().set_text(message);
     processEvents();
 }
 
-pub fn clickCommitButton(gui: &TestGui)
+pub(crate) fn clickCommitButton(gui: &TestGui)
 {
     clickButton(&gui.findCommitButton());
 }
 
-pub fn clickRefreshButton(gui: &TestGui)
+pub(crate) fn clickRefreshButton(gui: &TestGui)
 {
     clickButton(&gui.findRefreshButton());
 }
 
-pub fn selectCommitAmendCheckbox(gui: &TestGui)
+pub(crate) fn selectCommitAmendCheckbox(gui: &TestGui)
 {
     let checkbox = gui.findCommitAmendCheckbox();
     assert!(checkbox.is_sensitive());
@@ -69,7 +68,7 @@ pub fn selectCommitAmendCheckbox(gui: &TestGui)
     processEvents();
 }
 
-pub fn unselectCommitAmendCheckbox(gui: &TestGui)
+pub(crate) fn unselectCommitAmendCheckbox(gui: &TestGui)
 {
     let checkbox = gui.findCommitAmendCheckbox();
     assert!(checkbox.is_sensitive());

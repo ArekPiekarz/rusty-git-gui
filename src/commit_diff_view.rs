@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct CommitDiffView
+pub(crate) struct CommitDiffView
 {
     textView: TextView,
     diffColorizer: DiffColorizer,

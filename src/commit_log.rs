@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 const INVALID_UTF8: &str = "<invalid UTF-8>";
 
 
-pub struct CommitLog
+pub(crate) struct CommitLog
 {
     commits: Vec<CommitInfo>,
 }
@@ -58,7 +58,7 @@ fn getSummary(commit: &git2::Commit) -> String
     String::from_utf8_lossy(commit.message_bytes()).lines().next().unwrap_or_default().trim().into()
 }
 
-pub struct CommitInfo
+pub(crate) struct CommitInfo
 {
     pub id: git2::Oid,
     pub summary: String,

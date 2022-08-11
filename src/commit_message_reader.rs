@@ -5,7 +5,7 @@ use gtk::prelude::TextBufferExt as _;
 use gtk::prelude::TextViewExt as _;
 
 
-pub struct CommitMessageReader
+pub(crate) struct CommitMessageReader
 {
     buffer: gtk::TextBuffer
 }

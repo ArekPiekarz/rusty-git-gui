@@ -4,7 +4,7 @@ use crate::diff_formatter::{DiffFormatter, FormattedDiff, LineFormat};
 use time::format_description::well_known::Rfc2822;
 
 
-pub fn formatCommitDiff(commit: &git2::Commit, diff: &git2::Diff) -> FormattedDiff
+pub(crate) fn formatCommitDiff(commit: &git2::Commit, diff: &git2::Diff) -> FormattedDiff
 {
     let commitSummary = makeCommitSummary(commit);
     let mut diffFormatter = DiffFormatter::newForCommit();

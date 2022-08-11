@@ -13,13 +13,13 @@ use gtk::prelude::TextViewExt as _;
 use gtk::prelude::WidgetExt as _;
 use std::cmp::{min, max};
 
-pub const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
+pub(crate) const EXCLUDE_HIDDEN_CHARACTERS : bool = false;
 const NO_SEARCH_LIMIT: Option<&gtk::TextIter> = None;
 const SEARCH_VISIBLE_TEXT: gtk::TextSearchFlags = gtk::TextSearchFlags::from_bits_truncate(
     gtk::TextSearchFlags::VISIBLE_ONLY.bits() | gtk::TextSearchFlags::TEXT_ONLY.bits());
 
 
-pub struct TextView
+pub(crate) struct TextView
 {
     buffer: gtk::TextBuffer,
     sender: Sender,
@@ -29,7 +29,7 @@ pub struct TextView
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub enum Notifications
+pub(crate) enum Notifications
 {
     Enabled,
     Disabled

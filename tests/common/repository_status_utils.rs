@@ -10,7 +10,7 @@ const START_OF_FILE_PATH: usize = 3;
 
 
 #[derive(Debug, PartialEq)]
-pub struct RepositoryStatus
+pub(crate) struct RepositoryStatus
 {
     pub data: Vec<RepositoryStatusEntry>
 }
@@ -24,7 +24,7 @@ impl RepositoryStatus
 }
 
 #[derive(Debug, PartialEq)]
-pub struct RepositoryStatusEntry
+pub(crate) struct RepositoryStatusEntry
 {
     pub path: String,  // it can be a normal path or for renamed files "old path -> new path"
     pub workTreeStatus: FileChangeStatus,
@@ -57,11 +57,11 @@ impl RepositoryStatusEntry
     }
 }
 
-pub struct IndexStatus(pub FileChangeStatus);
-pub struct WorkTreeStatus(pub FileChangeStatus);
+pub(crate) struct IndexStatus(pub FileChangeStatus);
+pub(crate) struct WorkTreeStatus(pub FileChangeStatus);
 
 #[derive(Debug, PartialEq)]
-pub enum FileChangeStatus
+pub(crate) enum FileChangeStatus
 {
     Untracked,
     Unmodified,

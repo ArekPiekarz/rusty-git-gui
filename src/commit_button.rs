@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct CommitButton
+pub(crate) struct CommitButton
 {
     widget: gtk::Button,
     repository: Rc<RefCell<Repository>>,

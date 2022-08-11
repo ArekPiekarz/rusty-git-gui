@@ -6,13 +6,13 @@ use std::process::Command;
 use std::str::from_utf8;
 
 
-pub fn assertRepositoryIsEmpty(repositoryDir: &Path)
+pub(crate) fn assertRepositoryIsEmpty(repositoryDir: &Path)
 {
     assertRepositoryStatusIsEmpty(&repositoryDir);
     assertRepositoryHasNoCommits(&repositoryDir);
 }
 
-pub fn assertRepositoryHasNoCommits(repositoryDir: &Path)
+pub(crate) fn assertRepositoryHasNoCommits(repositoryDir: &Path)
 {
     assertFailedCommandErrorOutput(
         &["git", "log"],
@@ -20,7 +20,7 @@ pub fn assertRepositoryHasNoCommits(repositoryDir: &Path)
         repositoryDir);
 }
 
-pub fn assertRepositoryLogIs(expectedOutput: &str, repositoryDir: &Path)
+pub(crate) fn assertRepositoryLogIs(expectedOutput: &str, repositoryDir: &Path)
 {
     assertCommandOutput(
         &["git", "log", "--pretty=Author: %an%nEmail: %ae%nSubject: %s", "--patch-with-stat"],
@@ -28,7 +28,7 @@ pub fn assertRepositoryLogIs(expectedOutput: &str, repositoryDir: &Path)
         repositoryDir);
 }
 
-pub fn assertRepositoryStatusIs(expectedStatusEntries: &[RepositoryStatusEntry], repositoryDir: &Path)
+pub(crate) fn assertRepositoryStatusIs(expectedStatusEntries: &[RepositoryStatusEntry], repositoryDir: &Path)
 {
     let output = String::from_utf8(getCommandOutput(
         &["git", "status", "--porcelain", "--untracked-files"], repositoryDir).stdout).unwrap();
@@ -37,17 +37,17 @@ pub fn assertRepositoryStatusIs(expectedStatusEntries: &[RepositoryStatusEntry],
               "\nExpected repository status did not match actual.\nRaw output: {}", output);
 }
 
-pub fn assertRepositoryStatusIsEmpty(repositoryDir: &Path)
+pub(crate) fn assertRepositoryStatusIsEmpty(repositoryDir: &Path)
 {
     assertRepositoryStatusIs(&[], repositoryDir);
 }
 
-pub fn assertGitDiffUnstagedIs(expectedOutput: &str, repositoryDir: &Path)
+pub(crate) fn assertGitDiffUnstagedIs(expectedOutput: &str, repositoryDir: &Path)
 {
     assertCommandOutput(&["git", "diff"], expectedOutput, repositoryDir);
 }
 
-pub fn assertGitDiffStagedIs(expectedOutput: &str, repositoryDir: &Path)
+pub(crate) fn assertGitDiffStagedIs(expectedOutput: &str, repositoryDir: &Path)
 {
     assertCommandOutput(&["git", "diff", "--staged"], expectedOutput, repositoryDir);
 }

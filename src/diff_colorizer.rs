@@ -6,7 +6,7 @@ use gtk::prelude::TextTagExt as _;
 use crate::diff_formatter::{FormattedDiff, LineFormat};
 
 
-pub struct DiffColorizer
+pub(crate) struct DiffColorizer
 {
     addedLineTag: gtk::TextTag,
     removedLineTag: gtk::TextTag,

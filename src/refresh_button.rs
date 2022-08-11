@@ -4,7 +4,7 @@ use crate::gui_element_provider::GuiElementProvider;
 use gtk::prelude::ButtonExt as _;
 
 
-pub struct RefreshButton
+pub(crate) struct RefreshButton
 {
     widget: gtk::Button,
     sender: Sender

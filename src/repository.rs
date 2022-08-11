@@ -29,7 +29,7 @@ const NO_COMMITTER_UPDATE: Option<&git2::Signature> = None;
 const NO_MESSAGE_ENCODING_UPDATE: Option<&str> = None;
 
 
-pub struct Repository
+pub(crate) struct Repository
 {
     gitRepo: git2::Repository,
     fileChanges: GroupedFileChanges,

@@ -1,1 +1,1 @@
-pub type CommitMessage = String;
+pub(crate) type CommitMessage = String;

@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct UnstagedChangesStore
+pub(crate) struct UnstagedChangesStore
 {
     store: FileChangesStore,
     repository: Rc<RefCell<Repository>>

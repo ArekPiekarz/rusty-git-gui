@@ -1,4 +1,4 @@
-pub enum CommitLogColumn
+pub(crate) enum CommitLogColumn
 {
     Summary,
     Date,

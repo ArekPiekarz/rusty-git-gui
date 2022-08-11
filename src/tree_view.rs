@@ -17,7 +17,7 @@ const NO_EDITING: bool = false;
 const MOUSE_RIGHT_BUTTON: u32 = 3;
 
 
-pub struct TreeView
+pub(crate) struct TreeView
 {
     widget: gtk::TreeView,
     selection: TreeSelection,

@@ -3,7 +3,7 @@ use gtk::glib::Cast as _;
 use gtk::prelude::GtkWindowExt as _;
 
 
-pub struct TestGui
+pub(crate) struct TestGui
 {
     window: gtk::ApplicationWindow
 }

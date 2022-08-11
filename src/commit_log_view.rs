@@ -10,7 +10,7 @@ use gtk::traits::TreeModelExt;
 use gtk::traits::TreeSelectionExt;
 
 
-pub struct CommitLogView
+pub(crate) struct CommitLogView
 {
     widget: TreeView,
     commitLog: CommitLog,

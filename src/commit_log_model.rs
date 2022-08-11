@@ -12,7 +12,7 @@ const DATE_TIME_FORMAT: &[FormatItem] =
     format_description!("[day padding:space] [month repr:short] [year] [hour padding:space]:[minute]:[second]");
 
 
-pub struct CommitLogModel
+pub(crate) struct CommitLogModel
 {
     store: gtk::ListStore
 }

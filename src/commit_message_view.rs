@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct CommitMessageView
+pub(crate) struct CommitMessageView
 {
     widget: TextView,
     repository: Rc<RefCell<Repository>>,

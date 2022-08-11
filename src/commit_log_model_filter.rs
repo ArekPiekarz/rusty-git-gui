@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub struct CommitLogModelFilter
+pub(crate) struct CommitLogModelFilter
 {
     modelFilter: gtk::TreeModelFilter,
     authorFilter: Rc<RefCell<TextFilter>>,

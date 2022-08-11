@@ -4,7 +4,7 @@ use gtk::glib;
 use gtk::prelude::BuilderExtManual as _;
 
 
-pub struct GuiElementProvider
+pub(crate) struct GuiElementProvider
 {
     provider: gtk::Builder
 }

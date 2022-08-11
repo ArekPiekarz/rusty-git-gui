@@ -2,7 +2,7 @@ use crate::file_path::FilePathString;
 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FileChange
+pub(crate) struct FileChange
 {
     pub status: String,
     pub path: FilePathString,
@@ -29,7 +29,7 @@ impl FileChange
 }
 
 #[derive(Clone, Debug)]
-pub struct FileChangeUpdate
+pub(crate) struct FileChangeUpdate
 {
     pub old: FileChange,
     pub new: FileChange

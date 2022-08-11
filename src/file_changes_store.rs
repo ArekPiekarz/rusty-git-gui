@@ -15,7 +15,7 @@ use std::cmp::{Ord, Ordering::Less, Ordering::Equal, Ordering::Greater};
 const NO_PARENT: Option<&gtk::TreeIter> = None;
 
 
-pub struct FileChangesStore
+pub(crate) struct FileChangesStore
 {
     store: gtk::ListStore,
     fileChanges: Vec<FileChange>,
