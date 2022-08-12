@@ -81,7 +81,8 @@ pub(crate) enum Event
 
     // commit log filters
     ActiveFilterChosen(FilterIndex),
-    ActiveFilterSwitched(AuthorFilter),
+    ActiveFilterDataSwitched(AuthorFilter),
+    ActiveFilterSwitched(FilterIndex),
     FilterNameChosen(String),
     FilterAdded(String),
     FiltersUpdated(CommitLogFilters),

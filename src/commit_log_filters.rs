@@ -37,7 +37,7 @@ impl CommitLogFilters
             filters: config.commitLogFilters.filters.clone(),
             sender
         };
-        newSelf.notifyActiveFilterSwitched();
+        newSelf.notifyActiveFilterDataSwitched();
         newSelf
     }
 
@@ -47,7 +47,7 @@ impl CommitLogFilters
             return;
         }
         self.currentFilter = CurrentFilter::new(index);
-        self.notifyActiveFilterSwitched();
+        self.notifyActiveFilterDataSwitched();
         self.notifyFiltersUpdated();
     }
 
@@ -73,7 +73,14 @@ impl CommitLogFilters
     {
         match self.filters.iter().find_position(|filter| filter.name == name)
         {
-            Some((_index, _filter)) => unimplemented!(),
+            Some((index, _filter)) => {
+                let isFilterSwitchNeeded = self.currentFilter.index != index;
+                self.updateFilter(index);
+                if isFilterSwitchNeeded {
+                    self.notifyActiveFilterSwitched(index);
+                }
+                self.notifyFiltersUpdated();
+            },
             None => {
                 self.addFilter(name);
                 self.notifyFilterAdded(name);
@@ -109,6 +116,17 @@ impl CommitLogFilters
         }
     }
 
+    fn updateFilter(&mut self, index: FilterIndex)
+    {
+        self.filters[index].authorFilter = self.mergeOriginalAndChangedFilter();
+        self.currentFilter = CurrentFilter::new(index);
+    }
+
+    fn notifyActiveFilterSwitched(&self, index: FilterIndex)
+    {
+        self.sender.send((Source::CommitLogFilters, Event::ActiveFilterSwitched(index))).unwrap();
+    }
+
     fn notifyFilterAdded(&self, name: &str)
     {
         self.sender.send((Source::CommitLogFilters, Event::FilterAdded(name.into()))).unwrap();
@@ -123,11 +141,11 @@ impl CommitLogFilters
             .unwrap();
     }
 
-    fn notifyActiveFilterSwitched(&self)
+    fn notifyActiveFilterDataSwitched(&self)
     {
         self.sender.send((
             Source::CommitLogFilters,
-            Event::ActiveFilterSwitched(self.filters[self.currentFilter.index].authorFilter.clone())))
+            Event::ActiveFilterDataSwitched(self.filters[self.currentFilter.index].authorFilter.clone())))
             .unwrap();
     }
 }

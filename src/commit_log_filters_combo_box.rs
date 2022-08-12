@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
+use crate::event::{Event, FilterIndex, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 
 use gtk::prelude::ComboBoxExtManual;
@@ -19,7 +19,8 @@ impl IEventHandler for CommitLogFiltersComboBox
     fn handle(&mut self, source: Source, event: &Event)
     {
         match event {
-            Event::FilterAdded(name) => self.onFilterAdded(name),
+            Event::ActiveFilterSwitched(index) => self.onActiveFilterSwitched(*index),
+            Event::FilterAdded(name)           => self.onFilterAdded(name),
             _ => handleUnknown(source, event)
         }
     }
@@ -47,10 +48,15 @@ impl CommitLogFiltersComboBox
         Self{widget, filterNames}
     }
 
+    fn onActiveFilterSwitched(&self, index: FilterIndex)
+    {
+        self.widget.set_active(Some(index.try_to::<u32>().unwrap()));
+    }
+
     fn onFilterAdded(&mut self, name: &str)
     {
         self.filterNames.push(name.into());
         self.widget.append_text(name);
-        self.widget.set_active(Some(self.filterNames.len().try_to::<u32>().unwrap()-1))
+        self.widget.set_active(Some(self.filterNames.len().try_to::<u32>().unwrap()-1));
     }
 }

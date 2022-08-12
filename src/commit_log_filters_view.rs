@@ -18,8 +18,8 @@ impl IEventHandler for CommitLogFiltersView
     fn handle(&mut self, source: Source, event: &Event)
     {
         match event {
-            Event::ActiveFilterSwitched(filter) => self.onActiveFilterSwitched(filter),
-            Event::Toggled(isEnabled)           => self.onToggled(*isEnabled),
+            Event::ActiveFilterDataSwitched(filter) => self.onActiveFilterSwitched(filter),
+            Event::Toggled(isEnabled)               => self.onToggled(*isEnabled),
             _ => handleUnknown(source, event)
         }
     }
