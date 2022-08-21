@@ -121,6 +121,7 @@ impl Default for CommitLogFilters
             active: 0,
             filters: vec![CommitLogFilter{
                 name: "No filter".into(),
+                summaryFilter: SummaryFilter::default(),
                 authorFilter: AuthorFilter::default()
             }]
         }
@@ -131,11 +132,16 @@ impl Default for CommitLogFilters
 pub(crate) struct CommitLogFilter
 {
     pub name: String,
-    pub authorFilter: AuthorFilter
+    #[serde(default)]
+    pub summaryFilter: SummaryFilter,
+    pub authorFilter: AuthorFilter,
 }
 
+pub(crate) type SummaryFilter = TextFilter;
+pub(crate) type AuthorFilter = TextFilter;
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub(crate) struct AuthorFilter
+pub(crate) struct TextFilter
 {
     pub pattern: String,
     pub caseSensitive: bool,

@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use regex::{Regex, RegexBuilder};
 
 
@@ -22,7 +22,7 @@ impl TextFilter
         Self{caseSensitive: false, regexState: RegexState::Disabled{text: String::new()}}
     }
 
-    pub(crate) fn setText(&mut self, newText: &str) -> Result<()>
+    pub(crate) fn setText(&mut self, newText: &str) -> Result<(), regex::Error>
     {
         match &mut self.regexState {
             RegexState::Disabled{text} => *text = newText.into(),
@@ -31,7 +31,7 @@ impl TextFilter
                     Ok(newRegex) => self.regexState = RegexState::Valid{regex: newRegex},
                     Err(e) => {
                         *text = newText.into();
-                        bail!(e)
+                        return Err(e);
                     }
                 }
             },
@@ -40,7 +40,7 @@ impl TextFilter
                     Ok(newRegex) => *regex = newRegex,
                     Err(e) => {
                         self.regexState = RegexState::Invalid{text: newText.into()};
-                        bail!(e)
+                        return Err(e);
                     }
                 }
             }
@@ -48,18 +48,23 @@ impl TextFilter
         Ok(())
     }
 
-    pub(crate) fn setCaseSensitivityEnabled(&mut self, shouldEnable: bool) -> Result<()>
+    pub(crate) fn setCaseSensitivityEnabled(&mut self, shouldEnable: bool) -> Result<(), regex::Error>
     {
         self.caseSensitive = shouldEnable;
         match &mut self.regexState {
             RegexState::Disabled{..} => (),
-            RegexState::Invalid{..} => bail!(""),
+            RegexState::Invalid{text} => {
+                match RegexBuilder::new(text).case_insensitive(!shouldEnable).build() {
+                    Ok(newRegex) => self.regexState = RegexState::Valid{regex: newRegex},
+                    Err(e) => return Err(e)
+                }
+            }
             RegexState::Valid{regex} => {
                 match RegexBuilder::new(regex.as_str()).case_insensitive(!shouldEnable).build() {
                     Ok(newRegex) => self.regexState = RegexState::Valid{regex: newRegex},
                     Err(e) => {
                         self.regexState = RegexState::Invalid{text: regex.as_str().into()};
-                        bail!(e)
+                        return Err(e);
                     }
                 }
             }
@@ -67,7 +72,7 @@ impl TextFilter
         Ok(())
     }
 
-    pub(crate) fn setRegexEnabled(&mut self, shouldEnable: bool) -> Result<()>
+    pub(crate) fn setRegexEnabled(&mut self, shouldEnable: bool) -> Result<(), regex::Error>
     {
         if shouldEnable {
             match &mut self.regexState {
@@ -76,7 +81,7 @@ impl TextFilter
                         Ok(regex) => self.regexState = RegexState::Valid{regex},
                         Err(e) => {
                             self.regexState = RegexState::Invalid{text: text.clone()};
-                            bail!(e)
+                            return Err(e);
                         }
                     }
                 },

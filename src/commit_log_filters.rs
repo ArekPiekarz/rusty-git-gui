@@ -1,4 +1,4 @@
-use crate::config::{AuthorFilter, CommitLogFilter, Config};
+use crate::config::{AuthorFilter, CommitLogFilter, Config, SummaryFilter};
 use crate::event::{Event, FilterIndex, handleUnknown, IEventHandler, Sender, Source};
 
 use itertools::Itertools;
@@ -18,11 +18,14 @@ impl IEventHandler for CommitLogFilters
         use Source as S;
         use Event as E;
         match (source, event) {
-            (S::CommitLogAuthorFilterCaseButton,  E::Toggled(isEnabled))        => self.onCaseButtonToggled(*isEnabled),
-            (S::CommitLogAuthorFilterRegexButton, E::Toggled(isEnabled))        => self.onRegexButtonToggled(*isEnabled),
-            (_,                                   E::ActiveFilterChosen(index)) => self.onActiveFilterChosen(*index),
-            (_,                                   E::FilterNameChosen(name))    => self.onFilterNameChosen(name),
-            (_,                                   E::TextEntered(text))         => self.onTextEntered(text),
+            (S::CommitLogAuthorFilterCaseButton,   E::Toggled(isEnabled))        => self.onAuthorCaseButtonToggled(*isEnabled),
+            (S::CommitLogAuthorFilterEntry,        E::TextEntered(text))         => self.onAuthorTextEntered(text),
+            (S::CommitLogAuthorFilterRegexButton,  E::Toggled(isEnabled))        => self.onAuthorRegexButtonToggled(*isEnabled),
+            (S::CommitLogSummaryFilterCaseButton,  E::Toggled(isEnabled))        => self.onSummaryCaseButtonToggled(*isEnabled),
+            (S::CommitLogSummaryFilterEntry,       E::TextEntered(text))         => self.onSummaryTextEntered(text),
+            (S::CommitLogSummaryFilterRegexButton, E::Toggled(isEnabled))        => self.onSummaryRegexButtonToggled(*isEnabled),
+            (_,                                    E::ActiveFilterChosen(index)) => self.onActiveFilterChosen(*index),
+            (_,                                    E::FilterNameChosen(name))    => self.onFilterNameChosen(name),
             _ => handleUnknown(source, event)
         }
     }
@@ -51,7 +54,7 @@ impl CommitLogFilters
         self.notifyFiltersUpdated();
     }
 
-    fn onCaseButtonToggled(&mut self, isEnabled: bool)
+    fn onAuthorCaseButtonToggled(&mut self, isEnabled: bool)
     {
         if self.filters[self.currentFilter.index].authorFilter.caseSensitive == isEnabled {
             self.currentFilter.authorFilterChanges.caseSensitive = None;
@@ -60,12 +63,48 @@ impl CommitLogFilters
         }
     }
 
-    fn onRegexButtonToggled(&mut self, isEnabled: bool)
+    fn onAuthorRegexButtonToggled(&mut self, isEnabled: bool)
     {
         if self.filters[self.currentFilter.index].authorFilter.usesRegex == isEnabled {
             self.currentFilter.authorFilterChanges.usesRegex = None;
         } else {
             self.currentFilter.authorFilterChanges.usesRegex = Some(isEnabled);
+        }
+    }
+
+    fn onAuthorTextEntered(&mut self, text: &str)
+    {
+        if self.filters[self.currentFilter.index].authorFilter.pattern == text {
+            self.currentFilter.authorFilterChanges.pattern = None;
+        } else {
+            self.currentFilter.authorFilterChanges.pattern = Some(text.into());
+        }
+    }
+
+    fn onSummaryCaseButtonToggled(&mut self, isEnabled: bool)
+    {
+        if self.filters[self.currentFilter.index].summaryFilter.caseSensitive == isEnabled {
+            self.currentFilter.summaryFilterChanges.caseSensitive = None;
+        } else {
+            self.currentFilter.summaryFilterChanges.caseSensitive = Some(isEnabled);
+        }
+    }
+
+    fn onSummaryRegexButtonToggled(&mut self, isEnabled: bool)
+    {
+        if self.filters[self.currentFilter.index].summaryFilter.usesRegex == isEnabled {
+            self.currentFilter.summaryFilterChanges.usesRegex = None;
+        } else {
+            self.currentFilter.summaryFilterChanges.usesRegex = Some(isEnabled);
+        }
+    }
+
+    fn onSummaryTextEntered(&mut self, text: &str)
+    {
+        if self.filters[self.currentFilter.index].summaryFilter.pattern == text {
+            self.currentFilter.summaryFilterChanges.pattern = None;
+        } else {
+            self.currentFilter.summaryFilterChanges.pattern = Some(text.into());
         }
     }
 
@@ -89,36 +128,42 @@ impl CommitLogFilters
         }
     }
 
-    fn onTextEntered(&mut self, text: &str)
-    {
-        if self.filters[self.currentFilter.index].authorFilter.pattern == text {
-            self.currentFilter.authorFilterChanges.pattern = None;
-        } else {
-            self.currentFilter.authorFilterChanges.pattern = Some(text.into());
-        }
-    }
-
     fn addFilter(&mut self, name: &str)
     {
-        let newFilter = CommitLogFilter{name: name.into(), authorFilter: self.mergeOriginalAndChangedFilter()};
+        let newFilter = CommitLogFilter{
+            name: name.into(),
+            summaryFilter: self.mergeOriginalAndChangedSummaryFilter(),
+            authorFilter: self.mergeOriginalAndChangedAuthorFilter()};
         self.filters.push(newFilter);
         self.currentFilter = CurrentFilter::new(self.filters.len()-1);
     }
 
-    fn mergeOriginalAndChangedFilter(&self) -> AuthorFilter
+    fn mergeOriginalAndChangedSummaryFilter(&self) -> SummaryFilter
+    {
+        let baseFilter = &self.filters[self.currentFilter.index].summaryFilter;
+        let filterChanges = &self.currentFilter.summaryFilterChanges;
+        SummaryFilter{
+            pattern: filterChanges.pattern.as_ref().unwrap_or(&baseFilter.pattern).into(),
+            caseSensitive: filterChanges.caseSensitive.unwrap_or(baseFilter.caseSensitive),
+            usesRegex: filterChanges.usesRegex.unwrap_or(baseFilter.usesRegex)
+        }
+    }
+
+    fn mergeOriginalAndChangedAuthorFilter(&self) -> AuthorFilter
     {
         let baseFilter = &self.filters[self.currentFilter.index].authorFilter;
-        let authorFilterChanges = &self.currentFilter.authorFilterChanges;
+        let filterChanges = &self.currentFilter.authorFilterChanges;
         AuthorFilter{
-            pattern: authorFilterChanges.pattern.as_ref().unwrap_or(&baseFilter.pattern).into(),
-            caseSensitive: authorFilterChanges.caseSensitive.unwrap_or(baseFilter.caseSensitive),
-            usesRegex: authorFilterChanges.usesRegex.unwrap_or(baseFilter.usesRegex)
+            pattern: filterChanges.pattern.as_ref().unwrap_or(&baseFilter.pattern).into(),
+            caseSensitive: filterChanges.caseSensitive.unwrap_or(baseFilter.caseSensitive),
+            usesRegex: filterChanges.usesRegex.unwrap_or(baseFilter.usesRegex)
         }
     }
 
     fn updateFilter(&mut self, index: FilterIndex)
     {
-        self.filters[index].authorFilter = self.mergeOriginalAndChangedFilter();
+        self.filters[index].summaryFilter = self.mergeOriginalAndChangedSummaryFilter();
+        self.filters[index].authorFilter = self.mergeOriginalAndChangedAuthorFilter();
         self.currentFilter = CurrentFilter::new(index);
     }
 
@@ -153,25 +198,29 @@ impl CommitLogFilters
 struct CurrentFilter
 {
     index: usize,
-    authorFilterChanges: AuthorFilterChanges
+    summaryFilterChanges: SummaryFilterChanges,
+    authorFilterChanges: AuthorFilterChanges,
 }
 
 impl CurrentFilter
 {
     fn new(index: FilterIndex) -> Self
     {
-        Self{index, authorFilterChanges: AuthorFilterChanges::new()}
+        Self{index, summaryFilterChanges: SummaryFilterChanges::new(), authorFilterChanges: AuthorFilterChanges::new()}
     }
 }
 
-struct AuthorFilterChanges
+type SummaryFilterChanges = TextFilterChanges;
+type AuthorFilterChanges = TextFilterChanges;
+
+struct TextFilterChanges
 {
     pattern: Option<String>,
     caseSensitive: Option<bool>,
     usesRegex: Option<bool>
 }
 
-impl AuthorFilterChanges
+impl TextFilterChanges
 {
     fn new() -> Self
     {

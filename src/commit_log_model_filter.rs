@@ -3,7 +3,7 @@ use crate::event::{Event, handleUnknown, IEventHandler, Sender, Source};
 use crate::gui_element_provider::GuiElementProvider;
 use crate::text_filter::TextFilter;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use gtk::traits::TreeModelExt;
 use gtk::traits::TreeModelFilterExt;
 use std::cell::RefCell;
@@ -13,7 +13,10 @@ use std::rc::Rc;
 pub(crate) struct CommitLogModelFilter
 {
     modelFilter: gtk::TreeModelFilter,
-    authorFilter: Rc<RefCell<TextFilter>>,
+    summaryFilter: SummaryFilter,
+    authorFilter: AuthorFilter,
+    summaryError: Option<regex::Error>,
+    authorError: Option<regex::Error>,
     sender: Sender,
     state: State
 }
@@ -23,10 +26,13 @@ impl IEventHandler for CommitLogModelFilter
     fn handle(&mut self, source: Source, event: &Event)
     {
         match (source, event) {
-            (_, Event::RefilterRequested)   => self.onRefilterRequested(),
-            (_, Event::TextEntered(filter)) => self.onCommitAuthorFilterChanged(filter),
-            (Source::CommitLogAuthorFilterCaseButton,  Event::Toggled(shouldEnable)) => self.onCaseSensitivityToggled(*shouldEnable),
-            (Source::CommitLogAuthorFilterRegexButton, Event::Toggled(shouldEnable)) => self.onRegexToggled(*shouldEnable),
+            (_,                                         Event::RefilterRequested)     => self.onRefilterRequested(),
+            (Source::CommitLogAuthorFilterEntry,        Event::TextEntered(text))     => self.onAuthorTextChanged(text),
+            (Source::CommitLogAuthorFilterCaseButton,   Event::Toggled(shouldEnable)) => self.onAuthorCaseSensitivityToggled(*shouldEnable),
+            (Source::CommitLogAuthorFilterRegexButton,  Event::Toggled(shouldEnable)) => self.onAuthorRegexToggled(*shouldEnable),
+            (Source::CommitLogSummaryFilterEntry,       Event::TextEntered(text))     => self.onSummaryTextChanged(text),
+            (Source::CommitLogSummaryFilterCaseButton,  Event::Toggled(shouldEnable)) => self.onSummaryCaseSensitivityToggled(*shouldEnable),
+            (Source::CommitLogSummaryFilterRegexButton, Event::Toggled(shouldEnable)) => self.onSummaryRegexToggled(*shouldEnable),
             _ => handleUnknown(source, event)
         }
     }
@@ -38,55 +44,107 @@ impl CommitLogModelFilter
         -> Self
     {
         let modelFilter = guiElementProvider.get::<gtk::TreeModelFilter>("Commit log store filter");
+        let summaryFilter = Rc::new(RefCell::new(TextFilter::new()));
         let authorFilter = Rc::new(RefCell::new(TextFilter::new()));
-        setupFilterFunction(&modelFilter, Rc::clone(&authorFilter));
-        Self{modelFilter, authorFilter, sender, state: State::Success}
+        setupFilterFunction(&modelFilter, Rc::clone(&summaryFilter), Rc::clone(&authorFilter));
+        Self{
+            modelFilter,
+            summaryFilter,
+            authorFilter,
+            summaryError: None,
+            authorError: None,
+            sender,
+            state: State::Success
+        }
     }
 
 
     // private
 
-    fn onCommitAuthorFilterChanged(&mut self, text: &str)
+    fn onAuthorTextChanged(&mut self, text: &str)
     {
         let result = self.authorFilter.borrow_mut().setText(text);
-        self.handleChangeResult(result);
+        self.handleChangeResult(result, FilterKind::Author);
     }
 
-    fn onCaseSensitivityToggled(&mut self, shouldEnable: bool)
+    fn onAuthorCaseSensitivityToggled(&mut self, shouldEnable: bool)
     {
         let result = self.authorFilter.borrow_mut().setCaseSensitivityEnabled(shouldEnable);
-        self.handleChangeResult(result);
+        self.handleChangeResult(result, FilterKind::Author);
     }
 
-    fn onRegexToggled(&mut self, shouldEnable: bool)
+    fn onAuthorRegexToggled(&mut self, shouldEnable: bool)
     {
         let result = self.authorFilter.borrow_mut().setRegexEnabled(shouldEnable);
-        self.handleChangeResult(result);
+        self.handleChangeResult(result, FilterKind::Author);
     }
 
-    fn handleChangeResult(&mut self, result: Result<()>)
+    fn onSummaryTextChanged(&mut self, text: &str)
+    {
+        let result = self.summaryFilter.borrow_mut().setText(text);
+        self.handleChangeResult(result, FilterKind::Summary);
+    }
+
+    fn onSummaryCaseSensitivityToggled(&mut self, shouldEnable: bool)
+    {
+        let result = self.summaryFilter.borrow_mut().setCaseSensitivityEnabled(shouldEnable);
+        self.handleChangeResult(result, FilterKind::Summary);
+    }
+
+    fn onSummaryRegexToggled(&mut self, shouldEnable: bool)
+    {
+        let result = self.summaryFilter.borrow_mut().setRegexEnabled(shouldEnable);
+        self.handleChangeResult(result, FilterKind::Summary);
+    }
+
+    fn handleChangeResult(&mut self, result: Result<(), regex::Error>, filterKind: FilterKind)
     {
         match result {
-            Ok(()) => self.onChangeSucceeded(),
-            Err(e) => self.onChangeFailed(e)
+            Ok(()) => self.onChangeSucceeded(filterKind),
+            Err(e) => self.onChangeFailed(e, filterKind)
         }
     }
 
-    fn onChangeSucceeded(&mut self)
+    fn onChangeSucceeded(&mut self, filterKind: FilterKind)
     {
         if self.state == State::Failure {
             self.state = State::Success;
-            self.sendValidTextInputted();
+            match filterKind {
+                FilterKind::Summary => {
+                    self.summaryError = None;
+                    self.sendValidSummaryTextInputted();
+                },
+                FilterKind::Author => {
+                    self.authorError = None;
+                    self.sendValidAuthorTextInputted();
+                }
+            }
         }
         self.requestRefilter();
     }
 
-    fn onChangeFailed(&mut self, error: Error)
+    fn onChangeFailed(&mut self, error: regex::Error, filterKind: FilterKind)
     {
         if self.state == State::Success {
             self.state = State::Failure;
-            self.sendInvalidTextInputted(error);
         }
+
+        match filterKind {
+            FilterKind::Summary => {
+                if self.summaryError.as_ref() == Some(&error) {
+                    return;
+                }
+                self.summaryError = Some(error.clone());
+                self.sendInvalidSummaryTextInputted(error);
+            },
+            FilterKind::Author => {
+                if self.authorError.as_ref() == Some(&error) {
+                    return;
+                }
+                self.authorError = Some(error.clone());
+                self.sendInvalidAuthorTextInputted(error);
+            }
+        };
     }
 
     fn requestRefilter(&self)
@@ -100,16 +158,50 @@ impl CommitLogModelFilter
         self.sender.send((Source::CommitLogModelFilter, Event::RefilterEnded)).unwrap();
     }
 
-    fn sendValidTextInputted(&self)
+    fn sendValidSummaryTextInputted(&self)
     {
-        self.sender.send((Source::CommitLogModelFilter, Event::ValidTextInputted)).unwrap();
+        self.sender.send((Source::CommitLogModelFilter, Event::ValidSummaryTextInputted)).unwrap();
     }
 
-    fn sendInvalidTextInputted(&self, error: Error)
+    fn sendValidAuthorTextInputted(&self)
     {
-        self.sender.send((Source::CommitLogModelFilter, Event::InvalidTextInputted(error))).unwrap();
+        self.sender.send((Source::CommitLogModelFilter, Event::ValidAuthorTextInputted)).unwrap();
+    }
+
+    fn sendInvalidSummaryTextInputted(&self, error: regex::Error)
+    {
+        self.sender.send((Source::CommitLogModelFilter, Event::InvalidSummaryTextInputted(error))).unwrap();
+    }
+
+    fn sendInvalidAuthorTextInputted(&self, error: regex::Error)
+    {
+        self.sender.send((Source::CommitLogModelFilter, Event::InvalidAuthorTextInputted(error))).unwrap();
     }
 }
+
+fn setupFilterFunction(modelFilter: &gtk::TreeModelFilter, summaryFilter: SummaryFilter, authorFilter: AuthorFilter)
+{
+    modelFilter.set_visible_func(move |model, iter| {
+        isMatch(&summaryFilter, CommitLogColumn::Summary, model, iter)
+            && isMatch(&authorFilter, CommitLogColumn::Author, model, iter)
+    });
+}
+
+fn isMatch(filter: &Rc<RefCell<TextFilter>>, column: CommitLogColumn, model: &gtk::TreeModel, iter: &gtk::TreeIter)
+    -> bool
+{
+    let filter = &*filter.borrow();
+    if filter.isEmpty() {
+        return true;
+    }
+
+    let value = model.value(iter, column.into());
+    let text = value.get::<&str>().unwrap();
+    filter.isMatch(text)
+}
+
+type SummaryFilter = Rc<RefCell<TextFilter>>;
+type AuthorFilter = Rc<RefCell<TextFilter>>;
 
 #[derive(Eq, PartialEq)]
 enum State
@@ -118,16 +210,8 @@ enum State
     Failure
 }
 
-fn setupFilterFunction(modelFilter: &gtk::TreeModelFilter, authorFilter: Rc<RefCell<TextFilter>>)
+enum FilterKind
 {
-    modelFilter.set_visible_func(move |model, iter| {
-        let authorFilter = &*authorFilter.borrow();
-        if authorFilter.isEmpty() {
-            return true;
-        }
-
-        let author = model.value(iter, CommitLogColumn::Author.into());
-        let author = author.get::<&str>().unwrap();
-        authorFilter.isMatch(author)
-    });
+    Summary,
+    Author
 }

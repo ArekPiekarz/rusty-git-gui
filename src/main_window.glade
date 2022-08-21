@@ -503,7 +503,7 @@
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <!-- n-columns=4 n-rows=1 -->
+                  <!-- n-columns=4 n-rows=2 -->
                   <object class="GtkGrid" id="Commit log filters grid">
                     <property name="name">Commit log filters grid</property>
                     <property name="can-focus">False</property>
@@ -515,6 +515,21 @@
                         <property name="margin-top">4</property>
                         <property name="margin-bottom">4</property>
                         <property name="label" translatable="yes">Author:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-left">4</property>
+                        <property name="margin-right">4</property>
+                        <property name="margin-top">4</property>
+                        <property name="margin-bottom">4</property>
+                        <property name="label" translatable="yes">Summary:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -530,20 +545,17 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkToggleButton" id="Commit log author filter regex button">
-                        <property name="label" translatable="yes">.*</property>
-                        <property name="name">Commit log author filter regex button</property>
+                      <object class="GtkEntry" id="Commit log summary filter entry">
+                        <property name="name">Commit log summary filter entry</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Regular expressions</property>
                       </object>
                       <packing>
-                        <property name="left-attach">3</property>
+                        <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
                       </packing>
                     </child>
@@ -558,6 +570,46 @@
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="Commit log summary filter case button">
+                        <property name="label" translatable="yes">Aa</property>
+                        <property name="name">Commit log summary filter case button</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="Commit log author filter regex button">
+                        <property name="label" translatable="yes">.*</property>
+                        <property name="name">Commit log author filter regex button</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Regular expressions</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="Commit log summary filter regex button">
+                        <property name="label" translatable="yes">.*</property>
+                        <property name="name">Commit log summary filter regex button</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">0</property>
                       </packing>
                     </child>

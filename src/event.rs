@@ -3,7 +3,6 @@ use crate::config::{AuthorFilter, CommitLogFilters};
 use crate::file_change::{FileChange, FileChangeUpdate};
 use crate::pane::PanePosition;
 
-use anyhow::Error;
 use gtk::{gdk, glib};
 
 
@@ -76,7 +75,7 @@ pub(crate) enum Event
 
     // text entry
     TextEntered(String),
-    InvalidTextInputted(Error),
+    InvalidTextInputted(regex::Error),
     ValidTextInputted,
 
     // commit log filters
@@ -88,6 +87,12 @@ pub(crate) enum Event
     FiltersUpdated(CommitLogFilters),
     OpenDialogRequested,
     DialogResponded(gtk::ResponseType),
+
+    // commit log filters text entries
+    InvalidSummaryTextInputted(regex::Error),
+    InvalidAuthorTextInputted(regex::Error),
+    ValidSummaryTextInputted,
+    ValidAuthorTextInputted,
 }
 
 type IsEnabled = bool;
@@ -111,6 +116,9 @@ pub(crate) enum Source
     CommitLogSaveFilterDialog,
     CommitLogSaveFilterDialogWidget,
     CommitLogShowFilterButton,
+    CommitLogSummaryFilterCaseButton,
+    CommitLogSummaryFilterEntry,
+    CommitLogSummaryFilterRegexButton,
     CommitLogView,
     CommitLogViewWidget,
     CommitMessageView,
