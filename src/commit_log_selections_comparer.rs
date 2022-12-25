@@ -52,8 +52,7 @@ fn getSelectedOriginalRow(selection: &gtk::TreeSelection) -> Option<OriginalRow>
 {
     match selection.selected() {
         Some((model, iter)) => {
-            let row = model.value(&iter, CommitLogColumn::OriginalRow.into()).get::<OriginalRow>().unwrap()
-                .try_into().unwrap();
+            let row = model.value(&iter, CommitLogColumn::OriginalRow.into()).get::<OriginalRow>().unwrap();
             Some(row)
         },
         None => None

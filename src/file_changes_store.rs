@@ -225,7 +225,7 @@ impl IFileChangesStore for FileChangesStore
     fn findFilePath(&self, path: &FilePathStr) -> Option<usize>
     {
         self.fileChanges.iter().enumerate().find_map(
-            |(index, fileChange)| (fileChange.path == path).then(|| index))
+            |(index, fileChange)| (fileChange.path == path).then_some(index))
     }
 }
 

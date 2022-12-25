@@ -77,7 +77,7 @@ impl TextFilter
         if shouldEnable {
             match &mut self.regexState {
                 RegexState::Disabled{text} => {
-                    match RegexBuilder::new(&text).case_insensitive(!self.caseSensitive).build() {
+                    match RegexBuilder::new(text).case_insensitive(!self.caseSensitive).build() {
                         Ok(regex) => self.regexState = RegexState::Valid{regex},
                         Err(e) => {
                             self.regexState = RegexState::Invalid{text: text.clone()};

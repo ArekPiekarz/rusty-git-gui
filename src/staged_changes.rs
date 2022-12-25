@@ -12,7 +12,7 @@ impl StagedChanges
 {
     pub const fn new() -> Self
     {
-        Self{0: vec![]}
+        Self(vec![])
     }
 }
 

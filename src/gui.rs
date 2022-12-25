@@ -101,8 +101,8 @@ impl Gui
         let commitButton = CommitButton::new(
             &guiElementProvider, commitMessageReader, Rc::clone(&repository), sender.clone());
 
-        let commitLogFilters = CommitLogFilters::new(&config, sender.clone());
-        let commitLogFiltersComboBox = CommitLogFiltersComboBox::new(&guiElementProvider, &config, sender.clone());
+        let commitLogFilters = CommitLogFilters::new(config, sender.clone());
+        let commitLogFiltersComboBox = CommitLogFiltersComboBox::new(&guiElementProvider, config, sender.clone());
         let commitLogFiltersView = CommitLogFiltersView::new(&guiElementProvider);
         let commitLogModelFilter = CommitLogModelFilter::new(&guiElementProvider, sender.clone());
         let commitLog = CommitLog::new(&repository.borrow());

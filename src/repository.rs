@@ -380,7 +380,7 @@ impl Repository
         {
             let parent = self.findParentOfHeadCommit();
             let parentObject = parent.map(git2::Commit::into_object);
-            self.gitRepo.reset_default(parentObject.as_ref(), &[&fileChange.path])
+            self.gitRepo.reset_default(parentObject.as_ref(), [&fileChange.path])
                 .unwrap_or_else(|e| exit(&format!("Failed to unstage file {}, error: {}", fileChange.path, e)));
         }
 
