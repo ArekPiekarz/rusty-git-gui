@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.72", default-features = false, features = ["backtrace", "std"] }
-color-backtrace = { version = "0.5.1", default-features = false, optional = true }
+color-backtrace = { version = "0.6.0", default-features = false, optional = true }
 dirs = { version = "5.0.1", default-features = false }
 git2 = { version = "0.17.2", default-features = false }
 gtk = { version = "0.17.1", default-features = false }
