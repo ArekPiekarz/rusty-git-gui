@@ -1,2 +1,4 @@
-pub(crate) const CONSUME_EVENT: gtk::Inhibit = gtk::Inhibit(true);
-pub(crate) const FORWARD_EVENT: gtk::Inhibit = gtk::Inhibit(false);
+use gtk::glib;
+
+pub(crate) const CONSUME_EVENT: glib::Propagation = glib::Propagation::Stop;
+pub(crate) const FORWARD_EVENT: glib::Propagation = glib::Propagation::Proceed;

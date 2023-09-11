@@ -266,7 +266,7 @@ fn setupDispatching(gui: GuiObjects, mut repository: Rc<RefCell<Repository>>, re
         (S::UnstagedChangesView,               E::StageRequested(_))             => repository.handle(source, &event),
         (source, event) => handleUnknown(source, event) }
 
-        glib::Continue(true)
+        glib::ControlFlow::Continue
     });
 }
 

@@ -77,7 +77,7 @@ impl DiffView
     fn onUnstagedChangeSelected(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
-            "WT_RENAMED" => self.onFileChangeSelected(
+            "Status(WT_RENAMED)" => self.onFileChangeSelected(
                 fileChange, makeDiffForUnstagedRenamedFile, DisplayedFileChange::Unstaged),
             _ => self.onFileChangeSelected(
                 fileChange, makeDiffForUnstagedChange, DisplayedFileChange::Unstaged)
@@ -87,7 +87,7 @@ impl DiffView
     fn onStagedChangeSelected(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
-            "INDEX_RENAMED" => {
+            "Status(INDEX_RENAMED)" => {
                 self.onFileChangeSelected(fileChange, makeDiffForStagedRenamedFile, DisplayedFileChange::Staged);
             },
             _ => self.onFileChangeSelected(fileChange, self.stagedChangeDiffMaker, DisplayedFileChange::Staged)
@@ -165,7 +165,7 @@ impl DiffView
     fn onUnstagedChangeRefreshed(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
-            "WT_RENAMED" => self.onFileChangeRefreshed(
+            "Status(WT_RENAMED)" => self.onFileChangeRefreshed(
                 fileChange, makeDiffForUnstagedRenamedFile, DisplayedFileChange::Unstaged),
             _ => self.onFileChangeRefreshed(
                 fileChange, makeDiffForUnstagedChange, DisplayedFileChange::Unstaged)

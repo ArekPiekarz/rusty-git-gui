@@ -303,8 +303,8 @@ impl Repository
     pub fn stageNormally(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
-            "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
-            "WT_RENAMED" => {
+            "Status(WT_DELETED)" => self.removePathFromIndex(&fileChange.path),
+            "Status(WT_RENAMED)" => {
                 self.addPathToIndex(&fileChange.path);
                 self.removePathFromIndex(fileChange.oldPath.as_ref().unwrap());
             }
@@ -329,7 +329,7 @@ impl Repository
     pub fn stageToAmend(&mut self, fileChange: &FileChange)
     {
         match fileChange.status.as_str() {
-            "WT_DELETED" => self.removePathFromIndex(&fileChange.path),
+            "Status(WT_DELETED)" => self.removePathFromIndex(&fileChange.path),
             _ => self.addPathToIndex(&fileChange.path)
         }
 

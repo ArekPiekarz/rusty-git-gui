@@ -243,7 +243,7 @@ impl TextView
     }
 }
 
-fn onScrolled(event: &gdk::EventScroll, sender: &Sender, source: Source) -> gtk::Inhibit
+fn onScrolled(event: &gdk::EventScroll, sender: &Sender, source: Source) -> glib::Propagation
 {
     if !event.state().contains(gdk::ModifierType::CONTROL_MASK) {
         return FORWARD_EVENT;
