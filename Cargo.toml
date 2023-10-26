@@ -6,18 +6,18 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.75", default-features = false, features = ["backtrace", "std"] }
-color-backtrace = { version = "0.6.0", default-features = false, optional = true }
+color-backtrace = { version = "0.6.1", default-features = false, optional = true }
 dirs = { version = "5.0.1", default-features = false }
-git2 = { version = "0.18.0", default-features = false }
+git2 = { version = "0.18.1", default-features = false }
 gtk = { version = "0.18.1", default-features = false }
 itertools = { version = "0.11.0", default-features = false, features = ["use_std"] }
-regex = "1.9.5"
-serde = { version ="1.0.188", default-features = false, features = ["derive"] }
-similar = {version = "2.2.1", default-features = false, features = ["text"] }
-termcolor = { version = "1.2.0", default-features = false, optional = true }
-time = { version = "0.3.28", default-features = false, features = ["formatting", "macros"] }
+regex = "1.10.2"
+serde = { version ="1.0.190", default-features = false, features = ["derive"] }
+similar = {version = "2.3.0", default-features = false, features = ["text"] }
+termcolor = { version = "1.3.0", default-features = false, optional = true }
+time = { version = "0.3.30", default-features = false, features = ["formatting", "macros"] }
 to_trait = { version = "0.1.1", default-features = false }
-toml = { version = "0.7.8", default-features = false, features = ["display", "parse"] }
+toml = { version = "0.8.4", default-features = false, features = ["display", "parse"] }
 
 [dev-dependencies]
 gtk-test = {version = "0.18.0", default-features = false }
