@@ -232,12 +232,10 @@ impl IFileChangesStore for FileChangesStore
 fn formatStatus(status: &str) -> &str
 {
     match status {
-        "Status(WT_NEW)" | "Status(INDEX_NEW)" => "New",
-        "Status(WT_MODIFIED)" | "Status(INDEX_MODIFIED)" => "Modified",
-        "Status(WT_DELETED)" | "Status(INDEX_DELETED)" => "Deleted",
+        "Status(WT_NEW)" | "Status(INDEX_NEW)" | "Added" => "New",
+        "Status(WT_MODIFIED)" | "Status(INDEX_MODIFIED)" | "Modified" => "Modified",
+        "Status(WT_DELETED)" | "Status(INDEX_DELETED)" | "Deleted" => "Deleted",
         "Status(WT_RENAMED)" | "Status(INDEX_RENAMED)" => "Renamed",
-        "Added" => "New",
-        "Modified" => "Modified",
         _ => panic!("Cannot format unknown status: {}", status)
     }
 }
